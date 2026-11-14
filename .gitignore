@@ -35,3 +35,29 @@ obj/
 *.log
 .DS_Store
 Thumbs.db
+
+# ==================== 非运行时内容（不入库） ====================
+# 只提交游戏运行所需的文件：场景、C# 脚本、tres、glb、shader、工程配置。
+# 以下类别属于开发期产物/证据，不入版本管理。
+
+# 截图与视觉证据（含 Godot 生成的 .import 伴随文件）
+.screenshots/
+/screenshots/
+doc/screenshots/
+**/screenshots/
+
+# Blender 工程文件与构建脚本（仅保留导出的 glb）
+art/blender/
+*.blend
+*.blend1
+*.blend2
+
+# 生成/构建用的 Python 脚本
+*.py
+
+# 开发期辅助工具脚本
+/tools/
+
+# 任务报告与中间产物（按日期归档的产出目录）
+/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/
+**/outputs/
