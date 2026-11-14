@@ -2,6 +2,7 @@
 
 - 生成日期：2026-11-14
 - 源目录：`e:\GodotProject\external-assets\NewAssets`（已整体移出工程；原 202 个文件 / 2,482.6 MiB）
+- 追加源目录：`e:\GodotProject\external-assets\NewAssets2`（第二轮评估后仅接入 `lowpolyweaponsset` 的突击步枪，见 §1.3）
 - 本轮范围：**只产出改造后的资产文件 + 本清单**。未修改任何场景（`.tscn`）、C# 玩法代码、`data/*.tres`，未做接线。
 
 ---
@@ -78,6 +79,39 @@
 | `MAT_Sniper_Grip` | (0.32, 0.26, 0.20) | 红 |
 | `MAT_Sniper_Accent` | (0.72, 0.52, 0.18) | 黄 |
 | `MAT_Sniper_Lens` | (0.80, 0.82, 0.84) | 白 |
+
+### 1.3 `WPN_AssaultRifle.glb` — 突击步枪（玩家第一人称 viewmodel）
+
+来源：`external-assets/NewAssets2/lowpolyweaponsset.blend` 的 `AssaultRifle_01` + `Magazine_01` + `Trigger_01`；**手套直接复用 `art/blender/WPN_P9.blend` 的现成分件**（只做平移，未重建）。构建脚本：[build_assault_rifle.py](file:///e:/GodotProject/super-hero/art/blender/build_assault_rifle.py)。
+
+| 项目 | 值 |
+|---|---|
+| 三角面 / 顶点 | **3,114 / 5,254**（Body 2,690 / Slide 48 / Mag 188 / HandL 72 / HandR 116；flat 着色按面分裂顶点） |
+| 尺寸 | 0.061 × **0.852** × 0.246 m（真实尺度，未缩放） |
+| 原点 | **握把中心**（与 `WPN_SMG / WPN_Shotgun / WPN_Sniper` 的握把基准一致）；枪口 +Y，导出后即 Godot 的 **−Z 前向** |
+| 节点树 | `Body`（根）／`SlidePivot → Slide`／`MagPivot → Mag`／`HandLPivot → HandL`／`HandRPivot → HandR` |
+| 枢轴位置（m） | `SlidePivot` (0, −0.122, −0.017) ／ `MagPivot` (0, 0.061, −0.087) ／ `HandLPivot` (−0.123, 0.188, −0.187) ／ `HandRPivot` (0.093, −0.06, −0.215) |
+| 可动件语义 | `Slide` = 拉机柄（机匣后上方分件，换弹时沿 −Y 后坐）；`Mag` = 原模型弹匣本体，枢轴在弹匣顶部，换弹时向下脱出 |
+| 材质 | 6 个纯色，**无贴图 / 无 UV / 无顶点色**；原 `Glass_01` 已改为不透明镜片色 |
+| 贴图 | 源文件 4 个近黑纯色 + 1 个玻璃，已全部替换（源文件本身零贴图） |
+
+**材质色值（`albedo_color`）**
+
+| 材质 | RGB | 用途 |
+|---|---|---|
+| `MAT_AR_Body` | (0.26, 0.27, 0.30) | 机匣、枪托、镜体 |
+| `MAT_AR_Trim` | (0.15, 0.15, 0.16) | 护木、导轨等深色件 |
+| `MAT_AR_Metal` | (0.39, 0.40, 0.43) | 枪管、前握把、拉机柄 |
+| `MAT_Mag` | (0.36, 0.37, 0.40) | 弹匣（与现役三把长枪同名同色） |
+| `MAT_Glove` | (0.16, 0.16, 0.17) | 手套（沿用 `WPN_P9.blend`） |
+| `MAT_AR_Lens` | (0.80, 0.82, 0.84) | 瞄准镜镜片（原玻璃改不透明） |
+
+| 项目 | 说明 |
+|---|---|
+| 建议用途 | 玩家第一人称第 5 把武器（突击步枪）；也可临时当敌兵持枪/场景道具 |
+| 建议接入位置 | `Player.tscn → Head/Camera3D/ViewModel/Weapon`：新增 `data/weapons/*.tres`（`WeaponData.Viewmodel` 指向本 GLB），由 `WeaponController` 实例化并挂 `ModelOutline`；`MuzzleOffset` 建议 ≈ `(0, 0.015, −0.55)`（枪口在原点前 0.533 m，留 17 mm 余量） |
+| 接线状态 | **未接线**（本轮按要求只产出资产；`.tres`、场景、C# 均未改） |
+| 与现有资产的关系 | 与 `WPN_SMG` 同构但更长（0.852 m）；`WPN_Sniper.glb` 仍是现役狙击 viewmodel，**不可被本文件覆盖** |
 
 ---
 
