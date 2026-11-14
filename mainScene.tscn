@@ -1,6 +1,31 @@
-[gd_scene format=3 uid="uid://dt73qj8orkdvo"]
+[gd_scene load_steps=6 format=3]
 
-[ext_resource type="Script" uid="uid://bi8mnkhbtx10m" path="res://MainScene.cs" id="1_iwpey"]
+[ext_resource type="Script" uid="uid://bi8mnkhbtx10m" path="res://MainScene.cs" id="1_main"]
+[ext_resource type="PackedScene" path="res://scenes/levels/MovementTest.tscn" id="2_level"]
+[ext_resource type="PackedScene" path="res://scenes/actors/Player.tscn" id="3_player"]
 
-[node name="Node3D" type="Node3D" unique_id=1701316359]
-script = ExtResource("1_iwpey")
+[sub_resource type="Environment" id="Env_Blockout"]
+background_mode = 1
+background_color = Color(0.42, 0.47, 0.54, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.75, 0.78, 0.82, 1)
+ambient_light_energy = 0.55
+
+[node name="MainScene" type="Node3D"]
+script = ExtResource("1_main")
+
+[node name="World" type="Node3D" parent="."]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="World"]
+environment = SubResource("Env_Blockout")
+
+[node name="Sun" type="DirectionalLight3D" parent="World"]
+transform = Transform3D(0.788, 0, 0.6157, 0.4716, 0.6428, -0.6036, -0.3958, 0.766, 0.5066, 0, 20, 0)
+shadow_enabled = true
+
+[node name="Level" parent="World" instance=ExtResource("2_level")]
+
+[node name="Actors" type="Node3D" parent="."]
+
+[node name="Player" parent="Actors" instance=ExtResource("3_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 20.2, 2)

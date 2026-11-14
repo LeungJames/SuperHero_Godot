@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="PlayerData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/player/PlayerData.cs" id="1_playerdata"]
+
+[resource]
+script = ExtResource("1_playerdata")
+MaxHealth = 100.0
+WalkSpeed = 4.8
+SprintSpeed = 6.2
+SlowWalkSpeed = 2.2
+JumpVelocity = 5.0
+Gravity = 18.0
+GroundAcceleration = 60.0
+GroundFriction = 50.0
+AirAcceleration = 12.0
+CoyoteTime = 0.12
+JumpBuffer = 0.1
+MouseSensitivity = 0.12
+FallSafeHeight = 4.0
+FallDamagePerMeter = 14.0
+LandingImpactSpeed = 6.0
