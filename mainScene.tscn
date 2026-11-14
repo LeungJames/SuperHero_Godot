@@ -1,7 +1,7 @@
 [gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" uid="uid://bi8mnkhbtx10m" path="res://MainScene.cs" id="1_main"]
-[ext_resource type="PackedScene" path="res://scenes/levels/MovementTest.tscn" id="2_level"]
+[ext_resource type="PackedScene" path="res://scenes/levels/PortLevel.tscn" id="2_level"]
 [ext_resource type="PackedScene" path="res://scenes/actors/Player.tscn" id="3_player"]
 
 [sub_resource type="Environment" id="Env_Blockout"]
@@ -28,4 +28,4 @@ shadow_enabled = true
 [node name="Actors" type="Node3D" parent="."]
 
 [node name="Player" parent="Actors" instance=ExtResource("3_player")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 20.2, 2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 42.2, 79)
