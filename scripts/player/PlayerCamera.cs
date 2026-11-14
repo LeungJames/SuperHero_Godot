@@ -255,10 +255,12 @@ public partial class PlayerCamera : Node3D
 		Vector3 thirdPerson = new(0f, 0f, 0f);
 		if (_data != null)
 		{
+			// 角色视觉缩放后机位跟着收，保持原来的人体比例构图
+			float scale = Mathf.Max(_data.ModelScale, 0.01f);
 			thirdPerson = new Vector3(
-				_data.ThirdPersonShoulderOffset,
-				_data.ThirdPersonHeightOffset,
-				_data.ThirdPersonDistance);
+				_data.ThirdPersonShoulderOffset * scale,
+				_data.ThirdPersonHeightOffset * scale,
+				_data.ThirdPersonDistance * scale);
 		}
 
 		Vector3 local = firstPerson.Lerp(thirdPerson, _modeBlend);

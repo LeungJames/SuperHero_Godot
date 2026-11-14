@@ -70,7 +70,9 @@ public partial class EnemyData : Resource
 	[Export] public int AmmoDropRounds { get; set; } = 6;
 
 	[ExportGroup("动画（骨架动作）")]
-	/// <summary>walk / run / aim_walk 剪辑自带的前进速度（米/秒），用于按实际移速缩放播放速率。</summary>
+	/// <summary>全身模型相对于素材原始身高（2.01m）的缩放，使可见身高与各自胶囊一致；只影响外观。</summary>
+	[Export] public float ModelScale { get; set; } = 0.9f;
+	/// <summary>walk / run / aim_walk 剪辑自带的前进速度（米/秒，素材原始身高下），用于按实际移速缩放播放速率。</summary>
 	[Export] public float WalkClipSpeed { get; set; } = 0.77f;
 	[Export] public float RunClipSpeed { get; set; } = 1.77f;
 	[Export] public float AimWalkClipSpeed { get; set; } = 0.65f;

@@ -29,6 +29,10 @@ public partial class PlayerData : Resource
 	/// <summary>ADS 期间的鼠标灵敏度倍率。</summary>
 	[Export] public float AdsSensitivityScale { get; set; } = 0.7f;
 
+	[ExportGroup("角色视觉")]
+	/// <summary>全身模型相对于素材原始身高（2.01m）的缩放，使可见身高与 1.8m 胶囊一致；只影响外观，不动胶囊与移动数值。</summary>
+	[Export] public float ModelScale { get; set; } = 0.895f;
+
 	[ExportGroup("相机 · 第三人称")]
 	/// <summary>第三人称相机到头部枢轴的距离（米）。</summary>
 	[Export] public float ThirdPersonDistance { get; set; } = 2.6f;

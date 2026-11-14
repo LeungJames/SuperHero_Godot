@@ -67,6 +67,9 @@ public partial class PlayerAnimation : Node
 	/// <summary>当前走路 / 跑步的播放速率倍率（未在移动状态时为 -1）。</summary>
 	public float PlaybackScale => _locomotionScale;
 
+	/// <summary>全身模型的视觉缩放（与 PlayerData.ModelScale 一致，1 = 素材原始身高）。</summary>
+	private float ModelScale => _player?.Data != null ? Mathf.Max(_player.Data.ModelScale, 0.01f) : 1f;
+
 	public override void _Ready()
 	{
 		_player = GetParent<PlayerController>();
@@ -85,6 +88,9 @@ public partial class PlayerAnimation : Node
 			SetProcess(false);
 			return;
 		}
+
+		// 只缩外观，让可见身高与胶囊对齐；胶囊 / 相机 / 移动数值都不动
+		BodyModel.Scale = Vector3.One * ModelScale;
 
 		CollectLayers();
 		if (_layers.Count == 0)
@@ -276,7 +282,8 @@ public partial class PlayerAnimation : Node
 		if (_state == BodyState.Walk || _state == BodyState.Run)
 		{
 			bool run = _state == BodyState.Run;
-			float natural = run ? Data.RunClipSpeed : Data.WalkClipSpeed;
+			// 剪辑原速是素材原始身高下的数值，模型缩放后步幅同比缩短，自然速度也要乘缩放
+			float natural = (run ? Data.RunClipSpeed : Data.WalkClipSpeed) * ModelScale;
 			float scale = Mathf.Clamp(speed / Mathf.Max(natural, 0.01f), Data.MinPlaybackScale, Data.MaxPlaybackScale);
 			if (Mathf.Abs(scale - _locomotionScale) < 0.01f)
 				return;
@@ -338,13 +345,15 @@ public partial class PlayerAnimation : Node
 
 		Camera3D camera = GetViewport()?.GetCamera3D();
 		float distance = camera != null ? camera.GlobalPosition.DistanceTo(_player.GlobalPosition) : 0f;
+		float lod0 = Data.Lod0Distance * ModelScale;
+		float lod1 = Data.Lod1Distance * ModelScale;
 		for (int i = 0; i < _layers.Count; i++)
 		{
 			bool visible = bodyVisible && (i == 0
-				? distance < Data.Lod0Distance
+				? distance < lod0
 				: i == 1
-					? distance >= Data.Lod0Distance && distance < Data.Lod1Distance
-					: distance >= Data.Lod1Distance);
+					? distance >= lod0 && distance < lod1
+					: distance >= lod1);
 			_layers[i].Root.Visible = visible;
 		}
 	}

@@ -19,6 +19,7 @@ MouseSensitivity = 0.12
 DefaultFov = 75.0
 AdsFov = 55.0
 AdsSensitivityScale = 0.7
+ModelScale = 0.895
 ThirdPersonDistance = 2.6
 ThirdPersonShoulderOffset = 0.42
 ThirdPersonHeightOffset = 0.12

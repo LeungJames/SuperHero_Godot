@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+﻿[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/enemies/EnemyData.cs" id="1_enemydata"]
 [ext_resource type="PackedScene" path="res://art/models/WPN_SMG.glb" id="2_weapon"]
@@ -41,6 +41,7 @@ StaggerDuration = 0.3
 DeathFallTime = 0.35
 DeathFadeTime = 2.0
 AmmoDropRounds = 6
+ModelScale = 0.885
 WalkClipSpeed = 0.77
 RunClipSpeed = 1.77
 AimWalkClipSpeed = 0.65

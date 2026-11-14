@@ -86,7 +86,11 @@ public partial class EnemyAnimation : Node
 		}
 
 		foreach (Layer layer in _layers)
+		{
+			// 只缩外观：可见身高对齐各自胶囊，胶囊 / AI / 伤害不动
+			layer.Root.Scale = Vector3.One * Mathf.Max(Data.ModelScale, 0.01f);
 			PrepareLayer(layer);
+		}
 
 		_ready = true;
 		SetActiveLayer(_layers.Count == 1 ? 0 : -1);
@@ -201,6 +205,8 @@ public partial class EnemyAnimation : Node
 			AimWalkClip => Data.AimWalkClipSpeed,
 			_ => 0f,
 		};
+		// 剪辑原速是素材原始身高下的数值，模型缩放后步幅同比缩短
+		natural *= Data.ModelScale;
 
 		float scale = natural > 0.01f
 			? Mathf.Clamp(speed / natural, Data.MinPlaybackScale, Data.MaxPlaybackScale)
@@ -227,7 +233,9 @@ public partial class EnemyAnimation : Node
 
 		Camera3D camera = GetViewport()?.GetCamera3D();
 		float distance = camera != null ? camera.GlobalPosition.DistanceTo(GetParent<Node3D>().GlobalPosition) : 0f;
-		int index = distance < Data.Lod0Distance ? 0 : distance < Data.Lod1Distance ? 1 : 2;
+		float lod0 = Data.Lod0Distance * Data.ModelScale;
+		float lod1 = Data.Lod1Distance * Data.ModelScale;
+		int index = distance < lod0 ? 0 : distance < lod1 ? 1 : 2;
 		SetActiveLayer(index);
 	}
 
