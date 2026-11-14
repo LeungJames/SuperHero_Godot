@@ -11,6 +11,8 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/Hud.tscn" id="9_hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/PauseMenu.tscn" id="10_pause"]
 [ext_resource type="PackedScene" path="res://scenes/ui/ResultsPanel.tscn" id="11_results"]
+[ext_resource type="Script" path="res://scripts/level/EnvironmentController.cs" id="12_env"]
+[ext_resource type="Script" path="res://scripts/audio/AudioDirector.cs" id="13_audio"]
 
 [sub_resource type="ProceduralSkyMaterial" id="Sky_Dusk"]
 sky_top_color = Color(0.78, 0.45, 0.17, 1)
@@ -49,6 +51,7 @@ script = ExtResource("1_main")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="World"]
 environment = SubResource("Env_Blockout")
+script = ExtResource("12_env")
 
 [node name="Sun" type="DirectionalLight3D" parent="World"]
 transform = Transform3D(0.78801, 0, 0.61566, 0.09631, 0.98769, -0.12326, -0.60804, 0.15643, 0.77834, 0, 20, 0)
@@ -91,6 +94,9 @@ script = ExtResource("6_registry")
 [node name="VictorySequenceController" type="Node" parent="Managers"]
 script = ExtResource("7_victory")
 Config = ExtResource("8_vcfg")
+
+[node name="AudioDirector" type="Node" parent="Managers"]
+script = ExtResource("13_audio")
 
 [node name="UI" type="CanvasLayer" parent="."]
 process_mode = 3

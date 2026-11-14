@@ -20,6 +20,12 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 	[Export] public PackedScene TracerScene { get; set; }
 	[Export] public PackedScene ImpactScene { get; set; }
 
+	/// <summary>开出一枪（位置参数为枪口）。音效由 AudioDirector 调度。</summary>
+	public event Action<Vector3> Fired;
+
+	/// <summary>首次进入警戒。</summary>
+	public event Action Alerted;
+
 	public EnemyState State { get; private set; } = EnemyState.Patrol;
 	public bool HasSight => _canSee;
 
@@ -494,6 +500,7 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 		State = EnemyState.Alert;
 		_stateTimer = 0f;
 		_burstShotsLeft = 0;
+		Alerted?.Invoke();
 	}
 
 	private void EnterCombat()
@@ -586,6 +593,8 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 		_flashTimer = MuzzleFlashTime;
 		if (_muzzleLight != null)
 			_muzzleLight.Visible = true;
+
+		Fired?.Invoke(muzzle);
 	}
 
 	private float GetSpreadDegrees()

@@ -17,6 +17,12 @@ public partial class PistolController : Node3D
 	/// <summary>每次真正打出一发后的解算结果（命中标记与统计用）。</summary>
 	public event Action<HitscanHit> ShotResolved;
 
+	/// <summary>开始换弹（音效与 HUD 用）。</summary>
+	public event Action ReloadStarted;
+
+	/// <summary>空仓扣扳机。</summary>
+	public event Action DryFired;
+
 	public int MagAmmo { get; private set; }
 	public int ReserveAmmo { get; private set; }
 	public bool IsReloading { get; private set; }
@@ -123,8 +129,9 @@ public partial class PistolController : Node3D
 
 		if (MagAmmo <= 0)
 		{
-			// 空仓：M7 接"咔"声与轻微抖动，当前只锁住射速
+			// 空仓：锁住射速并交给 AudioDirector 播"咔"
 			_cooldown = 1f / Data.ShotsPerSecond;
+			DryFired?.Invoke();
 			return false;
 		}
 
@@ -148,6 +155,7 @@ public partial class PistolController : Node3D
 		IsReloading = true;
 		IsAiming = false;
 		_reloadTimer = Data.ReloadTime;
+		ReloadStarted?.Invoke();
 		return true;
 	}
 

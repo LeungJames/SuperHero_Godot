@@ -1,4 +1,5 @@
 using Godot;
+using System;
 
 /// <summary>
 /// 全歼后的胜利演出：横幅 → 无线电 → 直升机进场降落 → 侧向机位自动登机 → 淡出。
@@ -7,6 +8,9 @@ using Godot;
 public partial class VictorySequenceController : Node
 {
 	[Export] public VictorySequenceConfig Config { get; set; }
+
+	public event Action Started;
+	public event Action RadioCue;
 
 	public bool IsPlaying { get; private set; }
 
@@ -62,6 +66,8 @@ public partial class VictorySequenceController : Node
 
 		_hud.SetCombatVisible(false);
 		_hud.ShowBanner(Config.BannerText);
+
+		Started?.Invoke();
 	}
 
 	public override void _Process(double delta)
@@ -103,6 +109,7 @@ public partial class VictorySequenceController : Node
 		{
 			_radioShown = true;
 			_hud.ShowMessage(Config.RadioText, new Color(0.96f, 0.92f, 0.86f));
+			RadioCue?.Invoke();
 		}
 	}
 

@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" path="res://scenes/fx/AmmoPickup.tscn" id="7_pickup"]
 [ext_resource type="PackedScene" path="res://art/models/SM_StreetRunner.glb" id="8_model"]
 [ext_resource type="Shader" path="res://shaders/outline.gdshader" id="9_outline"]
+[ext_resource type="PackedScene" path="res://scenes/fx/DeathBurst.tscn" id="10_burst"]
 
 [sub_resource type="CapsuleShape3D" id="Shape_Body"]
 radius = 0.32
@@ -101,6 +102,7 @@ height = 1.8
 [node name="Health" type="Node" parent="."]
 script = ExtResource("3_health")
 AmmoPickupScene = ExtResource("7_pickup")
+DeathBurstScene = ExtResource("10_burst")
 
 [node name="PatrolPoints" type="Node3D" parent="."]
 

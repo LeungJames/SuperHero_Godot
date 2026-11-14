@@ -1,4 +1,5 @@
 using Godot;
+using System;
 
 /// <summary>
 /// 第一人称移动：自定义速度积分 + 土狼时间 + 跳跃缓冲。
@@ -7,6 +8,9 @@ using Godot;
 public partial class PlayerController : CharacterBody3D
 {
 	[Export] public PlayerData Data { get; set; }
+
+	/// <summary>落下一步（脚步声的播放时机由 AudioDirector 决定）。</summary>
+	public event Action Footstepped;
 
 	/// <summary>死亡或演出期间由外部关闭。</summary>
 	public bool InputEnabled { get; set; } = true;
@@ -101,6 +105,7 @@ public partial class PlayerController : CharacterBody3D
 
 		_footstepTimer = Mathf.Lerp(0.5f, 0.32f, Mathf.Clamp(speed / Data.SprintSpeed, 0f, 1f));
 		NoiseEmitter.Emit(GlobalPosition, NoiseKind.Footstep);
+		Footstepped?.Invoke();
 	}
 
 	private void UpdateJumpTimers(bool grounded, float dt)

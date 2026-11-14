@@ -1,0 +1,31 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/fx/DeathBurst.cs" id="1_burst"]
+
+[sub_resource type="StandardMaterial3D" id="Mat_Blood"]
+shading_mode = 0
+albedo_color = Color(0.48, 0.08, 0.08, 1)
+
+[sub_resource type="BoxMesh" id="Mesh_Dot"]
+material = SubResource("Mat_Blood")
+size = Vector3(0.07, 0.07, 0.07)
+
+[node name="DeathBurst" type="Node3D"]
+script = ExtResource("1_burst")
+
+[node name="Particles" type="CPUParticles3D" parent="."]
+emitting = true
+amount = 18
+lifetime = 0.55
+one_shot = true
+explosiveness = 1.0
+mesh = SubResource("Mesh_Dot")
+emission_shape = 1
+emission_sphere_radius = 0.2
+direction = Vector3(0, 1, 0)
+spread = 75.0
+gravity = Vector3(0, -7, 0)
+initial_velocity_min = 1.6
+initial_velocity_max = 4.8
+scale_amount_min = 0.6
+scale_amount_max = 1.5

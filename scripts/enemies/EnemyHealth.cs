@@ -11,6 +11,7 @@ public partial class EnemyHealth : Node
 	public event Action<float> Staggered;
 
 	[Export] public PackedScene AmmoPickupScene { get; set; }
+	[Export] public PackedScene DeathBurstScene { get; set; }
 
 	public float Health { get; private set; }
 	public float MaxHealth { get; private set; }
@@ -111,13 +112,25 @@ public partial class EnemyHealth : Node
 
 		Died?.Invoke();
 		DropAmmo();
+		SpawnDeathBurst();
 
 		_fallTimer = _data != null ? _data.DeathFallTime : 0.35f;
 		SetProcess(true);
 	}
 
-	private void DropAmmo()
+	private void SpawnDeathBurst()
 	{
+		if (DeathBurstScene == null)
+			return;
+
+		if (DeathBurstScene.Instantiate() is not DeathBurst burst)
+			return;
+
+		GetTree().CurrentScene?.AddChild(burst);
+		burst.GlobalPosition = _agent.GlobalPosition + Vector3.Up * 1.05f;
+	}
+
+	private void DropAmmo()	{
 		if (AmmoPickupScene == null || _data == null)
 			return;
 
