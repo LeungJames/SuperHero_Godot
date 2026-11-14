@@ -1,0 +1,37 @@
+# ==================== Godot 4 ====================
+# 编辑器配置、导入缓存、着色器缓存等，可完全再生
+.godot/
+
+# Godot 3 遗留的导入缓存目录（Godot 4 已废弃，防御性忽略）
+.import/
+
+# 由 CSV 等自动生成的翻译资源
+*.translation
+
+# 导出的游戏构建产物
+/build/
+/export/
+export.cfg
+
+# 导出预设（含密钥/证书路径等，按需保留；默认忽略）
+export_presets.cfg
+
+# 说明：*.import 与 *.uid 是 Godot 需要随工程走的元文件，必须提交，切勿忽略
+
+# ==================== C# / .NET ====================
+bin/
+obj/
+*.user
+*.suo
+*.userprefs
+*.csproj.user
+*.sln.docstates
+*.DotSettings.user
+.vs/
+.idea/
+
+# ==================== 系统 / 杂项 ====================
+*.tmp
+*.log
+.DS_Store
+Thumbs.db
