@@ -144,6 +144,24 @@ def export(name, objects):
 
 
 # ---------------------------------------------------------------- 武器
+def mag_material_index(mats):
+    """弹匣单独用一个偏亮的金属色，换弹时离开枪身才看得清（美漫平涂也更有层次）。"""
+    for i, m in enumerate(mats):
+        if m and m.name == "MAT_Mag":
+            return i
+
+    src = next(m for m in mats if m and m.name == "MAT_Weapon")
+    dupe = src.copy()
+    dupe.name = "MAT_Mag"
+    if dupe.use_nodes:
+        bsdf = dupe.node_tree.nodes.get("Principled BSDF")
+        if bsdf:
+            bsdf.inputs["Base Color"].default_value = (0.30, 0.31, 0.34, 1.0)
+    dupe.diffuse_color = (0.30, 0.31, 0.34, 1.0)
+    mats.append(dupe)
+    return len(mats) - 1
+
+
 def build_weapon():
     ob = open_mesh(r"e:\GodotProject\super-hero\art\blender\WPN_P9.blend")
     mats = list(ob.data.materials)
@@ -165,9 +183,13 @@ def build_weapon():
         else:
             body.append(p)
 
-    # 弹匣：塞进握把、底板略露出（原模型没有弹匣体，不会重影）
-    mats.append(mats[0])
-    mag = [box_part((0.0, -0.005, -0.10), (0.026, 0.055, 0.13), 0)]
+    # 弹匣：匣体用偏亮的独立材质，底部加一条深色底板，脱出握把时才读得出是弹匣
+    idx_weapon = next(i for i, m in enumerate(mats) if m and m.name == "MAT_Weapon")
+    idx_mag = mag_material_index(mats)
+    mag = [
+        box_part((0.0, -0.005, -0.095), (0.026, 0.055, 0.11), idx_mag),
+        box_part((0.0, -0.005, -0.158), (0.028, 0.058, 0.026), idx_weapon),
+    ]
 
     p_slide = (0.0, 0.075, 0.026)
     p_mag = (0.0, -0.005, -0.035)
@@ -351,6 +373,7 @@ def build_firearm(name, spec):
     ob = open_mesh(P9_BLEND)
     mats = list(ob.data.materials)
     idx_weapon = next(i for i, m in enumerate(mats) if m and m.name == "MAT_Weapon")
+    idx_mag = mag_material_index(mats)
     parts = parts_of(ob.data)
 
     right, left = [], []
@@ -373,7 +396,13 @@ def build_firearm(name, spec):
     meshes = [
         make_object("Body", body, mats),
         make_object("Slide", [box_part(spec["bolt"][0], spec["bolt"][1], idx_weapon)], mats, p_slide),
-        make_object("Mag", [box_part(spec["mag"][0], spec["mag"][1], idx_weapon)], mats, P_MAG),
+        make_object("Mag", [
+            box_part(spec["mag"][0], spec["mag"][1], idx_mag),
+            box_part(
+                (spec["mag"][0][0], spec["mag"][0][1], spec["mag"][0][2] - spec["mag"][1][2] / 2 + 0.011),
+                (spec["mag"][1][0] + 0.002, spec["mag"][1][1] + 0.003, 0.022),
+                idx_weapon),
+        ], mats, P_MAG),
         make_object("HandL", [shifted(p, shift_l) for p in left], mats, p_hand_l),
         make_object("HandR", right, mats, P_HAND_R),
     ]

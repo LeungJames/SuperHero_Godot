@@ -96,7 +96,9 @@ public partial class WeaponController : Node3D
 	private Node3D _handLPivot;
 	private Vector3 _slideRest;
 	private Vector3 _magRest;
-	private float _magPose;
+	private Vector3 _magPos;
+	private float _magScale = 1f;
+	private float _magTilt;
 	private float _slidePose;
 	private float _handPose;
 
@@ -548,21 +550,45 @@ public partial class WeaponController : Node3D
 		if (Data == null || _slidePivot == null || _magPivot == null || _handLPivot == null)
 			return;
 
-		float magTarget = 0f;
 		float slideTarget = 0f;
 		float handTarget = 0f;
+
+		// 弹匣按"空弹匣拔走 → 丢掉 → 新弹匣从下方推回"三段驱动，
+		// 位置与缩放分开缓存，丢掉的那段缩到 0 藏住模型跳变。
+		Vector3 magPosTarget = Vector3.Zero;
+		float magScaleTarget = 1f;
+		float magTiltTarget = 0f;
+
+		Vector3 outOffset = new(-Data.ReloadMagLateral, Data.ReloadMagRise, Data.ReloadMagPullBack);
+		Vector3 inOffset = new(-Data.ReloadMagLateral * 0.9f, -Data.ReloadMagInsertDrop, Data.ReloadMagPullBack * 0.5f);
 
 		if (IsReloading && Data.ReloadTime > 0f)
 		{
 			float t = Mathf.Clamp(1f - _reloadTimer / Data.ReloadTime, 0f, 1f);
 
-			// 弹匣：掉出 → 空窗 → 插回（插回末段带一点过冲）
 			if (t < Data.ReloadMagDropEnd)
-				magTarget = Ease(Data.ReloadMagDropStart, Data.ReloadMagDropEnd, t);
+			{
+				// 空弹匣离开握把：向屏幕中心抬出并前倾，保证整只弹匣落在画面内
+				float phase = Ease(Data.ReloadMagDropStart, Data.ReloadMagDropEnd, t);
+				magPosTarget = outOffset * phase;
+				magTiltTarget = phase;
+			}
 			else if (t < Data.ReloadMagInsertStart)
-				magTarget = 1f;
+			{
+				// 空弹匣被继续带走并淡出，为"换上的新弹匣"腾出干净的一拍
+				float phase = Ease(Data.ReloadMagDropEnd, Data.ReloadMagInsertStart, t);
+				magPosTarget = outOffset * (1f + 0.3f * phase);
+				magTiltTarget = 1f;
+				magScaleTarget = 1f - phase;
+			}
 			else
-				magTarget = 1f - Ease(Data.ReloadMagInsertStart, Data.ReloadMagInsertEnd, t);
+			{
+				// 新弹匣从握把下方升起推到位，起始位置由不可见（scale 0）遮住跳变
+				float phase = Ease(Data.ReloadMagInsertStart, Data.ReloadMagInsertEnd, t);
+				magPosTarget = inOffset * (1f - phase);
+				magTiltTarget = (1f - phase) * 0.4f;
+				magScaleTarget = Mathf.Clamp(phase * 3f, 0f, 1f);
+			}
 
 			// 套筒：拉到底再瞬间复进（复进段更短，读作弹簧回位）
 			if (t >= Data.ReloadSlideStart && t < Data.ReloadSlideEnd)
@@ -585,12 +611,34 @@ public partial class WeaponController : Node3D
 		}
 
 		float k = 1f - Mathf.Exp(-Data.ReloadBoneBlendSpeed * dt);
-		_magPose = Mathf.Lerp(_magPose, magTarget, k);
 		_slidePose = Mathf.Lerp(_slidePose, slideTarget, k);
 		_handPose = Mathf.Lerp(_handPose, handTarget, k);
 
+		if (IsReloading)
+		{
+			// 换弹中直接吃目标值：阶段切换处的跳变由 scale 0 遮住，
+			// 平滑会把它拉成一段穿模的长位移
+			_magPos = magPosTarget;
+			_magScale = magScaleTarget;
+			_magTilt = magTiltTarget;
+		}
+		else
+		{
+			// 取消 / 结束时平滑回位，保证不会卡在半途
+			_magPos = _magPos.Lerp(Vector3.Zero, k);
+			_magScale = Mathf.Lerp(_magScale, 1f, k);
+			_magTilt = Mathf.Lerp(_magTilt, 0f, k);
+		}
+
 		if (_magPivot != null)
-			_magPivot.Position = _magRest + new Vector3(0f, -_magPose * Data.ReloadMagDropDistance, 0f);
+		{
+			_magPivot.Position = _magRest + _magPos;
+			_magPivot.Rotation = new Vector3(
+				Mathf.DegToRad(Data.ReloadMagTiltDegrees) * _magTilt,
+				0f,
+				Mathf.DegToRad(Data.ReloadMagTiltDegrees * 0.6f) * _magTilt);
+			_magPivot.Scale = Vector3.One * Mathf.Max(_magScale, 0.001f);
+		}
 
 		if (_slidePivot != null)
 			_slidePivot.Position = _slideRest + new Vector3(0f, 0f, _slidePose * Data.ReloadSlideTravel);
@@ -604,7 +652,9 @@ public partial class WeaponController : Node3D
 		_slidePivot = null;
 		_magPivot = null;
 		_handLPivot = null;
-		_magPose = 0f;
+		_magPos = Vector3.Zero;
+		_magScale = 1f;
+		_magTilt = 0f;
 		_slidePose = 0f;
 		_handPose = 0f;
 	}

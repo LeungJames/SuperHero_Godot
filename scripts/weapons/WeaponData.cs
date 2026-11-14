@@ -65,8 +65,16 @@ public partial class WeaponData : Resource
 	[Export] public float ReloadMoveMultiplier { get; set; } = 0.75f;
 
 	[ExportGroup("换弹动画（枢轴驱动，归一化相位）")]
-	/// <summary>弹匣掉出握把的距离（米，沿握把向下）。</summary>
-	[Export] public float ReloadMagDropDistance { get; set; } = 0.24f;
+	/// <summary>弹匣脱出时的垂直位移（米，正数向上）：视角模型位置偏低，弹匣必须抬出画面下缘才看得见。</summary>
+	[Export] public float ReloadMagRise { get; set; } = 0.05f;
+	/// <summary>弹匣脱出时向屏幕中心（武器左侧）的位移，保证离开握把后仍在视野内。</summary>
+	[Export] public float ReloadMagLateral { get; set; } = 0.13f;
+	/// <summary>弹匣脱出时朝相机方向的位移，制造"被手上带走"的纵深感。</summary>
+	[Export] public float ReloadMagPullBack { get; set; } = 0.06f;
+	/// <summary>弹匣脱出时绕 X 轴的前倾角度（度），避免看起来像整块平移。</summary>
+	[Export] public float ReloadMagTiltDegrees { get; set; } = 26f;
+	/// <summary>新弹匣从握把下方多远处升起（米），与横向偏移一起决定"从下方推到位"的入位路径。</summary>
+	[Export] public float ReloadMagInsertDrop { get; set; } = 0.07f;
 	[Export] public float ReloadMagDropStart { get; set; } = 0.12f;
 	[Export] public float ReloadMagDropEnd { get; set; } = 0.34f;
 	/// <summary>新弹匣从下方插回（相位区间），结束前有轻微过冲。</summary>
