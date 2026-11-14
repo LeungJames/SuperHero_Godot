@@ -10,6 +10,8 @@
 [ext_resource type="PackedScene" path="res://art/models/SM_StreetRunner.glb" id="8_model"]
 [ext_resource type="Shader" path="res://shaders/outline.gdshader" id="9_outline"]
 [ext_resource type="PackedScene" path="res://scenes/fx/DeathBurst.tscn" id="10_burst"]
+[ext_resource type="Script" path="res://scripts/enemies/EnemyAnimator.cs" id="11_anim"]
+[ext_resource type="Script" path="res://scripts/actors/ModelOutline.cs" id="12_outline"]
 
 [sub_resource type="CapsuleShape3D" id="Shape_Body"]
 radius = 0.32
@@ -41,11 +43,14 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.89, 0)
 shape = SubResource("Shape_Body")
 
 [node name="Model" type="Node3D" parent="."]
+script = ExtResource("12_outline")
+Overlay = SubResource("Mat_EnemyOutline")
+
+[node name="Animator" type="Node" parent="."]
+script = ExtResource("11_anim")
+Data = ExtResource("2_data")
 
 [node name="Mesh" parent="Model" instance=ExtResource("8_model")]
-
-[node name="SM_StreetRunner" parent="Model/Mesh" index="0"]
-material_overlay = SubResource("Mat_EnemyOutline")
 
 [node name="Eye" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 0)

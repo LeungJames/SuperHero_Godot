@@ -68,4 +68,23 @@ public partial class EnemyData : Resource
 	[Export] public float DeathFallTime { get; set; } = 0.35f;
 	[Export] public float DeathFadeTime { get; set; } = 2f;
 	[Export] public int AmmoDropRounds { get; set; } = 6;
+
+	[ExportGroup("动画（程序化步态）")]
+	/// <summary>腿长（米），用于由步幅反解摆腿角度。</summary>
+	[Export] public float AnimLegLength { get; set; } = 0.86f;
+	/// <summary>基准步幅（米/完整步态周期），步频在此附近浮动。</summary>
+	[Export] public float AnimCycleBase { get; set; } = 1.5f;
+	[Export] public float AnimCadenceMin { get; set; } = 0.85f;
+	[Export] public float AnimCadenceMax { get; set; } = 2.1f;
+	/// <summary>屈膝角度上限（度）。</summary>
+	[Export] public float AnimKneeBend { get; set; } = 42f;
+	/// <summary>髋部起伏（米）。</summary>
+	[Export] public float AnimBob { get; set; } = 0.035f;
+	[Export] public float AnimHipRoll { get; set; } = 2.5f;
+	/// <summary>上身反向扭转（度）。</summary>
+	[Export] public float AnimTorsoCounter { get; set; } = 4f;
+	/// <summary>满速前倾（度）。</summary>
+	[Export] public float AnimLean { get; set; } = 5f;
+	/// <summary>站定 ↔ 行走的姿势过渡时间（秒）。</summary>
+	[Export] public float AnimBlendTime { get; set; } = 0.18f;
 }

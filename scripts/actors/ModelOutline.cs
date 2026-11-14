@@ -1,0 +1,31 @@
+using Godot;
+
+/// <summary>
+/// 给模型实例下所有网格挂描边叠层（反向壳）。
+/// 模型由多个分件网格组成（手臂 / 套筒 / 弹匣 / 四肢），在这里统一挂一次，
+/// 场景里就不必为每个分件写一条 material_overlay 覆盖（§6.12 美漫描边）。
+/// </summary>
+[GlobalClass]
+public partial class ModelOutline : Node
+{
+	[Export] public Material Overlay { get; set; }
+
+	public override void _Ready()
+	{
+		if (Overlay != null)
+			Apply(this);
+	}
+
+	private void Apply(Node node)
+	{
+		foreach (Node child in node.GetChildren())
+		{
+			if (child is MeshInstance3D mesh)
+			{
+				if (mesh.MaterialOverlay == null)
+					mesh.MaterialOverlay = Overlay;
+			}
+			Apply(child);
+		}
+	}
+}

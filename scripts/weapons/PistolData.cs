@@ -43,6 +43,27 @@ public partial class PistolData : Resource
 	[ExportGroup("换弹")]
 	[Export] public float ReloadMoveMultiplier { get; set; } = 0.75f;
 
+	[ExportGroup("换弹动画（枢轴驱动，归一化相位）")]
+	/// <summary>弹匣掉出握把的距离（米，沿握把向下）。</summary>
+	[Export] public float ReloadMagDropDistance { get; set; } = 0.24f;
+	[Export] public float ReloadMagDropStart { get; set; } = 0.12f;
+	[Export] public float ReloadMagDropEnd { get; set; } = 0.34f;
+	/// <summary>新弹匣从下方插回（相位区间），结束前有轻微过冲。</summary>
+	[Export] public float ReloadMagInsertStart { get; set; } = 0.50f;
+	[Export] public float ReloadMagInsertEnd { get; set; } = 0.66f;
+	/// <summary>拉套筒区间：先拉到底再瞬间复进。</summary>
+	[Export] public float ReloadSlideStart { get; set; } = 0.70f;
+	[Export] public float ReloadSlideEnd { get; set; } = 0.80f;
+	[Export] public float ReloadSlideTravel { get; set; } = 0.035f;
+	/// <summary>换弹时左手离开握把的下沉角度（度）。</summary>
+	[Export] public float ReloadHandDropDegrees { get; set; } = 34f;
+	[Export] public float ReloadHandLeaveStart { get; set; } = 0.06f;
+	[Export] public float ReloadHandLeaveEnd { get; set; } = 0.20f;
+	[Export] public float ReloadHandReturnStart { get; set; } = 0.62f;
+	[Export] public float ReloadHandReturnEnd { get; set; } = 0.78f;
+	/// <summary>骨骼姿势跟随速度（越大越跟手）；取消 / 完成时也靠它平滑回位。</summary>
+	[Export] public float ReloadBoneBlendSpeed { get; set; } = 14f;
+
 	[ExportGroup("表现（§4.7）")]
 	[Export] public float MuzzleFlashTime { get; set; } = 0.05f;
 	[Export] public float FireKickBack { get; set; } = 0.035f;

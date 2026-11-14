@@ -35,6 +35,7 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 
 	private EnemyHealth _health;
 	private NavigationAgent3D _nav;
+	private EnemyAnimator _animator;
 	private Marker3D _eye;
 	private Marker3D _gun;
 	private OmniLight3D _muzzleLight;
@@ -94,6 +95,10 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 
 		CollectAnchors();
 
+		_animator = GetNodeOrNull<EnemyAnimator>("Animator");
+		if (_animator != null)
+			_animator.Data = Data;
+
 		_health.Died += OnDied;
 		_health.Staggered += OnStaggered;
 		NoiseEmitter.Emitted += OnNoise;
@@ -147,6 +152,7 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 			ApplyGravity(dt);
 			Velocity = _velocity;
 			MoveAndSlide();
+			UpdateAnimator();
 			return;
 		}
 
@@ -169,6 +175,17 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 		ApplyGravity(dt);
 		Velocity = _velocity;
 		MoveAndSlide();
+		UpdateAnimator();
+	}
+
+	/// <summary>把真实水平位移速度交给步态动画：步幅按速度反解，脚不滑。</summary>
+	private void UpdateAnimator()
+	{
+		if (_animator == null)
+			return;
+
+		Vector3 horizontal = new(Velocity.X, 0f, Velocity.Z);
+		_animator.Speed = horizontal.Length();
 	}
 
 	// ---------------------------------------------------------------- 感知
@@ -740,6 +757,7 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 		_burstShotsLeft = 0;
 		_nav.TargetPosition = GlobalPosition;
 		SetPhysicsProcess(false);
+		_animator?.SetDead();
 	}
 
 	// ---------------------------------------------------------------- 表现

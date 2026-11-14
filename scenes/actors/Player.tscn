@@ -10,6 +10,7 @@
 [ext_resource type="PackedScene" path="res://scenes/fx/Impact.tscn" id="8_impact"]
 [ext_resource type="PackedScene" path="res://art/models/WPN_P9.glb" id="9_viewmodel"]
 [ext_resource type="Shader" path="res://shaders/outline.gdshader" id="10_outline"]
+[ext_resource type="Script" path="res://scripts/actors/ModelOutline.cs" id="10_model_outline"]
 
 [sub_resource type="CapsuleShape3D" id="Capsule_player"]
 radius = 0.35
@@ -55,9 +56,8 @@ TracerScene = ExtResource("7_tracer")
 ImpactScene = ExtResource("8_impact")
 
 [node name="Model" parent="Head/Camera3D/ViewModel/Pistol" instance=ExtResource("9_viewmodel")]
-
-[node name="WPN_P9" parent="Head/Camera3D/ViewModel/Pistol/Model" index="0"]
-material_overlay = SubResource("Mat_ViewmodelOutline")
+script = ExtResource("10_model_outline")
+Overlay = SubResource("Mat_ViewmodelOutline")
 
 [node name="Muzzle" type="Marker3D" parent="Head/Camera3D/ViewModel/Pistol"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.026, -0.21)

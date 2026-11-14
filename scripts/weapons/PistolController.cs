@@ -60,6 +60,15 @@ public partial class PistolController : Node3D
 	private float _sinceLastShot;
 	private float _swayPhase;
 
+	private Node3D _slidePivot;
+	private Node3D _magPivot;
+	private Node3D _handLPivot;
+	private Vector3 _slideRest;
+	private Vector3 _magRest;
+	private float _magPose;
+	private float _slidePose;
+	private float _handPose;
+
 	private bool CanAct => _player != null && _player.InputEnabled && _health != null && !_health.IsDead;
 
 	public override void _Ready()
@@ -70,6 +79,16 @@ public partial class PistolController : Node3D
 		_health = _player.GetNode<PlayerHealth>("Health");
 		_muzzle = GetNodeOrNull<Marker3D>("Muzzle");
 		_muzzleLight = GetNodeOrNull<OmniLight3D>("MuzzleLight");
+
+		// 换弹动作由 Blender 导出的枢轴节点驱动：套筒 / 弹匣 / 左手，姿势按相位解算
+		Node model = GetNodeOrNull<Node>("Model");
+		_slidePivot = FindNode<Node3D>(model, "SlidePivot");
+		_magPivot = FindNode<Node3D>(model, "MagPivot");
+		_handLPivot = FindNode<Node3D>(model, "HandLPivot");
+		if (_slidePivot != null)
+			_slideRest = _slidePivot.Position;
+		if (_magPivot != null)
+			_magRest = _magPivot.Position;
 
 		if (Data == null)
 		{
@@ -118,6 +137,7 @@ public partial class PistolController : Node3D
 		UpdateAim(dt);
 		UpdateMuzzleFlash(dt);
 		UpdateViewmodel(dt);
+		UpdateReloadBones(dt);
 		UpdateMoveSpeed();
 	}
 
@@ -304,6 +324,90 @@ public partial class PistolController : Node3D
 		Vector3 basePosition = _basePosition.Lerp(_adsPosition, _aimBlend);
 		Position = basePosition + sway + new Vector3(0f, -Data.ReloadDrop * reloadPose, Data.FireKickBack * _kickBack);
 		RotationDegrees = _baseRotationDegrees + new Vector3(Data.FireKickPitch * _kickPitch, 0f, Data.ReloadRoll * reloadPose);
+	}
+
+	/// <summary>
+	/// 换弹动作：弹匣掉落 → 新弹匣插入 → 拉套筒复进，左手同时离开再回到握把。
+	/// 姿势只由换弹进度决定，并用指数跟随平滑；换弹结束或被打断时目标归零，
+	/// 因此任何时刻取消都会连续回到普通持枪姿势，不会卡在半途。
+	/// </summary>
+	private void UpdateReloadBones(float dt)
+	{
+		if (Data == null || _slidePivot == null || _magPivot == null || _handLPivot == null)
+			return;
+
+		float magTarget = 0f;
+		float slideTarget = 0f;
+		float handTarget = 0f;
+
+		if (IsReloading && Data.ReloadTime > 0f)
+		{
+			float t = Mathf.Clamp(1f - _reloadTimer / Data.ReloadTime, 0f, 1f);
+
+			// 弹匣：掉出 → 空窗 → 插回（插回末段带一点过冲）
+			if (t < Data.ReloadMagDropEnd)
+				magTarget = Ease(Data.ReloadMagDropStart, Data.ReloadMagDropEnd, t);
+			else if (t < Data.ReloadMagInsertStart)
+				magTarget = 1f;
+			else
+				magTarget = 1f - Ease(Data.ReloadMagInsertStart, Data.ReloadMagInsertEnd, t);
+
+			// 套筒：拉到底再瞬间复进（复进段更短，读作弹簧回位）
+			if (t >= Data.ReloadSlideStart && t < Data.ReloadSlideEnd)
+			{
+				float mid = (Data.ReloadSlideStart + Data.ReloadSlideEnd) * 0.5f;
+				slideTarget = t < mid
+					? Ease(Data.ReloadSlideStart, mid, t)
+					: 1f - Ease(mid, Data.ReloadSlideEnd, t);
+			}
+
+			// 左手：垂下让出握把 → 换弹末段回到握把准备拉套筒
+			if (t < Data.ReloadHandLeaveStart)
+				handTarget = 0f;
+			else if (t < Data.ReloadHandLeaveEnd)
+				handTarget = Ease(Data.ReloadHandLeaveStart, Data.ReloadHandLeaveEnd, t);
+			else if (t < Data.ReloadHandReturnStart)
+				handTarget = 1f;
+			else
+				handTarget = 1f - Ease(Data.ReloadHandReturnStart, Data.ReloadHandReturnEnd, t);
+		}
+
+		float k = 1f - Mathf.Exp(-Data.ReloadBoneBlendSpeed * dt);
+		_magPose = Mathf.Lerp(_magPose, magTarget, k);
+		_slidePose = Mathf.Lerp(_slidePose, slideTarget, k);
+		_handPose = Mathf.Lerp(_handPose, handTarget, k);
+
+		if (_magPivot != null)
+			_magPivot.Position = _magRest + new Vector3(0f, -_magPose * Data.ReloadMagDropDistance, 0f);
+
+		if (_slidePivot != null)
+			_slidePivot.Position = _slideRest + new Vector3(0f, 0f, _slidePose * Data.ReloadSlideTravel);
+
+		if (_handLPivot != null)
+			_handLPivot.Rotation = new Vector3(Mathf.DegToRad(Data.ReloadHandDropDegrees) * _handPose, 0f, 0f);
+	}
+
+	/// <summary>把 [from,to] 映射成 0~1 的平滑值。</summary>
+	private static float Ease(float from, float to, float t)
+	{
+		if (to <= from)
+			return t >= to ? 1f : 0f;
+		return Mathf.SmoothStep(0f, 1f, Mathf.Clamp((t - from) / (to - from), 0f, 1f));
+	}
+
+	private static T FindNode<T>(Node root, string name) where T : Node
+	{
+		if (root == null)
+			return null;
+		if (root.Name == name && root is T typed)
+			return typed;
+		foreach (Node child in root.GetChildren())
+		{
+			T found = FindNode<T>(child, name);
+			if (found != null)
+				return found;
+		}
+		return null;
 	}
 
 	private void SpawnTracer(Vector3 from, Vector3 to)
