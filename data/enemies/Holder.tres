@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/enemies/EnemyData.cs" id="1_enemydata"]
+[ext_resource type="PackedScene" path="res://art/models/WPN_AssaultRifle.glb" id="2_weapon"]
 
 [resource]
 script = ExtResource("1_enemydata")
@@ -40,13 +41,14 @@ StaggerDuration = 0.25
 DeathFallTime = 0.35
 DeathFadeTime = 2.0
 AmmoDropRounds = 6
-AnimLegLength = 0.86
-AnimCycleBase = 1.4
-AnimCadenceMin = 0.75
-AnimCadenceMax = 1.7
-AnimKneeBend = 38.0
-AnimBob = 0.045
-AnimHipRoll = 3.5
-AnimTorsoCounter = 5.0
-AnimLean = 3.0
-AnimBlendTime = 0.22
+WalkClipSpeed = 0.77
+RunClipSpeed = 1.77
+AimWalkClipSpeed = 0.65
+MinPlaybackScale = 0.55
+MaxPlaybackScale = 2.8
+StateBlendTime = 0.18
+Lod0Distance = 10.0
+Lod1Distance = 25.0
+WeaponScene = ExtResource("2_weapon")
+WeaponGripOffset = Vector3(0, 0.02, -0.02)
+WeaponMuzzleOffset = Vector3(0, 0.015, -0.55)

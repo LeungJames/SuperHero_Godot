@@ -69,22 +69,24 @@ public partial class EnemyData : Resource
 	[Export] public float DeathFadeTime { get; set; } = 2f;
 	[Export] public int AmmoDropRounds { get; set; } = 6;
 
-	[ExportGroup("动画（程序化步态）")]
-	/// <summary>腿长（米），用于由步幅反解摆腿角度。</summary>
-	[Export] public float AnimLegLength { get; set; } = 0.86f;
-	/// <summary>基准步幅（米/完整步态周期），步频在此附近浮动。</summary>
-	[Export] public float AnimCycleBase { get; set; } = 1.5f;
-	[Export] public float AnimCadenceMin { get; set; } = 0.85f;
-	[Export] public float AnimCadenceMax { get; set; } = 2.1f;
-	/// <summary>屈膝角度上限（度）。</summary>
-	[Export] public float AnimKneeBend { get; set; } = 42f;
-	/// <summary>髋部起伏（米）。</summary>
-	[Export] public float AnimBob { get; set; } = 0.035f;
-	[Export] public float AnimHipRoll { get; set; } = 2.5f;
-	/// <summary>上身反向扭转（度）。</summary>
-	[Export] public float AnimTorsoCounter { get; set; } = 4f;
-	/// <summary>满速前倾（度）。</summary>
-	[Export] public float AnimLean { get; set; } = 5f;
-	/// <summary>站定 ↔ 行走的姿势过渡时间（秒）。</summary>
-	[Export] public float AnimBlendTime { get; set; } = 0.18f;
+	[ExportGroup("动画（骨架动作）")]
+	/// <summary>walk / run / aim_walk 剪辑自带的前进速度（米/秒），用于按实际移速缩放播放速率。</summary>
+	[Export] public float WalkClipSpeed { get; set; } = 0.77f;
+	[Export] public float RunClipSpeed { get; set; } = 1.77f;
+	[Export] public float AimWalkClipSpeed { get; set; } = 0.65f;
+	[Export] public float MinPlaybackScale { get; set; } = 0.55f;
+	[Export] public float MaxPlaybackScale { get; set; } = 2.8f;
+	/// <summary>状态之间的交叉淡化时间（秒）。</summary>
+	[Export] public float StateBlendTime { get; set; } = 0.15f;
+	/// <summary>三档 LOD 的距离阈值（米）。</summary>
+	[Export] public float Lod0Distance { get; set; } = 10f;
+	[Export] public float Lod1Distance { get; set; } = 25f;
+
+	[ExportGroup("武器挂点")]
+	/// <summary>敌人手持的枪模型（沿用 WPN_*.glb）；不填则只播动作不显示枪。</summary>
+	[Export] public PackedScene WeaponScene { get; set; }
+	/// <summary>握把相对 hand_r 的偏移（米，武器自身坐标系）。</summary>
+	[Export] public Vector3 WeaponGripOffset { get; set; } = Vector3.Zero;
+	/// <summary>枪口相对武器原点的位置（米），曳光与枪火从这里出。</summary>
+	[Export] public Vector3 WeaponMuzzleOffset { get; set; } = new(0f, 0.026f, -0.21f);
 }

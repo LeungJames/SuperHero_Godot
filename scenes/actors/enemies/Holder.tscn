@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=16 format=3]
 
 [ext_resource type="Script" path="res://scripts/enemies/EnemyAgent.cs" id="1_agent"]
 [ext_resource type="Resource" path="res://data/enemies/Holder.tres" id="2_data"]
@@ -7,11 +7,14 @@
 [ext_resource type="PackedScene" path="res://scenes/fx/Tracer.tscn" id="5_tracer"]
 [ext_resource type="PackedScene" path="res://scenes/fx/Impact.tscn" id="6_impact"]
 [ext_resource type="PackedScene" path="res://scenes/fx/AmmoPickup.tscn" id="7_pickup"]
-[ext_resource type="PackedScene" path="res://art/models/SM_Holder.glb" id="8_model"]
+[ext_resource type="PackedScene" path="res://art/models/enemies/enemy_salt_sentry_lod0.glb" id="8_lod0"]
 [ext_resource type="Shader" path="res://shaders/outline.gdshader" id="9_outline"]
 [ext_resource type="PackedScene" path="res://scenes/fx/DeathBurst.tscn" id="10_burst"]
-[ext_resource type="Script" path="res://scripts/enemies/EnemyAnimator.cs" id="11_anim"]
+[ext_resource type="Script" path="res://scripts/enemies/EnemyAnimation.cs" id="11_anim"]
 [ext_resource type="Script" path="res://scripts/actors/ModelOutline.cs" id="12_outline"]
+[ext_resource type="Script" path="res://scripts/enemies/EnemyWeaponMount.cs" id="13_mount"]
+[ext_resource type="PackedScene" path="res://art/models/enemies/enemy_salt_sentry_lod1.glb" id="14_lod1"]
+[ext_resource type="PackedScene" path="res://art/models/enemies/enemy_salt_sentry_lod2.glb" id="15_lod2"]
 
 [sub_resource type="CapsuleShape3D" id="Shape_Body"]
 radius = 0.34
@@ -43,14 +46,23 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.925, 0)
 shape = SubResource("Shape_Body")
 
 [node name="Model" type="Node3D" parent="."]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0)
 script = ExtResource("12_outline")
 Overlay = SubResource("Mat_EnemyOutline")
 
-[node name="Animator" type="Node" parent="."]
+[node name="LOD0" parent="Model" instance=ExtResource("8_lod0")]
+
+[node name="LOD1" parent="Model" visible="false" instance=ExtResource("14_lod1")]
+
+[node name="LOD2" parent="Model" visible="false" instance=ExtResource("15_lod2")]
+
+[node name="Animation" type="Node" parent="."]
 script = ExtResource("11_anim")
 Data = ExtResource("2_data")
 
-[node name="Mesh" parent="Model" instance=ExtResource("8_model")]
+[node name="WeaponMount" type="Node3D" parent="."]
+script = ExtResource("13_mount")
+Data = ExtResource("2_data")
 
 [node name="Eye" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 0)

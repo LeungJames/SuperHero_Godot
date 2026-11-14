@@ -22,7 +22,7 @@ public partial class EnemyHealth : Node
 
 	private EnemyData _data;
 	private EnemyAgent _agent;
-	private Node3D _model;
+	private EnemyAnimation _animation;
 	private MeshInstance3D[] _meshes = Array.Empty<MeshInstance3D>();
 
 	private float _fallTimer;
@@ -33,7 +33,7 @@ public partial class EnemyHealth : Node
 	{
 		_agent = GetParent<EnemyAgent>();
 		_data = _agent.Data;
-		_model = _agent.GetNodeOrNull<Node3D>("Model");
+		_animation = _agent.GetNodeOrNull<EnemyAnimation>("Animation");
 
 		MaxHealth = _data != null ? _data.MaxHealth : 100f;
 		Health = MaxHealth;
@@ -63,15 +63,8 @@ public partial class EnemyHealth : Node
 
 		if (_fallTimer > 0f)
 		{
+			// 倒地交给 death 剪辑自己完成（素材末帧贴地），这里只等它播完再淡出
 			_fallTimer -= dt;
-			if (_model != null)
-			{
-				float fallDuration = Mathf.Max(_data != null ? _data.DeathFallTime : 0.35f, 0.01f);
-				float target = Mathf.DegToRad(90f);
-				_model.Rotation = new Vector3(0f, _model.Rotation.Y,
-					Mathf.MoveToward(_model.Rotation.Z, target, target / fallDuration * dt));
-			}
-
 			if (_fallTimer > 0f)
 				return;
 		}
@@ -92,8 +85,8 @@ public partial class EnemyHealth : Node
 
 		if (_fadeTimer <= 0f)
 		{
-			if (_model != null)
-				_model.Visible = false;
+			foreach (MeshInstance3D mesh in _meshes)
+				mesh.Visible = false;
 			SetProcess(false);
 		}
 	}
@@ -118,7 +111,9 @@ public partial class EnemyHealth : Node
 		DropAmmo();
 		SpawnDeathBurst();
 
-		_fallTimer = _data != null ? _data.DeathFallTime : 0.35f;
+		_fallTimer = _animation != null
+			? Mathf.Max(_animation.DeathDuration, 0.05f)
+			: _data != null ? Mathf.Max(_data.DeathFallTime, 0.05f) : 0.35f;
 		SetProcess(true);
 	}
 

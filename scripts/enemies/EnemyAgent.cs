@@ -35,7 +35,7 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 
 	private EnemyHealth _health;
 	private NavigationAgent3D _nav;
-	private EnemyAnimator _animator;
+	private EnemyAnimation _animation;
 	private Marker3D _eye;
 	private Marker3D _gun;
 	private OmniLight3D _muzzleLight;
@@ -95,9 +95,9 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 
 		CollectAnchors();
 
-		_animator = GetNodeOrNull<EnemyAnimator>("Animator");
-		if (_animator != null)
-			_animator.Data = Data;
+		_animation = GetNodeOrNull<EnemyAnimation>("Animation");
+		if (_animation != null)
+			_animation.Data = Data;
 
 		_health.Died += OnDied;
 		_health.Staggered += OnStaggered;
@@ -178,14 +178,15 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 		UpdateAnimator();
 	}
 
-	/// <summary>把真实水平位移速度交给步态动画：步幅按速度反解，脚不滑。</summary>
+	/// <summary>把真实水平位移速度交给骨架动画：播放速率按速度 / 剪辑原速缩放，脚不滑。</summary>
 	private void UpdateAnimator()
 	{
-		if (_animator == null)
+		if (_animation == null)
 			return;
 
 		Vector3 horizontal = new(Velocity.X, 0f, Velocity.Z);
-		_animator.Speed = horizontal.Length();
+		_animation.SetSpeed(horizontal.Length());
+		_animation.SetAiming(State == EnemyState.Combat || State == EnemyState.Alert);
 	}
 
 	// ---------------------------------------------------------------- 感知
@@ -614,6 +615,7 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 		if (_muzzleLight != null)
 			_muzzleLight.Visible = true;
 
+		_animation?.PlayFire();
 		Fired?.Invoke(muzzle);
 	}
 
@@ -750,6 +752,7 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 	{
 		_staggerTimer = duration;
 		_burstShotsLeft = 0;
+		_animation?.PlayHit();
 	}
 
 	private void OnDied()
@@ -757,7 +760,7 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 		_burstShotsLeft = 0;
 		_nav.TargetPosition = GlobalPosition;
 		SetPhysicsProcess(false);
-		_animator?.SetDead();
+		_animation?.SetDead();
 	}
 
 	// ---------------------------------------------------------------- 表现
