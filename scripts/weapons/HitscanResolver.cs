@@ -61,4 +61,20 @@ public static class HitscanResolver
 
 		return data.BaseDamage * Mathf.Lerp(1f, data.MinDamageMultiplier, t);
 	}
+
+	/// <summary>在散布圆锥内随机偏转方向（圆盘均匀采样），玩家与敌人共用。</summary>
+	public static Vector3 ApplySpread(Vector3 direction, float spreadDegrees)
+	{
+		if (spreadDegrees <= 0f)
+			return direction;
+
+		float radius = Mathf.Tan(Mathf.DegToRad(spreadDegrees)) * Mathf.Sqrt((float)GD.Randf());
+		float angle = (float)GD.Randf() * Mathf.Tau;
+
+		Vector3 reference = Mathf.Abs(direction.Y) > 0.99f ? Vector3.Right : Vector3.Up;
+		Vector3 right = direction.Cross(reference).Normalized();
+		Vector3 up = right.Cross(direction).Normalized();
+
+		return (direction + right * (Mathf.Cos(angle) * radius) + up * (Mathf.Sin(angle) * radius)).Normalized();
+	}
 }

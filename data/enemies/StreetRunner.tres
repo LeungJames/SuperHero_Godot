@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemies/EnemyData.cs" id="1_enemydata"]
+
+[resource]
+script = ExtResource("1_enemydata")
+Behavior = 0
+MaxHealth = 90.0
+PatrolSpeed = 1.8
+CombatSpeed = 4.2
+ViewDistance = 18.0
+ViewAngleHorizontal = 120.0
+ViewAngleVertical = 35.0
+HearingRadius = 12.0
+ReactionTime = 0.3
+HighGroundViewBonus = 8.0
+LowGroundViewScale = 0.6
+VerticalCombatLimit = 20.0
+EngageMinRange = 4.0
+EngageMaxRange = 9.0
+BurstShots = 2
+BurstShotInterval = 0.3
+BurstCooldown = 1.2
+Damage = 30.0
+SpreadClose = 3.5
+SpreadMid = 5.0
+SpreadFar = 7.0
+SpreadMidDistance = 8.0
+SpreadFarDistance = 15.0
+PlayerMovingSpreadBonus = 2.0
+LoseSightTime = 1.0
+AlertTimeout = 2.0
+SearchTimeout = 4.0
+PeekDuration = 1.2
+HideDuration = 1.0
+PatrolWaitMin = 1.0
+PatrolWaitMax = 2.0
+StaggerThreshold = 30.0
+StaggerDuration = 0.3
+DeathFallTime = 0.35
+DeathFadeTime = 2.0
+AmmoDropRounds = 6

@@ -17,10 +17,12 @@ public partial class PlayerController : CharacterBody3D
 	private PlayerCamera _camera;
 	private float _coyoteTimer;
 	private float _jumpBufferTimer;
+	private float _footstepTimer;
 
 	public override void _Ready()
 	{
 		_camera = GetNode<PlayerCamera>("Head");
+		AddToGroup("player");
 	}
 
 	public override void _UnhandledInput(InputEvent @event)
@@ -77,6 +79,28 @@ public partial class PlayerController : CharacterBody3D
 
 		if (!grounded && IsOnFloor() && _camera != null)
 			_camera.LandingBump(impactSpeed);
+
+		UpdateFootstepNoise(grounded, dt);
+	}
+
+	/// <summary>静步不发声；走路 / 冲刺按速度间隔广播脚步声（设计文档 §3.1、§5.4）。</summary>
+	private void UpdateFootstepNoise(bool grounded, float dt)
+	{
+		Vector3 horizontal = new(Velocity.X, 0f, Velocity.Z);
+		float speed = horizontal.Length();
+
+		if (!grounded || speed < 1f || Input.IsActionPressed("walk_slow"))
+		{
+			_footstepTimer = 0f;
+			return;
+		}
+
+		_footstepTimer -= dt;
+		if (_footstepTimer > 0f)
+			return;
+
+		_footstepTimer = Mathf.Lerp(0.5f, 0.32f, Mathf.Clamp(speed / Data.SprintSpeed, 0f, 1f));
+		NoiseEmitter.Emit(GlobalPosition, NoiseKind.Footstep);
 	}
 
 	private void UpdateJumpTimers(bool grounded, float dt)

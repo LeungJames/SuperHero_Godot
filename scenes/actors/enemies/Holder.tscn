@@ -1,0 +1,164 @@
+[gd_scene load_steps=22 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemies/EnemyAgent.cs" id="1_agent"]
+[ext_resource type="Resource" path="res://data/enemies/Holder.tres" id="2_data"]
+[ext_resource type="Script" path="res://scripts/enemies/EnemyHealth.cs" id="3_health"]
+[ext_resource type="Script" path="res://scripts/enemies/Hitbox.cs" id="4_hitbox"]
+[ext_resource type="PackedScene" path="res://scenes/fx/Tracer.tscn" id="5_tracer"]
+[ext_resource type="PackedScene" path="res://scenes/fx/Impact.tscn" id="6_impact"]
+[ext_resource type="PackedScene" path="res://scenes/fx/AmmoPickup.tscn" id="7_pickup"]
+
+[sub_resource type="CapsuleShape3D" id="Shape_Body"]
+radius = 0.34
+height = 1.85
+
+[sub_resource type="StandardMaterial3D" id="Mat_Pants"]
+albedo_color = Color(0.2275, 0.2275, 0.2196, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="Mat_Coat"]
+albedo_color = Color(0.1843, 0.4353, 0.4, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="Mat_Shirt"]
+albedo_color = Color(0.9294, 0.8902, 0.8078, 1)
+roughness = 0.85
+
+[sub_resource type="StandardMaterial3D" id="Mat_Skin"]
+albedo_color = Color(0.78, 0.6, 0.47, 1)
+roughness = 0.85
+
+[sub_resource type="StandardMaterial3D" id="Mat_Gun"]
+albedo_color = Color(0.1, 0.1, 0.11, 1)
+metallic = 0.4
+roughness = 0.6
+
+[sub_resource type="BoxMesh" id="Mesh_Legs"]
+material = SubResource("Mat_Pants")
+size = Vector3(0.44, 0.9, 0.34)
+
+[sub_resource type="BoxMesh" id="Mesh_Torso"]
+material = SubResource("Mat_Coat")
+size = Vector3(0.54, 0.66, 0.34)
+
+[sub_resource type="BoxMesh" id="Mesh_Shirt"]
+material = SubResource("Mat_Shirt")
+size = Vector3(0.2, 0.3, 0.04)
+
+[sub_resource type="SphereMesh" id="Mesh_Head"]
+material = SubResource("Mat_Skin")
+radius = 0.17
+height = 0.34
+
+[sub_resource type="BoxMesh" id="Mesh_Gun"]
+material = SubResource("Mat_Gun")
+size = Vector3(0.05, 0.1, 0.22)
+
+[sub_resource type="SphereShape3D" id="Shape_Head"]
+radius = 0.2
+
+[sub_resource type="BoxShape3D" id="Shape_Torso"]
+size = Vector3(0.56, 0.66, 0.38)
+
+[sub_resource type="BoxShape3D" id="Shape_Limbs"]
+size = Vector3(0.48, 0.9, 0.36)
+
+[node name="Holder" type="CharacterBody3D"]
+collision_layer = 4
+collision_mask = 7
+script = ExtResource("1_agent")
+Data = ExtResource("2_data")
+TracerScene = ExtResource("5_tracer")
+ImpactScene = ExtResource("6_impact")
+
+[node name="Body" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.925, 0)
+shape = SubResource("Shape_Body")
+
+[node name="Model" type="Node3D" parent="."]
+
+[node name="Legs" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
+mesh = SubResource("Mesh_Legs")
+
+[node name="Torso" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
+mesh = SubResource("Mesh_Torso")
+
+[node name="Shirt" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.22, -0.17)
+mesh = SubResource("Mesh_Shirt")
+
+[node name="Head" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.68, 0)
+mesh = SubResource("Mesh_Head")
+
+[node name="Gun" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.28, 1.25, -0.24)
+mesh = SubResource("Mesh_Gun")
+
+[node name="Eye" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 0)
+
+[node name="Gun" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.28, 1.25, -0.38)
+
+[node name="MuzzleLight" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.28, 1.25, -0.4)
+visible = false
+light_color = Color(1, 0.84, 0.55, 1)
+light_energy = 1.2
+omni_range = 3.0
+
+[node name="Hitboxes" type="Node3D" parent="."]
+
+[node name="Head" type="Area3D" parent="Hitboxes"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.68, 0)
+collision_layer = 8
+collision_mask = 0
+script = ExtResource("4_hitbox")
+DamageMultiplier = 2.5
+IsHead = true
+
+[node name="Collision" type="CollisionShape3D" parent="Hitboxes/Head"]
+shape = SubResource("Shape_Head")
+
+[node name="Torso" type="Area3D" parent="Hitboxes"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
+collision_layer = 8
+collision_mask = 0
+script = ExtResource("4_hitbox")
+DamageMultiplier = 1.0
+
+[node name="Collision" type="CollisionShape3D" parent="Hitboxes/Torso"]
+shape = SubResource("Shape_Torso")
+
+[node name="Limbs" type="Area3D" parent="Hitboxes"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
+collision_layer = 8
+collision_mask = 0
+script = ExtResource("4_hitbox")
+DamageMultiplier = 0.75
+
+[node name="Collision" type="CollisionShape3D" parent="Hitboxes/Limbs"]
+shape = SubResource("Shape_Limbs")
+
+[node name="NavAgent" type="NavigationAgent3D" parent="."]
+path_desired_distance = 0.6
+target_desired_distance = 0.8
+radius = 0.36
+height = 1.85
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("3_health")
+AmmoPickupScene = ExtResource("7_pickup")
+
+[node name="PatrolPoints" type="Node3D" parent="."]
+
+[node name="CoverPoints" type="Node3D" parent="."]
+
+[node name="Cover_0" type="Marker3D" parent="CoverPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2)
+
+[node name="Peek_0" type="Marker3D" parent="CoverPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.9, 0, 0)

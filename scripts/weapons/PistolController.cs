@@ -155,9 +155,12 @@ public partial class PistolController : Node3D
 	{
 		Vector3 origin = _camera.GlobalPosition;
 		Vector3 direction = -_camera.GlobalTransform.Basis.Z;
-		direction = ApplySpread(direction, GetSpreadDegrees());
+		direction = HitscanResolver.ApplySpread(direction, GetSpreadDegrees());
 
 		HitscanHit hit = HitscanResolver.Resolve(_player.GetWorld3D(), origin, direction, Data, _exclude);
+
+		// 枪声让 30m 内的敌人进入 Alert（§5.4）
+		NoiseEmitter.Emit(GlobalPosition, NoiseKind.Gunshot);
 
 		// 视觉弹道从枪口出发，打向相机射线的命中点（§4.4）
 		Vector3 muzzle = _muzzle != null ? _muzzle.GlobalPosition : origin;
@@ -186,22 +189,6 @@ public partial class PistolController : Node3D
 			spread += Data.AirSpreadPenalty;
 
 		return spread;
-	}
-
-	/// <summary>在散布圆锥内随机偏转方向（圆盘均匀采样）。</summary>
-	private static Vector3 ApplySpread(Vector3 direction, float spreadDegrees)
-	{
-		if (spreadDegrees <= 0f)
-			return direction;
-
-		float radius = Mathf.Tan(Mathf.DegToRad(spreadDegrees)) * Mathf.Sqrt((float)GD.Randf());
-		float angle = (float)GD.Randf() * Mathf.Tau;
-
-		Vector3 reference = Mathf.Abs(direction.Y) > 0.99f ? Vector3.Right : Vector3.Up;
-		Vector3 right = direction.Cross(reference).Normalized();
-		Vector3 up = right.Cross(direction).Normalized();
-
-		return (direction + right * (Mathf.Cos(angle) * radius) + up * (Mathf.Sin(angle) * radius)).Normalized();
 	}
 
 	private void ApplyRecoil()
