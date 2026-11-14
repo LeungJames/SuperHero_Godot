@@ -1,6 +1,8 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=16 format=3]
 
 [ext_resource type="Script" path="res://scripts/level/WaterKillVolume.cs" id="1_water"]
+[ext_resource type="PackedScene" path="res://scenes/actors/TargetDummy.tscn" id="2_dummy"]
+[ext_resource type="PackedScene" path="res://scenes/fx/AmmoPickup.tscn" id="3_pickup"]
 
 [sub_resource type="StandardMaterial3D" id="Mat_Platform"]
 albedo_color = Color(0.63, 0.63, 0.63, 1)
@@ -114,3 +116,15 @@ script = ExtResource("1_water")
 
 [node name="Collision" type="CollisionShape3D" parent="WaterKillVolume"]
 shape = SubResource("Shape_WaterKill")
+
+[node name="TargetDummy_A" parent="." instance=ExtResource("2_dummy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 20, -1.5)
+
+[node name="TargetDummy_B" parent="." instance=ExtResource("2_dummy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 20, -3)
+
+[node name="TargetDummy_C" parent="." instance=ExtResource("2_dummy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 20, -1.5)
+
+[node name="AmmoPickup" parent="." instance=ExtResource("3_pickup")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 20.6, 1.5)

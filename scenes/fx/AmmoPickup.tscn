@@ -1,0 +1,26 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/fx/AmmoPickup.cs" id="1_pickup"]
+
+[sub_resource type="StandardMaterial3D" id="Mat_Ammo"]
+albedo_color = Color(0.95, 0.76, 0.2, 1)
+metallic = 0.2
+roughness = 0.4
+
+[sub_resource type="BoxMesh" id="Mesh_Ammo"]
+material = SubResource("Mat_Ammo")
+size = Vector3(0.3, 0.16, 0.2)
+
+[sub_resource type="SphereShape3D" id="Shape_Pickup"]
+radius = 1.5
+
+[node name="AmmoPickup" type="Area3D"]
+collision_layer = 16
+collision_mask = 2
+script = ExtResource("1_pickup")
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("Shape_Pickup")
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("Mesh_Ammo")

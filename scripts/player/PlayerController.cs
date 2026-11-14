@@ -11,6 +11,9 @@ public partial class PlayerController : CharacterBody3D
 	/// <summary>死亡或演出期间由外部关闭。</summary>
 	public bool InputEnabled { get; set; } = true;
 
+	/// <summary>ADS / 换弹时的移速倍率，由武器写入（设计文档 §3.1）。</summary>
+	public float MoveSpeedMultiplier { get; set; } = 1f;
+
 	private PlayerCamera _camera;
 	private float _coyoteTimer;
 	private float _jumpBufferTimer;
@@ -45,7 +48,7 @@ public partial class PlayerController : CharacterBody3D
 				wishDirection = wishDirection.Normalized();
 		}
 
-		float targetSpeed = InputEnabled ? GetTargetSpeed() : 0f;
+		float targetSpeed = InputEnabled ? GetTargetSpeed() * MoveSpeedMultiplier : 0f;
 
 		if (grounded)
 		{

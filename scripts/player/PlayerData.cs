@@ -24,6 +24,11 @@ public partial class PlayerData : Resource
 
 	[Export] public float MouseSensitivity { get; set; } = 0.12f;
 
+	[Export] public float DefaultFov { get; set; } = 75f;
+	[Export] public float AdsFov { get; set; } = 55f;
+	/// <summary>ADS 期间的鼠标灵敏度倍率。</summary>
+	[Export] public float AdsSensitivityScale { get; set; } = 0.7f;
+
 	/// <summary>落差超过该值才计算摔伤（米）。</summary>
 	[Export] public float FallSafeHeight { get; set; } = 4f;
 

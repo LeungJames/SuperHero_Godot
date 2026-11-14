@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="PistolData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/PistolData.cs" id="1_pistoldata"]
+
+[resource]
+script = ExtResource("1_pistoldata")
+BaseDamage = 40.0
+FullDamageDistance = 25.0
+MinDamageDistance = 50.0
+MinDamageMultiplier = 0.6
+ShotsPerSecond = 5.5
+MagazineSize = 12
+StartingReserve = 36
+MaxReserve = 60
+ReloadTime = 2.0
+MaxRange = 200.0
+HipSpread = 1.2
+AdsSpread = 0.25
+MovingSpreadPenalty = 1.2
+AirSpreadPenalty = 3.0
+AdsTime = 0.15
+AdsMoveMultiplier = 0.55
+AdsRecoilMultiplier = 0.7
+RecoilPitch = 1.6
+RecoilYaw = 0.35
+RecoilRecovery = 14.0
+RecoilStackPerShot = 0.1
+RecoilStackMax = 2.0
+RecoilStackResetTime = 0.35
+ReloadMoveMultiplier = 0.75
+MuzzleFlashTime = 0.05
+FireKickBack = 0.035
+FireKickPitch = 4.0
+FireKickRecoverTime = 0.08
+FireKickPitchRecoverTime = 0.12
+SwayAmountX = 0.012
+SwayAmountY = 0.008
+AdsSwayScale = 0.25
+AdsSwayRateScale = 0.6
+ReloadDrop = 0.12
+ReloadRoll = 25.0

@@ -1,0 +1,58 @@
+using Godot;
+
+/// <summary>
+/// 手枪 P-9 数值配置。只承载数值，不含逻辑；对应设计文档 §4.2、§4.5、§4.7。
+/// </summary>
+[GlobalClass]
+public partial class PistolData : Resource
+{
+	[ExportGroup("伤害")]
+	[Export] public float BaseDamage { get; set; } = 40f;
+	[Export] public float FullDamageDistance { get; set; } = 25f;
+	[Export] public float MinDamageDistance { get; set; } = 50f;
+	[Export] public float MinDamageMultiplier { get; set; } = 0.6f;
+
+	[ExportGroup("射击")]
+	[Export] public float ShotsPerSecond { get; set; } = 5.5f;
+	[Export] public int MagazineSize { get; set; } = 12;
+	[Export] public int StartingReserve { get; set; } = 36;
+	[Export] public int MaxReserve { get; set; } = 60;
+	[Export] public float ReloadTime { get; set; } = 2f;
+	[Export] public float MaxRange { get; set; } = 200f;
+
+	[ExportGroup("散布（度）")]
+	[Export] public float HipSpread { get; set; } = 1.2f;
+	[Export] public float AdsSpread { get; set; } = 0.25f;
+	[Export] public float MovingSpreadPenalty { get; set; } = 1.2f;
+	[Export] public float AirSpreadPenalty { get; set; } = 3f;
+
+	[ExportGroup("开镜")]
+	[Export] public float AdsTime { get; set; } = 0.15f;
+	[Export] public float AdsMoveMultiplier { get; set; } = 0.55f;
+	[Export] public float AdsRecoilMultiplier { get; set; } = 0.7f;
+
+	[ExportGroup("后坐（度）")]
+	[Export] public float RecoilPitch { get; set; } = 1.6f;
+	[Export] public float RecoilYaw { get; set; } = 0.35f;
+	[Export] public float RecoilRecovery { get; set; } = 14f;
+	[Export] public float RecoilStackPerShot { get; set; } = 0.1f;
+	[Export] public float RecoilStackMax { get; set; } = 2f;
+	/// <summary>停火多久后连射后坐累积归零（秒）。</summary>
+	[Export] public float RecoilStackResetTime { get; set; } = 0.35f;
+
+	[ExportGroup("换弹")]
+	[Export] public float ReloadMoveMultiplier { get; set; } = 0.75f;
+
+	[ExportGroup("表现（§4.7）")]
+	[Export] public float MuzzleFlashTime { get; set; } = 0.05f;
+	[Export] public float FireKickBack { get; set; } = 0.035f;
+	[Export] public float FireKickPitch { get; set; } = 4f;
+	[Export] public float FireKickRecoverTime { get; set; } = 0.08f;
+	[Export] public float FireKickPitchRecoverTime { get; set; } = 0.12f;
+	[Export] public float SwayAmountX { get; set; } = 0.012f;
+	[Export] public float SwayAmountY { get; set; } = 0.008f;
+	[Export] public float AdsSwayScale { get; set; } = 0.25f;
+	[Export] public float AdsSwayRateScale { get; set; } = 0.6f;
+	[Export] public float ReloadDrop { get; set; } = 0.12f;
+	[Export] public float ReloadRoll { get; set; } = 25f;
+}

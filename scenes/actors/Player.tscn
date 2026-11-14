@@ -1,13 +1,38 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://scripts/player/PlayerController.cs" id="1_controller"]
 [ext_resource type="Resource" path="res://data/player/PlayerData.tres" id="2_data"]
 [ext_resource type="Script" path="res://scripts/player/PlayerCamera.cs" id="3_camera"]
 [ext_resource type="Script" path="res://scripts/player/PlayerHealth.cs" id="4_health"]
+[ext_resource type="Script" path="res://scripts/weapons/PistolController.cs" id="5_pistol"]
+[ext_resource type="Resource" path="res://data/weapons/P9.tres" id="6_p9"]
+[ext_resource type="PackedScene" path="res://scenes/fx/Tracer.tscn" id="7_tracer"]
+[ext_resource type="PackedScene" path="res://scenes/fx/Impact.tscn" id="8_impact"]
 
 [sub_resource type="CapsuleShape3D" id="Capsule_player"]
 radius = 0.35
 height = 1.8
+
+[sub_resource type="StandardMaterial3D" id="Mat_Viewmodel"]
+albedo_color = Color(0.32, 0.3, 0.28, 1)
+roughness = 0.85
+
+[sub_resource type="StandardMaterial3D" id="Mat_Pistol"]
+albedo_color = Color(0.12, 0.12, 0.13, 1)
+metallic = 0.4
+roughness = 0.6
+
+[sub_resource type="BoxMesh" id="Mesh_Arms"]
+material = SubResource("Mat_Viewmodel")
+size = Vector3(0.16, 0.14, 0.5)
+
+[sub_resource type="BoxMesh" id="Mesh_Pistol"]
+material = SubResource("Mat_Pistol")
+size = Vector3(0.06, 0.13, 0.26)
+
+[sub_resource type="BoxMesh" id="Mesh_Barrel"]
+material = SubResource("Mat_Pistol")
+size = Vector3(0.03, 0.03, 0.1)
 
 [node name="Player" type="CharacterBody3D"]
 collision_layer = 2
@@ -26,6 +51,37 @@ script = ExtResource("3_camera")
 [node name="Camera3D" type="Camera3D" parent="Head"]
 current = true
 fov = 75.0
+
+[node name="ViewModel" type="Node3D" parent="Head/Camera3D"]
+
+[node name="Arms" type="MeshInstance3D" parent="Head/Camera3D/ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, -0.24, -0.35)
+mesh = SubResource("Mesh_Arms")
+
+[node name="Pistol" type="Node3D" parent="Head/Camera3D/ViewModel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.18, -0.16, -0.4)
+script = ExtResource("5_pistol")
+Data = ExtResource("6_p9")
+TracerScene = ExtResource("7_tracer")
+ImpactScene = ExtResource("8_impact")
+
+[node name="Model" type="MeshInstance3D" parent="Head/Camera3D/ViewModel/Pistol"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.04)
+mesh = SubResource("Mesh_Pistol")
+
+[node name="Barrel" type="MeshInstance3D" parent="Head/Camera3D/ViewModel/Pistol"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, -0.22)
+mesh = SubResource("Mesh_Barrel")
+
+[node name="Muzzle" type="Marker3D" parent="Head/Camera3D/ViewModel/Pistol"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, -0.26)
+
+[node name="MuzzleLight" type="OmniLight3D" parent="Head/Camera3D/ViewModel/Pistol"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, -0.28)
+visible = false
+light_color = Color(1, 0.84, 0.55, 1)
+light_energy = 1.2
+omni_range = 3.0
 
 [node name="Health" type="Node" parent="."]
 script = ExtResource("4_health")
