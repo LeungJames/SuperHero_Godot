@@ -16,6 +16,12 @@ public partial class GameManager : Node
 {
 	[Export] public float DefeatDelay { get; set; } = 1.0f;
 
+	// 关卡目标文案与高度阈值；默认值保持港口关原有表现，新关卡在场景里覆盖。
+	[Export] public string ObjectiveHigh { get; set; } = "下到港区地面";
+	[Export] public string ObjectiveLow { get; set; } = "清空港口";
+	[Export] public string ObjectiveClear { get; set; } = "区域清空";
+	[Export] public float ObjectiveHeightThreshold { get; set; } = 1.0f;
+
 	public GameState State { get; private set; } = GameState.Playing;
 	public float ElapsedTime { get; private set; }
 	public float MaxHeight { get; private set; }
@@ -69,7 +75,7 @@ public partial class GameManager : Node
 
 		MaxHeight = _player.GlobalPosition.Y;
 		_hud.SetEnemyCount(_registry.AliveCount, _registry.TotalCount);
-		_hud.SetObjective("下到港区地面");
+		_hud.SetObjective(ObjectiveHigh);
 		_pauseMenu.Visible = false;
 	}
 
@@ -181,11 +187,11 @@ public partial class GameManager : Node
 	{
 		string target;
 		if (_registry.AliveCount <= 0)
-			target = "区域清空";
-		else if (_player.GlobalPosition.Y <= 1.0f)
-			target = $"清空港口 · 剩余 {_registry.AliveCount}";
+			target = ObjectiveClear;
+		else if (_player.GlobalPosition.Y <= ObjectiveHeightThreshold)
+			target = $"{ObjectiveLow} · 剩余 {_registry.AliveCount}";
 		else
-			target = "下到港区地面";
+			target = ObjectiveHigh;
 
 		if (target == _objective)
 			return;

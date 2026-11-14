@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="AlertData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/AlertData.cs" id="1_alert"]
+[ext_resource type="PackedScene" path="res://scenes/actors/enemies/StreetRunner.tscn" id="2_runner"]
+
+[resource]
+script = ExtResource("1_alert")
+AlertHoldTime = 3.0
+WaveInterval = 14.0
+MaxWaves = 2
+WaveSize = 3
+SpawnStagger = 0.4
+ReinforceScene = ExtResource("2_runner")
+CallMessage = "赤蛇会增援正在压上"
+ArriveMessage = "增援抵达"
