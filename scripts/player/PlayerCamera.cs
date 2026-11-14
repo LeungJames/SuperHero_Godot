@@ -16,6 +16,9 @@ public partial class PlayerCamera : Node3D
 
 	private const float LandingDipDepth = 0.05f;
 	private const float LandingDipRecoverTime = 0.15f;
+	private const float DeathSinkDepth = 0.5f;
+	private const float DeathRollDegrees = 8f;
+	private const float DeathTransitionTime = 0.5f;
 
 	private PlayerController _player;
 	private PlayerData _data;
@@ -25,6 +28,8 @@ public partial class PlayerCamera : Node3D
 	private float _recoilPitch;
 	private float _recoilYaw;
 	private float _aimBlend;
+	private float _deathBlend;
+	private bool _deathActive;
 
 	public override void _Ready()
 	{
@@ -42,27 +47,18 @@ public partial class PlayerCamera : Node3D
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
-		if (@event is InputEventMouseMotion motion)
-		{
-			if (!LookEnabled || _data == null || Input.MouseMode != Input.MouseModeEnum.Captured)
-				return;
-
-			float sensitivity = Mathf.DegToRad(_data.MouseSensitivity) *
-				Mathf.Lerp(1f, _data.AdsSensitivityScale, _aimBlend);
-			_player.RotateY(-motion.Relative.X * sensitivity);
-
-			float limit = Mathf.DegToRad(PitchLimitDegrees);
-			_pitch = Mathf.Clamp(_pitch - motion.Relative.Y * sensitivity, -limit, limit);
+		if (@event is not InputEventMouseMotion motion)
 			return;
-		}
 
-		// M1 阶段只用于释放/重新捕获鼠标；暂停由 M5 的 GameManager 接管
-		if (@event.IsActionPressed("pause"))
-		{
-			Input.MouseMode = Input.MouseMode == Input.MouseModeEnum.Captured
-				? Input.MouseModeEnum.Visible
-				: Input.MouseModeEnum.Captured;
-		}
+		if (!LookEnabled || _data == null || Input.MouseMode != Input.MouseModeEnum.Captured)
+			return;
+
+		float sensitivity = Mathf.DegToRad(_data.MouseSensitivity) *
+			Mathf.Lerp(1f, _data.AdsSensitivityScale, _aimBlend);
+		_player.RotateY(-motion.Relative.X * sensitivity);
+
+		float limit = Mathf.DegToRad(PitchLimitDegrees);
+		_pitch = Mathf.Clamp(_pitch - motion.Relative.Y * sensitivity, -limit, limit);
 	}
 
 	public override void _Process(double delta)
@@ -72,7 +68,7 @@ public partial class PlayerCamera : Node3D
 		UpdateRecoil(dt);
 		ApplyRotation();
 		UpdateAim();
-		UpdateLandingDip(dt);
+		UpdateCameraOffset(dt);
 	}
 
 	/// <summary>后坐只写相机偏移，不改玩家实际朝向（设计文档 §4.5）。</summary>
@@ -93,6 +89,13 @@ public partial class PlayerCamera : Node3D
 	{
 		if (_data != null && verticalSpeed <= -_data.LandingImpactSpeed)
 			_landingDip = LandingDipDepth;
+	}
+
+	/// <summary>死亡沉镜：0.5m 下沉 + 侧倾 8°（设计文档 §3.6）。</summary>
+	public void BeginDeath()
+	{
+		LookEnabled = false;
+		_deathActive = true;
 	}
 
 	private void UpdateRecoil(float dt)
@@ -116,12 +119,16 @@ public partial class PlayerCamera : Node3D
 		_camera.Fov = Mathf.Lerp(_data.DefaultFov, _data.AdsFov, _aimBlend);
 	}
 
-	private void UpdateLandingDip(float dt)
+	private void UpdateCameraOffset(float dt)
 	{
-		if (_landingDip <= 0f)
-			return;
+		if (_landingDip > 0f)
+			_landingDip = Mathf.MoveToward(_landingDip, 0f,
+				LandingDipDepth / LandingDipRecoverTime * dt);
 
-		_landingDip = Mathf.MoveToward(_landingDip, 0f, LandingDipDepth / LandingDipRecoverTime * dt);
-		_camera.Position = new Vector3(0f, -_landingDip, 0f);
+		if (_deathActive && _deathBlend < 1f)
+			_deathBlend = Mathf.MoveToward(_deathBlend, 1f, dt / DeathTransitionTime);
+
+		_camera.Position = new Vector3(0f, -(_landingDip + DeathSinkDepth * _deathBlend), 0f);
+		_camera.Rotation = new Vector3(0f, 0f, Mathf.DegToRad(-DeathRollDegrees) * _deathBlend);
 	}
 }

@@ -34,6 +34,7 @@ public partial class EnemyHealth : Node
 		MaxHealth = _data != null ? _data.MaxHealth : 100f;
 		Health = MaxHealth;
 		SetProcess(false);
+		AddToGroup("enemy");
 	}
 
 	public void TakeDamage(in DamageInfo info)

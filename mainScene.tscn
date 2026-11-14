@@ -1,8 +1,16 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=13 format=3]
 
-[ext_resource type="Script" uid="uid://bi8mnkhbtx10m" path="res://MainScene.cs" id="1_main"]
+[ext_resource type="Script" path="res://MainScene.cs" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/levels/PortLevel.tscn" id="2_level"]
 [ext_resource type="PackedScene" path="res://scenes/actors/Player.tscn" id="3_player"]
+[ext_resource type="PackedScene" path="res://scenes/actors/Helicopter.tscn" id="4_heli"]
+[ext_resource type="Script" path="res://scripts/core/GameManager.cs" id="5_game"]
+[ext_resource type="Script" path="res://scripts/core/EnemyRegistry.cs" id="6_registry"]
+[ext_resource type="Script" path="res://scripts/level/VictorySequenceController.cs" id="7_victory"]
+[ext_resource type="Resource" path="res://data/level/VictorySequenceConfig.tres" id="8_vcfg"]
+[ext_resource type="PackedScene" path="res://scenes/ui/Hud.tscn" id="9_hud"]
+[ext_resource type="PackedScene" path="res://scenes/ui/PauseMenu.tscn" id="10_pause"]
+[ext_resource type="PackedScene" path="res://scenes/ui/ResultsPanel.tscn" id="11_results"]
 
 [sub_resource type="Environment" id="Env_Blockout"]
 background_mode = 1
@@ -29,3 +37,35 @@ shadow_enabled = true
 
 [node name="Player" parent="Actors" instance=ExtResource("3_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 42.2, 79)
+
+[node name="Helicopter" parent="Actors" instance=ExtResource("4_heli")]
+visible = false
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 10, 0.35, -50)
+
+[node name="CinematicCamera" type="Camera3D" parent="Actors"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23, 4.5, -41)
+fov = 60.0
+
+[node name="Managers" type="Node3D" parent="."]
+process_mode = 3
+
+[node name="GameManager" type="Node" parent="Managers"]
+script = ExtResource("5_game")
+
+[node name="EnemyRegistry" type="Node" parent="Managers"]
+script = ExtResource("6_registry")
+
+[node name="VictorySequenceController" type="Node" parent="Managers"]
+script = ExtResource("7_victory")
+Config = ExtResource("8_vcfg")
+
+[node name="UI" type="CanvasLayer" parent="."]
+process_mode = 3
+
+[node name="Hud" parent="UI" instance=ExtResource("9_hud")]
+
+[node name="PauseMenu" parent="UI" instance=ExtResource("10_pause")]
+visible = false
+
+[node name="ResultsPanel" parent="UI" instance=ExtResource("11_results")]
+visible = false

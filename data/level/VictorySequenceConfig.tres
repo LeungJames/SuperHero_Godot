@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="VictorySequenceConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/level/VictorySequenceConfig.cs" id="1_config"]
+
+[resource]
+script = ExtResource("1_config")
+BannerTime = 0.2
+RadioStart = 0.4
+RadioEnd = 1.4
+ApproachStart = 1.4
+LandTime = 9.4
+BoardStart = 9.4
+BoardEnd = 11.4
+FadeStart = 11.4
+FadeEnd = 12.4
+ResultsTime = 12.4
+BannerText = "区域清空 · 撤离直升机抵达中"
+RadioText = "无线电：目标已清除，直升机正在进场，请到停机坪待撤。"
+HelicopterApproachFrom = Vector3(96, 46, -170)
+HelicopterApproachControl = Vector3(52, 34, -104)
+HelicopterLandingPosition = Vector3(10, 0.35, -50)
+CinematicCameraPosition = Vector3(23, 4.5, -41)
+BoardTargetOffset = Vector3(0, 0, -2.2)
+RotorSpinDegreesPerSecond = 1080.0

@@ -15,6 +15,7 @@ public enum DeathCause
 public partial class PlayerHealth : Node
 {
 	public event Action<float, float> HealthChanged;
+	public event Action<float, DeathCause> Damaged;
 	public event Action<DeathCause> Died;
 
 	public float Health { get; private set; }
@@ -83,6 +84,7 @@ public partial class PlayerHealth : Node
 			return;
 
 		Health = Mathf.Max(0f, Health - amount);
+		Damaged?.Invoke(amount, cause);
 		HealthChanged?.Invoke(Health, MaxHealth);
 
 		if (Health <= 0f)

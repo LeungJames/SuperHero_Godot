@@ -14,10 +14,21 @@ public partial class PistolController : Node3D
 	/// <summary>弹匣 / 备弹变化（HUD 在 M5 订阅）。</summary>
 	public event Action<int, int> AmmoChanged;
 
+	/// <summary>每次真正打出一发后的解算结果（命中标记与统计用）。</summary>
+	public event Action<HitscanHit> ShotResolved;
+
 	public int MagAmmo { get; private set; }
 	public int ReserveAmmo { get; private set; }
 	public bool IsReloading { get; private set; }
 	public bool IsAiming { get; private set; }
+
+	/// <summary>当前散布角（度），准星按它张开（§7.2）。</summary>
+	public float CurrentSpreadDegrees => Data != null ? GetSpreadDegrees() : 0f;
+
+	/// <summary>换弹进度 0~1，未换弹时为 0。</summary>
+	public float ReloadProgress => IsReloading && Data != null
+		? Mathf.Clamp(1f - _reloadTimer / Mathf.Max(Data.ReloadTime, 0.001f), 0f, 1f)
+		: 0f;
 
 	private const float MuzzleFlashEnergy = 1.2f;
 
@@ -175,6 +186,8 @@ public partial class PistolController : Node3D
 		_flashTimer = Data.MuzzleFlashTime;
 		if (_muzzleLight != null)
 			_muzzleLight.Visible = true;
+
+		ShotResolved?.Invoke(hit);
 	}
 
 	private float GetSpreadDegrees()
