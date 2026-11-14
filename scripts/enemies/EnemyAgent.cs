@@ -53,6 +53,7 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 	private float _stateTimer;
 	private float _staggerTimer;
 	private float _fireTimer;
+	private const float CoverArrivalDistance = 1.0f;
 	private int _burstShotsLeft;
 	private float _patrolWait;
 	private float _patrolWaitTarget;
@@ -447,7 +448,9 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 
 		if (!_coverPeeking)
 		{
-			if (FlatDistance(GlobalPosition, _coverPosition) > 0.45f)
+			// 导航的 target_desired_distance 是 0.8m，判断"到点"必须比它宽，
+			// 否则守卫会停在掩体前 0.8m 永远不进探头阶段（也就永远不开火）。
+			if (FlatDistance(GlobalPosition, _coverPosition) > CoverArrivalDistance)
 			{
 				MoveTo(_coverPosition, Data.CombatSpeed);
 				FaceTowards(_player.GlobalPosition, dt);
@@ -465,7 +468,7 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 		}
 		else
 		{
-			if (FlatDistance(GlobalPosition, _peekPosition) > 0.35f)
+			if (FlatDistance(GlobalPosition, _peekPosition) > CoverArrivalDistance)
 			{
 				MoveTo(_peekPosition, Data.CombatSpeed);
 				FaceTowards(_player.GlobalPosition, dt);

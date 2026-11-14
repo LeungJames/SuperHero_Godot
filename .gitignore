@@ -13,8 +13,8 @@
 /export/
 export.cfg
 
-# 导出预设（含密钥/证书路径等，按需保留；默认忽略）
-export_presets.cfg
+# 导出预设：本工程不含密钥/证书，随工程提交；若将来加入签名信息再改回忽略
+# export_presets.cfg
 
 # 说明：*.import 与 *.uid 是 Godot 需要随工程走的元文件，必须提交，切勿忽略
 
