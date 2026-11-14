@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ExplosiveData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/level/ExplosiveData.cs" id="1_data"]
+[ext_resource type="PackedScene" path="res://scenes/fx/DeathBurst.tscn" id="2_burst"]
+
+[resource]
+script = ExtResource("1_data")
+FuseTime = 0.35
+Radius = 4.2
+Damage = 120.0
+BurstScene = ExtResource("2_burst")

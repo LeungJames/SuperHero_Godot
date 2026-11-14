@@ -80,11 +80,27 @@ public partial class ComicOverlay : Control
 			if (node is not EnemyHealth health)
 				continue;
 
-			Node3D agent = health.GetParent() as Node3D;
-			health.Died += () => OnEnemyDied(agent);
+			Subscribe(health);
 		}
 
+		// 增援是运行时生成的，同样要有击杀表现
+		EnemyHealth.Spawned += Subscribe;
+
 		BuildShaderLayers();
+	}
+
+	public override void _ExitTree()
+	{
+		EnemyHealth.Spawned -= Subscribe;
+	}
+
+	private void Subscribe(EnemyHealth health)
+	{
+		if (health == null)
+			return;
+
+		Node3D agent = health.GetParent() as Node3D;
+		health.Died += () => OnEnemyDied(agent);
 	}
 
 	public override void _Process(double delta)

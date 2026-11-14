@@ -19,6 +19,7 @@ public partial class EnemyRegistry : Node
 	public int Kills => TotalCount - AliveCount;
 
 	private bool _cleared;
+	private readonly HashSet<EnemyHealth> _registered = new();
 
 	public override void _Ready()
 	{
@@ -27,11 +28,7 @@ public partial class EnemyRegistry : Node
 			if (node is not EnemyHealth health)
 				continue;
 
-			TotalCount++;
-			if (!health.IsDead)
-				AliveCount++;
-
-			health.Died += () => OnEnemyDied(health);
+			Register(health);
 		}
 
 		if (AliveCount == 0 && TotalCount > 0)
@@ -39,6 +36,27 @@ public partial class EnemyRegistry : Node
 			_cleared = true;
 		}
 
+		CountChanged?.Invoke(AliveCount, TotalCount);
+
+		// 增援是运行时生成的，同样要计入存活数
+		EnemyHealth.Spawned += Register;
+	}
+
+	public override void _ExitTree()
+	{
+		EnemyHealth.Spawned -= Register;
+	}
+
+	private void Register(EnemyHealth health)
+	{
+		if (health == null || !_registered.Add(health))
+			return;
+
+		TotalCount++;
+		if (!health.IsDead)
+			AliveCount++;
+
+		health.Died += () => OnEnemyDied(health);
 		CountChanged?.Invoke(AliveCount, TotalCount);
 	}
 

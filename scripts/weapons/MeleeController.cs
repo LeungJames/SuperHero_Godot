@@ -69,11 +69,75 @@ public partial class MeleeController : Node3D
 
 		_cooldown = Data.Cooldown;
 		_swingTimer = Data.SwingTime;
-		_resolved = false;
 		Swung?.Invoke();
-		NoiseEmitter.Emit(_player.GlobalPosition, NoiseKind.Footstep);
+
+		// 背后且未警觉的敌人直接暗杀：静默、不结算普通近战
+		_resolved = TryTakedown();
+		if (!_resolved)
+			NoiseEmitter.Emit(_player.GlobalPosition, NoiseKind.Footstep);
+
 		return true;
 	}
+
+	/// <summary>找背后最近的未警觉敌人；成功则直接击杀并返回 true。</summary>
+	private bool TryTakedown()
+	{
+		if (_camera == null)
+			return false;
+
+		Vector3 origin = _camera.GlobalPosition;
+		Vector3 forward = -_camera.GlobalTransform.Basis.Z;
+
+		EnemyHealth target = null;
+		float bestDistance = float.MaxValue;
+
+		foreach (Node node in GetTree().GetNodesInGroup("enemy"))
+		{
+			if (node is not EnemyHealth health || health.IsDead)
+				continue;
+			if (health.GetParent() is not EnemyAgent agent)
+				continue;
+			if (agent.State is EnemyState.Alert or EnemyState.Combat)
+				continue;
+
+			Vector3 toPlayer = Flat(_player.GlobalPosition - agent.GlobalPosition);
+			if (toPlayer.LengthSquared() < 0.0001f)
+				continue;
+			toPlayer = toPlayer.Normalized();
+
+			Vector3 enemyForward = Flat(-agent.GlobalTransform.Basis.Z);
+			if (enemyForward.LengthSquared() < 0.0001f)
+				continue;
+			enemyForward = enemyForward.Normalized();
+
+			// 玩家必须在敌人背后（点积越负越正后方）
+			if (enemyForward.Dot(toPlayer) > Data.TakedownRearDot)
+				continue;
+
+			Vector3 toEnemy = agent.GlobalPosition + Vector3.Up - origin;
+			float distance = toEnemy.Length();
+			if (distance > Data.TakedownRange)
+				continue;
+			if (Mathf.RadToDeg(forward.AngleTo(toEnemy.Normalized())) > Data.ConeDegrees * 0.5f)
+				continue;
+
+			if (distance < bestDistance)
+			{
+				target = health;
+				bestDistance = distance;
+			}
+		}
+
+		if (target == null)
+			return false;
+
+		_cooldown = Mathf.Max(_cooldown, Data.TakedownCooldown);
+		Vector3 point = (target.GetParent() as Node3D)?.GlobalPosition ?? _player.GlobalPosition;
+		target.TakeDamage(new DamageInfo(9999f, point, -forward, true));
+		return true;
+	}
+
+	private static Vector3 Flat(Vector3 v) => new(v.X, 0f, v.Z);
 
 	/// <summary>挥动姿势：前 35% 抡出去，后面收回。</summary>
 	private static float SwingPose(float progress)

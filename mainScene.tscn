@@ -15,6 +15,8 @@
 [ext_resource type="Script" path="res://scripts/audio/AudioDirector.cs" id="13_audio"]
 [ext_resource type="Script" path="res://scripts/ui/ComicOverlay.cs" id="14_comic"]
 [ext_resource type="Resource" path="res://data/ui/ComicStyle.tres" id="15_comic_style"]
+[ext_resource type="Script" path="res://scripts/core/AlertDirector.cs" id="16_alert"]
+[ext_resource type="Resource" path="res://data/level/Alert.tres" id="17_alert_data"]
 
 [sub_resource type="ProceduralSkyMaterial" id="Sky_Dusk"]
 sky_top_color = Color(0.78, 0.45, 0.17, 1)
@@ -71,6 +73,17 @@ light_specular = 0.0
 
 [node name="Level" parent="World" instance=ExtResource("2_level")]
 
+[node name="ReinforcementPoints" type="Node3D" parent="World" groups=["reinforce_points"]]
+
+[node name="Point_A" type="Marker3D" parent="World/ReinforcementPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 42.1, 69.6)
+
+[node name="Point_B" type="Marker3D" parent="World/ReinforcementPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 42.1, 80)
+
+[node name="Point_C" type="Marker3D" parent="World/ReinforcementPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.4, 42.1, 81)
+
 [node name="Actors" type="Node3D" parent="."]
 
 [node name="Player" parent="Actors" instance=ExtResource("3_player")]
@@ -92,6 +105,10 @@ script = ExtResource("5_game")
 
 [node name="EnemyRegistry" type="Node" parent="Managers"]
 script = ExtResource("6_registry")
+
+[node name="AlertDirector" type="Node" parent="Managers"]
+script = ExtResource("16_alert")
+Data = ExtResource("17_alert_data")
 
 [node name="VictorySequenceController" type="Node" parent="Managers"]
 script = ExtResource("7_victory")

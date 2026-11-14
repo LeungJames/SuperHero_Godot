@@ -25,4 +25,12 @@ public partial class MeleeData : Resource
 	[Export] public float SwingTime { get; set; } = 0.32f;
 	/// <summary>挥动到多少比例时结算伤害（0~1）。</summary>
 	[Export] public float HitTimeRatio { get; set; } = 0.4f;
+
+	[ExportGroup("潜行暗杀（§5.3）")]
+	/// <summary>背面暗杀的最大距离（米）。</summary>
+	[Export] public float TakedownRange { get; set; } = 2f;
+	/// <summary>玩家必须位于敌人背后：敌人朝向与「敌→玩家」方向的点积小于该值。</summary>
+	[Export] public float TakedownRearDot { get; set; } = -0.25f;
+	/// <summary>暗杀后的冷却（秒）。</summary>
+	[Export] public float TakedownCooldown { get; set; } = 1.1f;
 }

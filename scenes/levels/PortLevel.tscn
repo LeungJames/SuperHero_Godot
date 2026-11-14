@@ -3,6 +3,8 @@
 [ext_resource type="Shader" path="res://shaders/outline.gdshader" id="1_outline"]
 [ext_resource type="Shader" path="res://shaders/toon.gdshader" id="1_toon"]
 [ext_resource type="Script" path="res://scripts/level/WaterKillVolume.cs" id="1_05ckf"]
+[ext_resource type="Script" path="res://scripts/level/ExplosiveBarrel.cs" id="1_barrel"]
+[ext_resource type="Resource" path="res://data/level/ExplosiveBarrel.tres" id="2_barrel_data"]
 [ext_resource type="PackedScene" path="res://scenes/actors/enemies/StreetRunner.tscn" id="2_x3vul"]
 [ext_resource type="Script" path="res://scripts/enemies/EnemyAgent.cs" id="3_pgixw"]
 [ext_resource type="Resource" path="res://data/enemies/StreetRunner.tres" id="4_edkg7"]
@@ -2209,6 +2211,8 @@ material_override = SubResource("StandardMaterial3D_7pi7s")
 
 [node name="Barrel_A" type="StaticBody3D" parent="." unique_id=2134483300]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0.45, -28)
+script = ExtResource("1_barrel")
+Data = ExtResource("2_barrel_data")
 
 [node name="@CollisionShape3D@182" type="CollisionShape3D" parent="Barrel_A" unique_id=832547013]
 shape = SubResource("BoxShape3D_syu66")
@@ -2220,6 +2224,8 @@ material_override = SubResource("StandardMaterial3D_ntd2j")
 
 [node name="Barrel_B" type="StaticBody3D" parent="." unique_id=2002018359]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16.8, 0.45, -32)
+script = ExtResource("1_barrel")
+Data = ExtResource("2_barrel_data")
 
 [node name="@CollisionShape3D@184" type="CollisionShape3D" parent="Barrel_B" unique_id=1540219230]
 shape = SubResource("BoxShape3D_pq6av")
@@ -2231,6 +2237,8 @@ material_override = SubResource("StandardMaterial3D_6i8vn")
 
 [node name="Barrel_C" type="StaticBody3D" parent="." unique_id=216864893]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 0.45, -10)
+script = ExtResource("1_barrel")
+Data = ExtResource("2_barrel_data")
 
 [node name="@CollisionShape3D@186" type="CollisionShape3D" parent="Barrel_C" unique_id=320947252]
 shape = SubResource("BoxShape3D_olehv")

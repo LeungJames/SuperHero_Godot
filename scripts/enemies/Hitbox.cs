@@ -11,6 +11,16 @@ public partial class Hitbox : Area3D
 
 	[Export] public bool IsHead { get; set; }
 
+	/// <summary>沿父链找最近的 IDamageable（范围伤害需要按实体去重时用）。</summary>
+	public IDamageable FindDamageable()
+	{
+		for (Node node = GetParent(); node != null; node = node.GetParent())
+			if (node is IDamageable damageable)
+				return damageable;
+
+		return null;
+	}
+
 	/// <summary>传入未乘部位倍率的伤害，由本节点完成取整后转发。</summary>
 	public void ApplyDamage(float damageBeforeMultiplier, Vector3 hitPoint, Vector3 normal)
 	{
@@ -20,15 +30,13 @@ public partial class Hitbox : Area3D
 
 		var info = new DamageInfo(damage, hitPoint, normal, IsHead);
 
-		for (Node node = GetParent(); node != null; node = node.GetParent())
+		IDamageable target = FindDamageable();
+		if (target == null)
 		{
-			if (node is IDamageable damageable)
-			{
-				damageable.TakeDamage(info);
-				return;
-			}
+			GD.PushWarning($"Hitbox '{Name}': 父链上找不到 IDamageable。");
+			return;
 		}
 
-		GD.PushWarning($"Hitbox '{Name}': 父链上找不到 IDamageable。");
+		target.TakeDamage(info);
 	}
 }

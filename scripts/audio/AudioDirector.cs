@@ -89,23 +89,29 @@ public partial class AudioDirector : Node
 		foreach (Node node in GetTree().GetNodesInGroup("enemy"))
 		{
 			// 组挂在 EnemyHealth 上，EnemyAgent 是它的父节点
-			EnemyHealth health = node as EnemyHealth ?? node.GetNodeOrNull<EnemyHealth>("Health");
-			Node owner = node is EnemyHealth ? health?.GetParent() : node;
-			if (owner is not EnemyAgent agent)
-				continue;
-
-			agent.Fired += position =>
-				PlayAt(SfxKind.Gunshot, position, -3f, 0.94f + (float)GD.RandRange(0f, 0.12f));
-			agent.Alerted += () => PlayAt(SfxKind.Alert, agent.GlobalPosition, -7f);
-
-			if (health != null)
-				health.Died += () =>
-					PlayAt(SfxKind.Death, agent.GlobalPosition, -4f, 0.9f + (float)GD.RandRange(0f, 0.2f));
+			if (node is EnemyHealth existing)
+				Subscribe(existing);
 		}
+
+		EnemyHealth.Spawned += Subscribe;
+	}
+
+	/// <summary>敌人（含运行时增援）进场后挂上音效。</summary>
+	private void Subscribe(EnemyHealth health)
+	{
+		if (health == null || health.GetParent() is not EnemyAgent agent)
+			return;
+
+		agent.Fired += position =>
+			PlayAt(SfxKind.Gunshot, position, -3f, 0.94f + (float)GD.RandRange(0f, 0.12f));
+		agent.Alerted += () => PlayAt(SfxKind.Alert, agent.GlobalPosition, -7f);
+		health.Died += () =>
+			PlayAt(SfxKind.Death, agent.GlobalPosition, -4f, 0.9f + (float)GD.RandRange(0f, 0.2f));
 	}
 
 	public override void _ExitTree()
 	{
+		EnemyHealth.Spawned -= Subscribe;
 		_wind?.Stop();
 		_waves?.Stop();
 		_radio?.Stop();

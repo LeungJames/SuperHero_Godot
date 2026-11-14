@@ -6,6 +6,7 @@ public enum DeathCause
 	Gunshot,
 	Fall,
 	Drown,
+	Explosion,
 }
 
 /// <summary>

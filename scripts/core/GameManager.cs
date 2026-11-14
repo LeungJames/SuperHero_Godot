@@ -157,6 +157,7 @@ public partial class GameManager : Node
 			DeathCause.Gunshot => "死于枪伤",
 			DeathCause.Fall => $"从 {Mathf.RoundToInt(MaxHeight - DeathHeight)}m 的高处坠落",
 			DeathCause.Drown => "落水身亡",
+			DeathCause.Explosion => "被爆炸波及",
 			_ => "阵亡",
 		};
 	}

@@ -10,6 +10,9 @@ public partial class EnemyHealth : Node
 	public event Action Died;
 	public event Action<float> Staggered;
 
+	/// <summary>敌人进入场景（含增援）时广播，供注册表与表现层订阅。</summary>
+	public static event Action<EnemyHealth> Spawned;
+
 	[Export] public PackedScene AmmoPickupScene { get; set; }
 	[Export] public PackedScene DeathBurstScene { get; set; }
 
@@ -36,6 +39,7 @@ public partial class EnemyHealth : Node
 		Health = MaxHealth;
 		SetProcess(false);
 		AddToGroup("enemy");
+		Spawned?.Invoke(this);
 	}
 
 	public void TakeDamage(in DamageInfo info)

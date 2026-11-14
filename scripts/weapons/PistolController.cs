@@ -219,6 +219,9 @@ public partial class PistolController : Node3D
 			_muzzleLight.Visible = true;
 
 		ShotResolved?.Invoke(hit);
+
+		if (hit.HasHit && hit.Collider is IBulletReceiver receiver)
+			receiver.OnBulletHit(hit);
 	}
 
 	private float GetSpreadDegrees()
