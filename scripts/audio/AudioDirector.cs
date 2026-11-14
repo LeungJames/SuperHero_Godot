@@ -18,7 +18,7 @@ public partial class AudioDirector : Node
 
 	private PlayerController _player;
 	private PlayerHealth _health;
-	private PistolController _pistol;
+	private WeaponController _weapon;
 	private MeleeController _melee;
 	private Node3D _helicopter;
 	private VictorySequenceController _victory;
@@ -28,7 +28,7 @@ public partial class AudioDirector : Node
 	{
 		_player = GetNode<PlayerController>("../../Actors/Player");
 		_health = _player.GetNode<PlayerHealth>("Health");
-		_pistol = GetTree().GetFirstNodeInGroup("pistol") as PistolController;
+		_weapon = GetTree().GetFirstNodeInGroup("weapon") as WeaponController;
 		_helicopter = GetNodeOrNull<Node3D>("../../Actors/Helicopter");
 		_victory = GetNodeOrNull<VictorySequenceController>("../VictorySequenceController");
 
@@ -62,11 +62,11 @@ public partial class AudioDirector : Node
 			PlayAt(SfxKind.Footstep, _player.GlobalPosition, -13f, 0.95f + (float)GD.RandRange(0f, 0.1f));
 		_health.Damaged += OnPlayerDamaged;
 
-		if (_pistol != null)
+		if (_weapon != null)
 		{
-			_pistol.ShotResolved += OnShotResolved;
-			_pistol.ReloadStarted += () => PlayAt(SfxKind.Reload, _player.GlobalPosition, -6f);
-			_pistol.DryFired += () => PlayAt(SfxKind.DryFire, _player.GlobalPosition, -5f);
+			_weapon.ShotResolved += OnShotResolved;
+			_weapon.ReloadStarted += () => PlayAt(SfxKind.Reload, _player.GlobalPosition, -6f);
+			_weapon.DryFired += () => PlayAt(SfxKind.DryFire, _player.GlobalPosition, -5f);
 		}
 
 		_melee = _player.GetNodeOrNull<MeleeController>("Melee");
@@ -156,7 +156,7 @@ public partial class AudioDirector : Node
 
 	private void OnShotResolved(HitscanHit hit)
 	{
-		PlayAt(SfxKind.Gunshot, _pistol.GlobalPosition, -2f, 0.95f + (float)GD.RandRange(0f, 0.1f));
+		PlayAt(SfxKind.Gunshot, _weapon.GlobalPosition, -2f, 0.95f + (float)GD.RandRange(0f, 0.1f));
 
 		if (!hit.HasHit)
 			return;

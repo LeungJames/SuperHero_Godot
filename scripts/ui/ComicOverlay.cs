@@ -29,7 +29,7 @@ public partial class ComicOverlay : Control
 
 	private PlayerController _player;
 	private PlayerHealth _health;
-	private PistolController _pistol;
+	private WeaponController _weapon;
 	private MeleeController _melee;
 	private Camera3D _camera;
 	private Font _font;
@@ -57,17 +57,17 @@ public partial class ComicOverlay : Control
 		if (_player != null)
 		{
 			_health = _player.GetNodeOrNull<PlayerHealth>("Health");
-			_pistol = _player.GetNodeOrNull<PistolController>("Head/Camera3D/ViewModel/Pistol");
+			_weapon = _player.GetNodeOrNull<WeaponController>("Head/Camera3D/ViewModel/Weapon");
 			_melee = _player.GetNodeOrNull<MeleeController>("Melee");
 			_camera = _player.GetNodeOrNull<Camera3D>("Head/Camera3D");
 
 			if (_health != null)
 				_health.Damaged += OnPlayerDamaged;
 
-			if (_pistol != null)
+			if (_weapon != null)
 			{
-				_pistol.ShotResolved += OnShotResolved;
-				_pistol.ReloadStarted += () => Spawn("CLICK!", Crosshair() + new Vector2(0f, 76f), Style.PaperColor, 0.62f);
+				_weapon.ShotResolved += OnShotResolved;
+				_weapon.ReloadStarted += () => Spawn("CLICK!", Crosshair() + new Vector2(0f, 76f), Style.PaperColor, 0.62f);
 			}
 
 			if (_melee != null)

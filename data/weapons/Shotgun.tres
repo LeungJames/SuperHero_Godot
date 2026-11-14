@@ -1,0 +1,64 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/WeaponData.cs" id="1_weapondata"]
+[ext_resource type="PackedScene" path="res://art/models/WPN_Shotgun.glb" id="2_viewmodel"]
+
+[resource]
+script = ExtResource("1_weapondata")
+DisplayName = "M-870"
+UnlockChapter = 3
+Viewmodel = ExtResource("2_viewmodel")
+MuzzleOffset = Vector3(0, 0.018, -0.4)
+BaseDamage = 16.0
+FullDamageDistance = 8.0
+MinDamageDistance = 22.0
+MinDamageMultiplier = 0.35
+ShotsPerSecond = 1.2
+Automatic = false
+PelletsPerShot = 8
+MagazineSize = 6
+StartingReserve = 24
+MaxReserve = 48
+ReloadTime = 2.6
+MaxRange = 70.0
+HipSpread = 6.5
+AdsSpread = 4.0
+MovingSpreadPenalty = 1.5
+AirSpreadPenalty = 3.0
+SlideSpreadPenalty = 2.5
+AdsTime = 0.2
+AdsMoveMultiplier = 0.6
+AdsRecoilMultiplier = 0.75
+AdsFov = 60.0
+RecoilPitch = 4.2
+RecoilYaw = 0.8
+RecoilRecovery = 10.0
+RecoilStackPerShot = 0.15
+RecoilStackMax = 2.0
+RecoilStackResetTime = 0.4
+ReloadMoveMultiplier = 0.7
+MuzzleFlashTime = 0.07
+FireKickBack = 0.06
+FireKickPitch = 7.0
+FireKickRecoverTime = 0.12
+FireKickPitchRecoverTime = 0.18
+SwayAmountX = 0.014
+SwayAmountY = 0.011
+AdsSwayScale = 0.3
+AdsSwayRateScale = 0.6
+ReloadDrop = 0.13
+ReloadRoll = 20.0
+ReloadMagDropDistance = 0.22
+ReloadMagDropStart = 0.1
+ReloadMagDropEnd = 0.3
+ReloadMagInsertStart = 0.46
+ReloadMagInsertEnd = 0.62
+ReloadSlideStart = 0.66
+ReloadSlideEnd = 0.8
+ReloadSlideTravel = 0.06
+ReloadHandDropDegrees = 28.0
+ReloadHandLeaveStart = 0.04
+ReloadHandLeaveEnd = 0.18
+ReloadHandReturnStart = 0.62
+ReloadHandReturnEnd = 0.78
+ReloadBoneBlendSpeed = 12.0

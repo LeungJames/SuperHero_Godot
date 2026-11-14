@@ -1,20 +1,22 @@
 using Godot;
 using System;
+using System.Collections.Generic;
 
 /// <summary>
-/// 手枪 P-9：半自动开火门控、ADS、换弹、散布与后坐、程序化持枪位移。
-/// 不做移动、不做切枪（设计文档 §4、§9.3）。
+/// 枪械控制器：把 <see cref="WeaponData"/> 描述的数值变成开火 / 换弹 / 散布 / 后坐 / 程序化持枪位移，
+/// 并按 <see cref="ArsenalData"/> 做章节解锁与切枪（设计文档 §4、§5.2、§9.3）。
+/// 同一实例在切枪时只替换视角模型，弹药与订阅关系按武器分别保存，外部无需重连事件。
 /// </summary>
-public partial class PistolController : Node3D
+public partial class WeaponController : Node3D
 {
-	[Export] public PistolData Data { get; set; }
+	[Export] public ArsenalData Arsenal { get; set; }
 	[Export] public PackedScene TracerScene { get; set; }
 	[Export] public PackedScene ImpactScene { get; set; }
 
-	/// <summary>弹匣 / 备弹变化（HUD 在 M5 订阅）。</summary>
+	/// <summary>弹匣 / 备弹变化（HUD 订阅）。</summary>
 	public event Action<int, int> AmmoChanged;
 
-	/// <summary>每次真正打出一发后的解算结果（命中标记与统计用）。</summary>
+	/// <summary>每次真正打出一发后的解算结果（霰弹枪每颗弹丸各一次）。</summary>
 	public event Action<HitscanHit> ShotResolved;
 
 	/// <summary>开始换弹（音效与 HUD 用）。</summary>
@@ -23,8 +25,24 @@ public partial class PistolController : Node3D
 	/// <summary>空仓扣扳机。</summary>
 	public event Action DryFired;
 
-	public int MagAmmo { get; private set; }
-	public int ReserveAmmo { get; private set; }
+	/// <summary>切换武器完成（模型与数值已生效）。</summary>
+	public event Action<WeaponData> WeaponChanged;
+
+	private enum SwapPhase
+	{
+		Idle,
+		Lowering,
+		Raising,
+	}
+
+	/// <summary>当前武器数值；切枪时为正在收枪的那把。</summary>
+	public WeaponData Data => _weapons.Count > 0 ? _weapons[Mathf.Clamp(ActiveIndex, 0, _weapons.Count - 1)] : null;
+
+	public int ActiveIndex { get; private set; }
+	public int WeaponCount => _weapons.Count;
+	public bool IsSwapping => _phase != SwapPhase.Idle;
+	public int MagAmmo => _mags != null && ActiveIndex < _mags.Length ? _mags[ActiveIndex] : 0;
+	public int ReserveAmmo => _reserves != null && ActiveIndex < _reserves.Length ? _reserves[ActiveIndex] : 0;
 	public bool IsReloading { get; private set; }
 	public bool IsAiming { get; private set; }
 
@@ -40,6 +58,11 @@ public partial class PistolController : Node3D
 		: 0f;
 
 	private const float MuzzleFlashEnergy = 1.2f;
+	private const int MaxSlots = 4;
+
+	private readonly List<WeaponData> _weapons = new();
+	private int[] _mags = System.Array.Empty<int>();
+	private int[] _reserves = System.Array.Empty<int>();
 
 	private PlayerController _player;
 	private PlayerCamera _cameraOwner;
@@ -63,6 +86,11 @@ public partial class PistolController : Node3D
 	private float _sinceLastShot;
 	private float _swayPhase;
 
+	private SwapPhase _phase;
+	private float _swapTimer;
+	private int _swapTarget;
+
+	private Node3D _model;
 	private Node3D _slidePivot;
 	private Node3D _magPivot;
 	private Node3D _handLPivot;
@@ -72,7 +100,7 @@ public partial class PistolController : Node3D
 	private float _slidePose;
 	private float _handPose;
 
-	private bool CanAct => _player != null && _player.InputEnabled && _health != null && !_health.IsDead;
+	private bool CanAct => _player != null && _player.InputEnabled && _health != null && !_health.IsDead && !IsSwapping;
 
 	public override void _Ready()
 	{
@@ -83,52 +111,65 @@ public partial class PistolController : Node3D
 		_muzzle = GetNodeOrNull<Marker3D>("Muzzle");
 		_muzzleLight = GetNodeOrNull<OmniLight3D>("MuzzleLight");
 
-		// 换弹动作由 Blender 导出的枢轴节点驱动：套筒 / 弹匣 / 左手，姿势按相位解算
-		Node model = GetNodeOrNull<Node>("Model");
-		_slidePivot = FindNode<Node3D>(model, "SlidePivot");
-		_magPivot = FindNode<Node3D>(model, "MagPivot");
-		_handLPivot = FindNode<Node3D>(model, "HandLPivot");
-		if (_slidePivot != null)
-			_slideRest = _slidePivot.Position;
-		if (_magPivot != null)
-			_magRest = _magPivot.Position;
-
-		if (Data == null)
-		{
-			GD.PushError("PistolController: 没有配置 PistolData。");
-			return;
-		}
-
 		_basePosition = Position;
 		_baseRotationDegrees = RotationDegrees;
 		// 开镜时把枪摆到相机正前下方；两套姿势都由代码插值，场景里只存腰射基准姿势
 		_adsPosition = new Vector3(0f, _basePosition.Y + 0.10f, _basePosition.Z + 0.06f);
 
-		MagAmmo = Data.MagazineSize;
-		ReserveAmmo = Data.StartingReserve;
-
-		_cameraOwner.RecoilRecovery = Data.RecoilRecovery;
 		_exclude = new Godot.Collections.Array<Rid> { _player.GetRid() };
 
-		AddToGroup("pistol");
+		if (Arsenal == null)
+		{
+			GD.PushError("WeaponController: 没有配置 ArsenalData。");
+			SetProcess(false);
+			return;
+		}
+
+		BuildArsenal();
+
+		if (_weapons.Count == 0)
+		{
+			GD.PushWarning($"WeaponController: 当前章节 {Arsenal.CurrentChapter} 没有可用武器。");
+			SetProcess(false);
+			return;
+		}
+
+		ActiveIndex = 0;
+		BuildModel(Data);
+		ApplyData();
+
+		AddToGroup("weapon");
 		AmmoChanged?.Invoke(MagAmmo, ReserveAmmo);
+		WeaponChanged?.Invoke(Data);
 	}
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
-		if (!CanAct)
+		if (_player == null || !_player.InputEnabled || _health == null || _health.IsDead)
 			return;
 
-		// 半自动：每次物理按键只触发一次，连点仍受射速门控限制
-		if (@event.IsActionPressed("fire"))
+		// 半自动每次按键只触发一次；全自动在 _Process 里按住连发
+		if (@event.IsActionPressed("fire") && Data is { Automatic: false })
 			TryFire();
 
 		if (@event.IsActionPressed("reload"))
 			StartReload();
+
+		if (@event.IsActionPressed("weapon_next"))
+			Equip((ActiveIndex + 1) % Mathf.Max(WeaponCount, 1));
+		else if (@event.IsActionPressed("weapon_prev"))
+			Equip((ActiveIndex - 1 + WeaponCount) % Mathf.Max(WeaponCount, 1));
+
+		for (int slot = 0; slot < MaxSlots; slot++)
+			if (@event.IsActionPressed($"weapon_{slot + 1}"))
+				Equip(slot);
 	}
 
 	public override void _Process(double delta)
 	{
+		if (Data == null)
+			return;
+
 		float dt = (float)delta;
 
 		_cooldown = Mathf.Max(0f, _cooldown - dt);
@@ -136,12 +177,16 @@ public partial class PistolController : Node3D
 		if (_sinceLastShot > Data.RecoilStackResetTime)
 			_recoilStack = 0f;
 
+		UpdateSwap(dt);
 		UpdateReload(dt);
 		UpdateAim(dt);
 		UpdateMuzzleFlash(dt);
 		UpdateViewmodel(dt);
 		UpdateReloadBones(dt);
 		UpdateMoveSpeed();
+
+		if (Data.Automatic && CanAct && !IsReloading && Input.IsActionPressed("fire"))
+			TryFire();
 	}
 
 	/// <summary>开火入口。返回是否真的打出一发。</summary>
@@ -158,7 +203,7 @@ public partial class PistolController : Node3D
 			return false;
 		}
 
-		MagAmmo--;
+		_mags[ActiveIndex]--;
 		AmmoChanged?.Invoke(MagAmmo, ReserveAmmo);
 		_cooldown = 1f / Data.ShotsPerSecond;
 		_sinceLastShot = 0f;
@@ -188,28 +233,184 @@ public partial class PistolController : Node3D
 		if (Data == null || ReserveAmmo >= Data.MaxReserve)
 			return false;
 
-		ReserveAmmo = Mathf.Min(Data.MaxReserve, ReserveAmmo + rounds);
+		_reserves[ActiveIndex] = Mathf.Min(Data.MaxReserve, ReserveAmmo + rounds);
 		AmmoChanged?.Invoke(MagAmmo, ReserveAmmo);
 		return true;
 	}
 
+	// ------------------------------------------------------------ 切枪
+
+	/// <summary>切换到第 index 把可用武器（收枪 → 换模型 → 抬枪）。</summary>
+	public bool Equip(int index)
+	{
+		if (Arsenal == null || index < 0 || index >= _weapons.Count)
+			return false;
+		if (index == ActiveIndex || IsSwapping || !CanAct)
+			return false;
+
+		_swapTarget = index;
+		_swapTimer = 0f;
+		_phase = SwapPhase.Lowering;
+		IsAiming = false;
+		CancelReload();
+		return true;
+	}
+
+	private void BuildArsenal()
+	{
+		_weapons.Clear();
+		foreach (WeaponData weapon in Arsenal.Weapons)
+		{
+			if (weapon == null || weapon.UnlockChapter > Arsenal.CurrentChapter)
+				continue;
+			_weapons.Add(weapon);
+		}
+
+		_mags = new int[_weapons.Count];
+		_reserves = new int[_weapons.Count];
+		for (int i = 0; i < _weapons.Count; i++)
+		{
+			_mags[i] = _weapons[i].MagazineSize;
+			_reserves[i] = _weapons[i].StartingReserve;
+		}
+	}
+
+	private void UpdateSwap(float dt)
+	{
+		if (_phase == SwapPhase.Idle)
+			return;
+
+		float duration = Mathf.Max(_phase == SwapPhase.Lowering ? Arsenal.SwapLowerTime : Arsenal.SwapRaiseTime, 0.01f);
+		_swapTimer += dt;
+
+		if (_phase == SwapPhase.Lowering && _swapTimer >= duration)
+		{
+			ActiveIndex = _swapTarget;
+			BuildModel(Data);
+			ApplyData();
+			AmmoChanged?.Invoke(MagAmmo, ReserveAmmo);
+			WeaponChanged?.Invoke(Data);
+			_phase = SwapPhase.Raising;
+			_swapTimer = 0f;
+		}
+		else if (_phase == SwapPhase.Raising && _swapTimer >= duration)
+		{
+			_phase = SwapPhase.Idle;
+			_swapTimer = 0f;
+		}
+	}
+
+	/// <summary>切枪的收 / 抬姿势权重 0~1（1 = 完全收起）。</summary>
+	private float SwapBlend()
+	{
+		if (_phase == SwapPhase.Lowering)
+			return Mathf.SmoothStep(0f, 1f, Mathf.Clamp(_swapTimer / Mathf.Max(Arsenal.SwapLowerTime, 0.01f), 0f, 1f));
+		if (_phase == SwapPhase.Raising)
+			return 1f - Mathf.SmoothStep(0f, 1f, Mathf.Clamp(_swapTimer / Mathf.Max(Arsenal.SwapRaiseTime, 0.01f), 0f, 1f));
+		return 0f;
+	}
+
+	private void CancelReload()
+	{
+		IsReloading = false;
+		_reloadTimer = 0f;
+	}
+
+	// ------------------------------------------------------------ 模型
+
+	/// <summary>实例化视角模型并挂描边；枢轴按名字查找（Slide / Mag / HandL）。</summary>
+	private void BuildModel(WeaponData data)
+	{
+		ResetPivots();
+
+		if (_model != null)
+		{
+			_model.QueueFree();
+			_model = null;
+		}
+
+		if (data?.Viewmodel == null)
+		{
+			GD.PushWarning($"WeaponController: '{data?.DisplayName}' 没有配置视角模型。");
+			return;
+		}
+
+		if (data.Viewmodel.Instantiate() is not Node3D model)
+		{
+			GD.PushWarning($"WeaponController: '{data.DisplayName}' 的 Viewmodel 不是 Node3D。");
+			return;
+		}
+
+		model.Name = "Model";
+		model.AddChild(new ModelOutline { Overlay = ViewmodelOutline() });
+		AddChild(model);
+		_model = model;
+
+		_slidePivot = FindNode<Node3D>(model, "SlidePivot");
+		_magPivot = FindNode<Node3D>(model, "MagPivot");
+		_handLPivot = FindNode<Node3D>(model, "HandLPivot");
+
+		if (_slidePivot != null)
+			_slideRest = _slidePivot.Position;
+		if (_magPivot != null)
+			_magRest = _magPivot.Position;
+	}
+
+	/// <summary>视角模型描边叠层（反向壳），全局共用一个材质。</summary>
+	private static ShaderMaterial _outlineMaterial;
+
+	private static ShaderMaterial ViewmodelOutline()
+	{
+		if (_outlineMaterial != null)
+			return _outlineMaterial;
+
+		_outlineMaterial = new ShaderMaterial
+		{
+			Shader = GD.Load<Shader>("res://shaders/outline.gdshader"),
+		};
+		_outlineMaterial.SetShaderParameter("width", 0.0025f);
+		return _outlineMaterial;
+	}
+
+	/// <summary>把当前武器的数值同步到相机与枪口标记。</summary>
+	private void ApplyData()
+	{
+		_cameraOwner.RecoilRecovery = Data.RecoilRecovery;
+		_cameraOwner.SetAdsFov(Data.AdsFov);
+
+		if (_muzzle != null)
+			_muzzle.Position = Data.MuzzleOffset;
+		if (_muzzleLight != null)
+			_muzzleLight.Position = Data.MuzzleOffset + new Vector3(0f, 0f, -0.02f);
+	}
+
+	// ------------------------------------------------------------ 射击
+
 	private void Fire()
 	{
 		Vector3 origin = _camera.GlobalPosition;
-		Vector3 direction = -_camera.GlobalTransform.Basis.Z;
-		direction = HitscanResolver.ApplySpread(direction, GetSpreadDegrees());
+		Vector3 muzzle = _muzzle != null ? _muzzle.GlobalPosition : origin;
+		int pellets = Mathf.Max(1, Data.PelletsPerShot);
 
-		HitscanHit hit = HitscanResolver.Resolve(_player.GetWorld3D(), origin, direction, Data, _exclude);
+		for (int i = 0; i < pellets; i++)
+		{
+			Vector3 direction = HitscanResolver.ApplySpread(-_camera.GlobalTransform.Basis.Z, GetSpreadDegrees());
+			HitscanHit hit = HitscanResolver.Resolve(_player.GetWorld3D(), origin, direction, Data, _exclude);
+
+			// 视觉弹道从枪口出发，打向相机射线的命中点（§4.4）
+			Vector3 endPoint = hit.HasHit ? hit.Point : origin + direction * Data.MaxRange;
+			SpawnTracer(muzzle, endPoint);
+			if (hit.HasHit)
+				SpawnImpact(hit);
+
+			ShotResolved?.Invoke(hit);
+
+			if (hit.HasHit && hit.Collider is IBulletReceiver receiver)
+				receiver.OnBulletHit(hit);
+		}
 
 		// 枪声让 30m 内的敌人进入 Alert（§5.4）
 		NoiseEmitter.Emit(GlobalPosition, NoiseKind.Gunshot);
-
-		// 视觉弹道从枪口出发，打向相机射线的命中点（§4.4）
-		Vector3 muzzle = _muzzle != null ? _muzzle.GlobalPosition : origin;
-		Vector3 endPoint = hit.HasHit ? hit.Point : origin + direction * Data.MaxRange;
-		SpawnTracer(muzzle, endPoint);
-		if (hit.HasHit)
-			SpawnImpact(hit);
 
 		ApplyRecoil();
 		_kickBack = 1f;
@@ -217,11 +418,6 @@ public partial class PistolController : Node3D
 		_flashTimer = Data.MuzzleFlashTime;
 		if (_muzzleLight != null)
 			_muzzleLight.Visible = true;
-
-		ShotResolved?.Invoke(hit);
-
-		if (hit.HasHit && hit.Collider is IBulletReceiver receiver)
-			receiver.OnBulletHit(hit);
 	}
 
 	private float GetSpreadDegrees()
@@ -268,8 +464,8 @@ public partial class PistolController : Node3D
 		IsReloading = false;
 		int needed = Data.MagazineSize - MagAmmo;
 		int taken = Mathf.Min(needed, ReserveAmmo);
-		MagAmmo += taken;
-		ReserveAmmo -= taken;
+		_mags[ActiveIndex] += taken;
+		_reserves[ActiveIndex] -= taken;
 		AmmoChanged?.Invoke(MagAmmo, ReserveAmmo);
 	}
 
@@ -306,7 +502,7 @@ public partial class PistolController : Node3D
 			_player.MoveSpeedMultiplier = 1f;
 	}
 
-	/// <summary>程序化持枪位移：行走摆动 + 后坐回弹 + 换弹下沉（§4.7）。</summary>
+	/// <summary>程序化持枪位移：行走摆动 + 后坐回弹 + 换弹下沉 + 切枪收放（§4.7）。</summary>
 	private void UpdateViewmodel(float dt)
 	{
 		_kickBack = Mathf.MoveToward(_kickBack, 0f, dt / Mathf.Max(Data.FireKickRecoverTime, 0.001f));
@@ -332,11 +528,14 @@ public partial class PistolController : Node3D
 
 		Vector3 basePosition = _basePosition.Lerp(_adsPosition, _aimBlend);
 		float swing = Mathf.Clamp(MeleeSwing, 0f, 1f);
+		float swap = Arsenal != null ? SwapBlend() : 0f;
 		Position = basePosition + sway
 			+ new Vector3(0f, -Data.ReloadDrop * reloadPose, Data.FireKickBack * _kickBack)
-			+ new Vector3(-0.04f * swing, -0.02f * swing, 0.10f * swing);
+			+ new Vector3(-0.04f * swing, -0.02f * swing, 0.10f * swing)
+			+ new Vector3(0f, -(Arsenal?.SwapLowerDrop ?? 0f) * swap, 0f);
 		RotationDegrees = _baseRotationDegrees
-			+ new Vector3(Data.FireKickPitch * _kickPitch - 34f * swing, 16f * swing, Data.ReloadRoll * reloadPose);
+			+ new Vector3(Data.FireKickPitch * _kickPitch - 34f * swing, 16f * swing, Data.ReloadRoll * reloadPose)
+			+ new Vector3(-28f * swap, 0f, 0f);
 	}
 
 	/// <summary>
@@ -400,6 +599,16 @@ public partial class PistolController : Node3D
 			_handLPivot.Rotation = new Vector3(Mathf.DegToRad(Data.ReloadHandDropDegrees) * _handPose, 0f, 0f);
 	}
 
+	private void ResetPivots()
+	{
+		_slidePivot = null;
+		_magPivot = null;
+		_handLPivot = null;
+		_magPose = 0f;
+		_slidePose = 0f;
+		_handPose = 0f;
+	}
+
 	/// <summary>把 [from,to] 映射成 0~1 的平滑值。</summary>
 	private static float Ease(float from, float to, float t)
 	{
@@ -430,7 +639,7 @@ public partial class PistolController : Node3D
 
 		if (TracerScene.Instantiate() is not Tracer tracer)
 		{
-			GD.PushWarning("PistolController: TracerScene 不是 Tracer。");
+			GD.PushWarning("WeaponController: TracerScene 不是 Tracer。");
 			return;
 		}
 
@@ -445,7 +654,7 @@ public partial class PistolController : Node3D
 
 		if (ImpactScene.Instantiate() is not ImpactEffect impact)
 		{
-			GD.PushWarning("PistolController: ImpactScene 不是 ImpactEffect。");
+			GD.PushWarning("WeaponController: ImpactScene 不是 ImpactEffect。");
 			return;
 		}
 

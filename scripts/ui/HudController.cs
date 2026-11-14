@@ -17,7 +17,7 @@ public partial class HudController : Control
 
 	private PlayerController _player;
 	private PlayerHealth _health;
-	private PistolController _pistol;
+	private WeaponController _weapon;
 
 	private Label _enemiesLabel;
 	private Label _objectiveLabel;
@@ -80,7 +80,7 @@ public partial class HudController : Control
 		SetCrosshairGap(6f);
 
 		_player = GetTree().GetFirstNodeInGroup("player") as PlayerController;
-		_pistol = GetTree().GetFirstNodeInGroup("pistol") as PistolController;
+		_weapon = GetTree().GetFirstNodeInGroup("weapon") as WeaponController;
 
 		if (_player != null)
 		{
@@ -90,11 +90,11 @@ public partial class HudController : Control
 			OnHealthChanged(_health.Health, _health.MaxHealth);
 		}
 
-		if (_pistol != null)
+		if (_weapon != null)
 		{
-			_pistol.AmmoChanged += OnAmmoChanged;
-			_pistol.ShotResolved += OnShotResolved;
-			OnAmmoChanged(_pistol.MagAmmo, _pistol.ReserveAmmo);
+			_weapon.AmmoChanged += OnAmmoChanged;
+			_weapon.ShotResolved += OnShotResolved;
+			OnAmmoChanged(_weapon.MagAmmo, _weapon.ReserveAmmo);
 		}
 	}
 
@@ -143,7 +143,7 @@ public partial class HudController : Control
 		_enemiesLabel.Visible = visible;
 		_objectiveLabel.Visible = visible;
 		_heightLabel.Visible = visible;
-		_reloadBar.Visible = visible && _pistol != null && _pistol.IsReloading;
+		_reloadBar.Visible = visible && _weapon != null && _weapon.IsReloading;
 	}
 
 	public void ShowBanner(string text)
@@ -202,7 +202,7 @@ public partial class HudController : Control
 
 	private void OnAmmoChanged(int mag, int reserve)
 	{
-		_weaponLabel.Text = "P-9";
+		_weaponLabel.Text = _weapon?.Data?.DisplayName ?? "—";
 
 		if (mag <= 0)
 			_ammoLabel.Text = "0 / " + reserve + "   按 R 换弹";
@@ -265,10 +265,10 @@ public partial class HudController : Control
 
 	private void UpdateCrosshair()
 	{
-		if (_pistol == null || !_combatVisible)
+		if (_weapon == null || !_combatVisible)
 			return;
 
-		SetCrosshairGap(4f + _pistol.CurrentSpreadDegrees * 4f);
+		SetCrosshairGap(4f + _weapon.CurrentSpreadDegrees * 4f);
 	}
 
 	private void SetCrosshairGap(float gap)
@@ -285,11 +285,11 @@ public partial class HudController : Control
 
 	private void UpdateReloadBar()
 	{
-		bool reloading = _combatVisible && _pistol != null && _pistol.IsReloading;
+		bool reloading = _combatVisible && _weapon != null && _weapon.IsReloading;
 		if (_reloadBar.Visible != reloading)
 			_reloadBar.Visible = reloading;
 
 		if (reloading)
-			_reloadBar.Value = _pistol.ReloadProgress;
+			_reloadBar.Value = _weapon.ReloadProgress;
 	}
 }

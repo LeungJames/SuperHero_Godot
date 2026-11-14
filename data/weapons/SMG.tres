@@ -1,0 +1,64 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/WeaponData.cs" id="1_weapondata"]
+[ext_resource type="PackedScene" path="res://art/models/WPN_SMG.glb" id="2_viewmodel"]
+
+[resource]
+script = ExtResource("1_weapondata")
+DisplayName = "ST-9"
+UnlockChapter = 2
+Viewmodel = ExtResource("2_viewmodel")
+MuzzleOffset = Vector3(0, 0.012, -0.3)
+BaseDamage = 20.0
+FullDamageDistance = 18.0
+MinDamageDistance = 40.0
+MinDamageMultiplier = 0.5
+ShotsPerSecond = 12.0
+Automatic = true
+PelletsPerShot = 1
+MagazineSize = 30
+StartingReserve = 90
+MaxReserve = 180
+ReloadTime = 1.9
+MaxRange = 160.0
+HipSpread = 2.2
+AdsSpread = 0.75
+MovingSpreadPenalty = 1.0
+AirSpreadPenalty = 3.0
+SlideSpreadPenalty = 2.5
+AdsTime = 0.18
+AdsMoveMultiplier = 0.6
+AdsRecoilMultiplier = 0.7
+AdsFov = 58.0
+RecoilPitch = 1.0
+RecoilYaw = 0.45
+RecoilRecovery = 13.0
+RecoilStackPerShot = 0.08
+RecoilStackMax = 2.0
+RecoilStackResetTime = 0.35
+ReloadMoveMultiplier = 0.8
+MuzzleFlashTime = 0.04
+FireKickBack = 0.025
+FireKickPitch = 3.0
+FireKickRecoverTime = 0.06
+FireKickPitchRecoverTime = 0.1
+SwayAmountX = 0.014
+SwayAmountY = 0.01
+AdsSwayScale = 0.25
+AdsSwayRateScale = 0.6
+ReloadDrop = 0.12
+ReloadRoll = 22.0
+ReloadMagDropDistance = 0.3
+ReloadMagDropStart = 0.1
+ReloadMagDropEnd = 0.32
+ReloadMagInsertStart = 0.48
+ReloadMagInsertEnd = 0.64
+ReloadSlideStart = 0.7
+ReloadSlideEnd = 0.8
+ReloadSlideTravel = 0.03
+ReloadHandDropDegrees = 30.0
+ReloadHandLeaveStart = 0.06
+ReloadHandLeaveEnd = 0.2
+ReloadHandReturnStart = 0.6
+ReloadHandReturnEnd = 0.76
+ReloadBoneBlendSpeed = 14.0

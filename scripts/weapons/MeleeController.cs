@@ -18,7 +18,7 @@ public partial class MeleeController : Node3D
 	private PlayerController _player;
 	private PlayerHealth _health;
 	private Camera3D _camera;
-	private PistolController _pistol;
+	private WeaponController _weapon;
 	private readonly Godot.Collections.Array<Rid> _exclude = new();
 
 	private float _cooldown;
@@ -32,7 +32,7 @@ public partial class MeleeController : Node3D
 		_player = GetParent<PlayerController>();
 		_health = _player.GetNodeOrNull<PlayerHealth>("Health");
 		_camera = _player.GetNodeOrNull<Camera3D>("Head/Camera3D");
-		_pistol = _player.GetNodeOrNull<PistolController>("Head/Camera3D/ViewModel/Pistol");
+		_weapon = _player.GetNodeOrNull<WeaponController>("Head/Camera3D/ViewModel/Weapon");
 		_exclude.Add(_player.GetRid());
 	}
 
@@ -52,8 +52,8 @@ public partial class MeleeController : Node3D
 
 		_swingTimer -= dt;
 		float progress = Mathf.Clamp(1f - _swingTimer / Mathf.Max(Data.SwingTime, 0.01f), 0f, 1f);
-		if (_pistol != null)
-			_pistol.MeleeSwing = SwingPose(progress);
+		if (_weapon != null)
+			_weapon.MeleeSwing = SwingPose(progress);
 
 		if (!_resolved && progress >= Data.HitTimeRatio)
 		{

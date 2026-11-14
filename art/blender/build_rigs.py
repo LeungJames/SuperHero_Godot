@@ -1,16 +1,25 @@
-"""把现有手枪 / 敌人低模拆成"枢轴空物体 + 分件网格"的节点层级（不用蒙皮）。
+"""把现有手枪 / 敌人 / 新增枪械低模拆成"枢轴空物体 + 分件网格"的节点层级（不用蒙皮）。
 
 导出后在 Godot 里就是一棵普通 Node3D 树：旋转 / 位移枢轴即可驱动动作，
 不依赖蒙皮的绑定矩阵，行为可预测、也不增加材质分段数。
 
 用法：blender --background --factory-startup --python art/blender/build_rigs.py
+      只重建指定模型：... --python art/blender/build_rigs.py -- WPN_SMG WPN_Sniper
 导出：覆盖 art/models/*.glb（世界坐标不变）。
 """
 import bpy
 import bmesh
 import os
+import sys
 
 OUT = r"e:\GodotProject\super-hero\art\models"
+P9_BLEND = r"e:\GodotProject\super-hero\art\blender\WPN_P9.blend"
+
+_ONLY = set(sys.argv[sys.argv.index("--") + 1:]) if "--" in sys.argv else set()
+
+
+def want(name):
+    return not _ONLY or name in _ONLY
 
 
 def open_mesh(path):
@@ -274,6 +283,121 @@ def build_enemy(blend, name):
           (name, knee, {k: len(v) for k, v in groups.items()}))
 
 
-build_weapon()
-build_enemy(r"e:\GodotProject\super-hero\art\blender\SM_StreetRunner.blend", "SM_StreetRunner")
-build_enemy(r"e:\GodotProject\super-hero\art\blender\SM_Holder.blend", "SM_Holder")
+# ---------------------------------------------------------------- 新枪械
+# 零外部素材：机身全部由盒体程序化拼出，手套沿用 WPN_P9.blend 的分件（只做平移），
+# 因此三把枪与原手枪共用同一套握持姿势与枢轴命名（Slide / Mag / HandL / HandR）。
+# 坐标沿用 Blender：+Y 向前（枪口），+Z 向上；导出到 Godot 后 -Z 向前。
+
+FIREARM_SPECS = {
+    "WPN_SMG": dict(
+        boxes=[
+            ((0.0, 0.03, 0.005), (0.036, 0.26, 0.055)),      # 机匣
+            ((0.0, 0.21, 0.013), (0.016, 0.14, 0.016)),      # 枪管
+            ((0.0, 0.15, -0.012), (0.034, 0.13, 0.038)),     # 护木
+            ((0.0, 0.12, -0.060), (0.026, 0.030, 0.062)),    # 前握把
+            ((0.0, -0.08, -0.110), (0.030, 0.055, 0.140)),   # 握把
+            ((0.0, -0.15, -0.012), (0.030, 0.100, 0.050)),   # 枪托
+            ((0.0, 0.03, 0.040), (0.020, 0.300, 0.014)),     # 顶轨
+        ],
+        mag=((0.0, -0.02, -0.115), (0.024, 0.040, 0.170)),
+        bolt=((0.0, 0.02, 0.040), (0.020, 0.060, 0.018)),
+        muzzle=(0.0, 0.012, -0.30),
+        hand_l=(0.0, 0.20, 0.03),
+    ),
+    "WPN_Shotgun": dict(
+        boxes=[
+            ((0.0, 0.02, 0.0), (0.040, 0.24, 0.060)),        # 机匣
+            ((0.0, 0.26, 0.018), (0.022, 0.24, 0.022)),      # 枪管
+            ((0.0, 0.24, -0.016), (0.018, 0.20, 0.018)),     # 弹管
+            ((0.0, 0.20, -0.048), (0.026, 0.030, 0.055)),    # 前握把
+            ((0.0, -0.08, -0.110), (0.030, 0.055, 0.140)),   # 握把
+            ((0.0, -0.16, 0.0), (0.034, 0.120, 0.055)),      # 枪托
+            ((0.0, 0.05, 0.036), (0.018, 0.10, 0.012)),      # 顶轨
+        ],
+        mag=((0.0, -0.02, -0.100), (0.026, 0.050, 0.120)),
+        bolt=((0.0, 0.20, -0.010), (0.036, 0.10, 0.032)),    # 泵动护木
+        muzzle=(0.0, 0.018, -0.40),
+        hand_l=(0.0, 0.26, 0.06),
+    ),
+    "WPN_Sniper": dict(
+        boxes=[
+            ((0.0, 0.03, 0.0), (0.038, 0.26, 0.055)),        # 机匣
+            ((0.0, 0.30, 0.015), (0.018, 0.30, 0.018)),      # 枪管
+            ((0.0, 0.06, 0.058), (0.026, 0.17, 0.026)),      # 瞄准镜
+            ((0.0, -0.02, 0.042), (0.020, 0.020, 0.030)),    # 镜座后
+            ((0.0, 0.14, 0.042), (0.020, 0.020, 0.030)),     # 镜座前
+            ((0.0, -0.08, -0.110), (0.030, 0.055, 0.140)),   # 握把
+            ((0.0, -0.17, 0.0), (0.034, 0.140, 0.060)),      # 枪托
+            ((0.0, 0.12, -0.035), (0.028, 0.030, 0.055)),    # 前握把
+        ],
+        mag=((0.0, -0.02, -0.100), (0.026, 0.050, 0.120)),
+        bolt=((0.0, 0.02, 0.030), (0.018, 0.050, 0.014)),
+        muzzle=(0.0, 0.015, -0.47),
+        hand_l=(0.0, 0.24, 0.05),
+    ),
+}
+
+P_HAND_L = (-0.123, -0.06, -0.212)
+P_HAND_R = (0.093, -0.06, -0.215)
+P_MAG = (0.0, -0.02, -0.035)
+
+
+def shifted(part, d):
+    """整体平移一个分件（顶点一起动），用来把左手挪到前握把上。"""
+    return ([(v[0] + d[0], v[1] + d[1], v[2] + d[2]) for v in part[0]], part[1])
+
+
+def build_firearm(name, spec):
+    ob = open_mesh(P9_BLEND)
+    mats = list(ob.data.materials)
+    idx_weapon = next(i for i, m in enumerate(mats) if m and m.name == "MAT_Weapon")
+    parts = parts_of(ob.data)
+
+    right, left = [], []
+    for p in parts:
+        mat_set = {mi for _, mi in p[1]}
+        if not any(mats[mi] and mats[mi].name == "MAT_Glove" for mi in mat_set):
+            continue
+        mn, mx, ctr, size = bbox(p)
+        # 长条是前臂，短块是手；按左右分两组，组内保持相对位置
+        if size[1] > 0.2:
+            (left if ctr[0] < 0 else right).append(p)
+        else:
+            (left if ctr[0] < -0.01 else right).append(p)
+
+    shift_l = spec["hand_l"]
+    p_hand_l = (P_HAND_L[0] + shift_l[0], P_HAND_L[1] + shift_l[1], P_HAND_L[2] + shift_l[2])
+    body = [box_part(c, s, idx_weapon) for c, s in spec["boxes"]]
+
+    p_slide = (0.0, spec["bolt"][0][1], spec["bolt"][0][2])
+    meshes = [
+        make_object("Body", body, mats),
+        make_object("Slide", [box_part(spec["bolt"][0], spec["bolt"][1], idx_weapon)], mats, p_slide),
+        make_object("Mag", [box_part(spec["mag"][0], spec["mag"][1], idx_weapon)], mats, P_MAG),
+        make_object("HandL", [shifted(p, shift_l) for p in left], mats, p_hand_l),
+        make_object("HandR", right, mats, P_HAND_R),
+    ]
+
+    pivots = [
+        pivot("SlidePivot", p_slide),
+        pivot("MagPivot", P_MAG),
+        pivot("HandLPivot", p_hand_l),
+        pivot("HandRPivot", P_HAND_R),
+    ]
+    for mesh, pivot_ob in zip(meshes[1:], pivots):
+        attach(mesh, pivot_ob)
+
+    export(name, meshes + pivots)
+    print("FIREARM_OK %s muzzle=%s hand_l=%s" % (name, spec["muzzle"], shift_l))
+
+
+for firearm, firearm_spec in FIREARM_SPECS.items():
+    if want(firearm):
+        build_firearm(firearm, firearm_spec)
+
+if want("WPN_P9"):
+    build_weapon()
+if want("SM_StreetRunner"):
+    build_enemy(r"e:\GodotProject\super-hero\art\blender\SM_StreetRunner.blend", "SM_StreetRunner")
+if want("SM_Holder"):
+    build_enemy(r"e:\GodotProject\super-hero\art\blender\SM_Holder.blend", "SM_Holder")

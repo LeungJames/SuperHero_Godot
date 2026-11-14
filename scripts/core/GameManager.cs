@@ -31,7 +31,7 @@ public partial class GameManager : Node
 	private PlayerController _player;
 	private PlayerHealth _health;
 	private PlayerCamera _camera;
-	private PistolController _pistol;
+	private WeaponController _weapon;
 	private EnemyRegistry _registry;
 	private VictorySequenceController _victory;
 	private HudController _hud;
@@ -53,14 +53,14 @@ public partial class GameManager : Node
 		_results = GetNode<ResultsPanel>("../../UI/ResultsPanel");
 		_pauseMenu = GetNode<Control>("../../UI/PauseMenu");
 
-		_pistol = GetTree().GetFirstNodeInGroup("pistol") as PistolController;
+		_weapon = GetTree().GetFirstNodeInGroup("weapon") as WeaponController;
 
 		_health.Died += OnPlayerDied;
 		_registry.CountChanged += OnEnemyCountChanged;
 		_registry.AllCleared += EnterVictory;
 
-		if (_pistol != null)
-			_pistol.ShotResolved += OnShotResolved;
+		if (_weapon != null)
+			_weapon.ShotResolved += OnShotResolved;
 
 		_results.RestartPressed += Restart;
 		_results.QuitPressed += Quit;

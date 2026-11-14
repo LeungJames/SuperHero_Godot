@@ -8,7 +8,7 @@ public partial class PlayerCamera : Node3D
 {
 	[Export] public float PitchLimitDegrees { get; set; } = 89f;
 
-	/// <summary>后坐回正速度（度/秒），由武器在启动时按 PistolData 写入。</summary>
+	/// <summary>后坐回正速度（度/秒），由武器在启动时按 WeaponData 写入。</summary>
 	public float RecoilRecovery { get; set; } = 14f;
 
 	/// <summary>侧倾跟随速度（度/秒），蹬墙跑时由移动系统写入目标角。</summary>
@@ -35,6 +35,7 @@ public partial class PlayerCamera : Node3D
 	private bool _deathActive;
 	private float _roll;
 	private float _rollTarget;
+	private float _adsFovOverride = -1f;
 
 	public override void _Ready()
 	{
@@ -102,6 +103,12 @@ public partial class PlayerCamera : Node3D
 		_rollTarget = degrees;
 	}
 
+	/// <summary>开镜 FOV 由武器覆盖（狙击枪做瞄准镜效果）；传 0 或负数恢复 PlayerData 的默认值。</summary>
+	public void SetAdsFov(float fov)
+	{
+		_adsFovOverride = fov > 0f ? fov : -1f;
+	}
+
 	/// <summary>死亡沉镜：0.5m 下沉 + 侧倾 8°（设计文档 §3.6）。</summary>
 	public void BeginDeath()
 	{
@@ -127,7 +134,7 @@ public partial class PlayerCamera : Node3D
 		if (_data == null)
 			return;
 
-		_camera.Fov = Mathf.Lerp(_data.DefaultFov, _data.AdsFov, _aimBlend);
+		_camera.Fov = Mathf.Lerp(_data.DefaultFov, _adsFovOverride > 0f ? _adsFovOverride : _data.AdsFov, _aimBlend);
 	}
 
 	private void UpdateCameraOffset(float dt)

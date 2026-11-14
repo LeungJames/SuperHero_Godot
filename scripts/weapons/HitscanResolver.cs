@@ -29,7 +29,7 @@ public static class HitscanResolver
 	/// <summary>玩家子弹只打世界几何与敌人命中盒（层 1 | 4，对应掩码 1 | 8）。</summary>
 	private const uint PlayerBulletMask = 1u | 8u;
 
-	public static HitscanHit Resolve(World3D world, Vector3 from, Vector3 direction, PistolData data,
+	public static HitscanHit Resolve(World3D world, Vector3 from, Vector3 direction, WeaponData data,
 		Godot.Collections.Array<Rid> exclude)
 	{
 		var query = PhysicsRayQueryParameters3D.Create(from, from + direction * data.MaxRange, PlayerBulletMask);
@@ -52,7 +52,7 @@ public static class HitscanResolver
 	}
 
 	/// <summary>§4.3：25m 内满伤害，50m 外 ×0.6，中间线性插值。</summary>
-	public static float CalculateDamage(float distance, PistolData data)
+	public static float CalculateDamage(float distance, WeaponData data)
 	{
 		float span = data.MinDamageDistance - data.FullDamageDistance;
 		float t = span > 0f

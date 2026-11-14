@@ -1,11 +1,24 @@
 using Godot;
 
 /// <summary>
-/// 手枪 P-9 数值配置。只承载数值，不含逻辑；对应设计文档 §4.2、§4.5、§4.7。
+/// 枪械数值配置。只承载数值与资源引用，不含逻辑；对应设计文档 §4.2、§4.5、§4.7、§5.2。
+/// 同一份资源既用于手枪，也用于冲锋枪 / 霰弹枪 / 狙击枪，差异只在数值与模型。
 /// </summary>
 [GlobalClass]
-public partial class PistolData : Resource
+public partial class WeaponData : Resource
 {
+	[ExportGroup("标识与解锁")]
+	[Export] public string DisplayName { get; set; } = "P-9";
+
+	/// <summary>解锁章节：0 = 序章 / 第一章（港口），2 = 赤蛇工厂，3 = 铁锚据点。</summary>
+	[Export] public int UnlockChapter { get; set; }
+
+	/// <summary>第一人称视角模型（枢轴分件）。</summary>
+	[Export] public PackedScene Viewmodel { get; set; }
+
+	/// <summary>枪口位置（相对武器节点，Godot 坐标：-Z 朝前）。</summary>
+	[Export] public Vector3 MuzzleOffset { get; set; } = new(0f, 0.026f, -0.21f);
+
 	[ExportGroup("伤害")]
 	[Export] public float BaseDamage { get; set; } = 40f;
 	[Export] public float FullDamageDistance { get; set; } = 25f;
@@ -14,6 +27,10 @@ public partial class PistolData : Resource
 
 	[ExportGroup("射击")]
 	[Export] public float ShotsPerSecond { get; set; } = 5.5f;
+	/// <summary>按住左键持续射击（冲锋枪）。false 时为半自动（手枪、霰弹枪、狙击枪）。</summary>
+	[Export] public bool Automatic { get; set; }
+	/// <summary>单次击发的弹丸数（霰弹枪 8），每颗独立散布、伤害按各自数值结算。</summary>
+	[Export] public int PelletsPerShot { get; set; } = 1;
 	[Export] public int MagazineSize { get; set; } = 12;
 	[Export] public int StartingReserve { get; set; } = 36;
 	[Export] public int MaxReserve { get; set; } = 60;
@@ -32,6 +49,8 @@ public partial class PistolData : Resource
 	[Export] public float AdsTime { get; set; } = 0.15f;
 	[Export] public float AdsMoveMultiplier { get; set; } = 0.55f;
 	[Export] public float AdsRecoilMultiplier { get; set; } = 0.7f;
+	/// <summary>开镜后的相机 FOV（狙击枪用小值做瞄准镜效果）。</summary>
+	[Export] public float AdsFov { get; set; } = 55f;
 
 	[ExportGroup("后坐（度）")]
 	[Export] public float RecoilPitch { get; set; } = 1.6f;

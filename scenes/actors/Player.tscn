@@ -1,26 +1,19 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scripts/player/PlayerController.cs" id="1_controller"]
 [ext_resource type="Resource" path="res://data/player/PlayerData.tres" id="2_data"]
 [ext_resource type="Script" path="res://scripts/player/PlayerCamera.cs" id="3_camera"]
 [ext_resource type="Script" path="res://scripts/player/PlayerHealth.cs" id="4_health"]
-[ext_resource type="Script" path="res://scripts/weapons/PistolController.cs" id="5_pistol"]
-[ext_resource type="Resource" path="res://data/weapons/P9.tres" id="6_p9"]
+[ext_resource type="Script" path="res://scripts/weapons/WeaponController.cs" id="5_weapon"]
+[ext_resource type="Resource" path="res://data/weapons/Arsenal.tres" id="6_arsenal"]
 [ext_resource type="PackedScene" path="res://scenes/fx/Tracer.tscn" id="7_tracer"]
 [ext_resource type="PackedScene" path="res://scenes/fx/Impact.tscn" id="8_impact"]
-[ext_resource type="PackedScene" path="res://art/models/WPN_P9.glb" id="9_viewmodel"]
-[ext_resource type="Shader" path="res://shaders/outline.gdshader" id="10_outline"]
-[ext_resource type="Script" path="res://scripts/actors/ModelOutline.cs" id="10_model_outline"]
 [ext_resource type="Script" path="res://scripts/weapons/MeleeController.cs" id="11_melee"]
 [ext_resource type="Resource" path="res://data/weapons/Melee.tres" id="12_melee_data"]
 
 [sub_resource type="CapsuleShape3D" id="Capsule_player"]
 radius = 0.35
 height = 1.8
-
-[sub_resource type="ShaderMaterial" id="Mat_ViewmodelOutline"]
-shader = ExtResource("10_outline")
-shader_parameter/width = 0.0025
 
 [node name="Player" type="CharacterBody3D"]
 collision_layer = 2
@@ -50,21 +43,17 @@ shadow_enabled = false
 
 [node name="ViewModel" type="Node3D" parent="Head/Camera3D"]
 
-[node name="Pistol" type="Node3D" parent="Head/Camera3D/ViewModel"]
+[node name="Weapon" type="Node3D" parent="Head/Camera3D/ViewModel"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.18, -0.16, -0.4)
-script = ExtResource("5_pistol")
-Data = ExtResource("6_p9")
+script = ExtResource("5_weapon")
+Arsenal = ExtResource("6_arsenal")
 TracerScene = ExtResource("7_tracer")
 ImpactScene = ExtResource("8_impact")
 
-[node name="Model" parent="Head/Camera3D/ViewModel/Pistol" instance=ExtResource("9_viewmodel")]
-script = ExtResource("10_model_outline")
-Overlay = SubResource("Mat_ViewmodelOutline")
-
-[node name="Muzzle" type="Marker3D" parent="Head/Camera3D/ViewModel/Pistol"]
+[node name="Muzzle" type="Marker3D" parent="Head/Camera3D/ViewModel/Weapon"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.026, -0.21)
 
-[node name="MuzzleLight" type="OmniLight3D" parent="Head/Camera3D/ViewModel/Pistol"]
+[node name="MuzzleLight" type="OmniLight3D" parent="Head/Camera3D/ViewModel/Weapon"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.026, -0.23)
 visible = false
 light_color = Color(1, 0.84, 0.55, 1)

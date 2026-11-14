@@ -17,9 +17,9 @@ public partial class AmmoPickup : Area3D
 		if (body is not PlayerController)
 			return;
 
-		foreach (Node node in GetTree().GetNodesInGroup("pistol"))
+		foreach (Node node in GetTree().GetNodesInGroup("weapon"))
 		{
-			if (node is PistolController pistol && pistol.TryAddAmmo(Rounds))
+			if (node is WeaponController weapon && weapon.TryAddAmmo(Rounds))
 			{
 				QueueFree();
 				return;

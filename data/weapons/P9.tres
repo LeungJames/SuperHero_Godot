@@ -1,9 +1,14 @@
-[gd_resource type="Resource" script_class="PistolData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
 
-[ext_resource type="Script" path="res://scripts/weapons/PistolData.cs" id="1_pistoldata"]
+[ext_resource type="Script" path="res://scripts/weapons/WeaponData.cs" id="1_weapondata"]
+[ext_resource type="PackedScene" path="res://art/models/WPN_P9.glb" id="2_viewmodel"]
 
 [resource]
-script = ExtResource("1_pistoldata")
+script = ExtResource("1_weapondata")
+DisplayName = "P-9"
+UnlockChapter = 0
+Viewmodel = ExtResource("2_viewmodel")
+MuzzleOffset = Vector3(0, 0.026, -0.21)
 BaseDamage = 40.0
 FullDamageDistance = 25.0
 MinDamageDistance = 50.0
@@ -21,6 +26,7 @@ AirSpreadPenalty = 3.0
 AdsTime = 0.15
 AdsMoveMultiplier = 0.55
 AdsRecoilMultiplier = 0.7
+AdsFov = 55.0
 RecoilPitch = 1.6
 RecoilYaw = 0.35
 RecoilRecovery = 14.0

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ArsenalData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/ArsenalData.cs" id="1_arsenal"]
+[ext_resource type="Resource" path="res://data/weapons/P9.tres" id="2_p9"]
+[ext_resource type="Resource" path="res://data/weapons/SMG.tres" id="3_smg"]
+[ext_resource type="Resource" path="res://data/weapons/Shotgun.tres" id="4_shotgun"]
+[ext_resource type="Resource" path="res://data/weapons/Sniper.tres" id="5_sniper"]
+
+[resource]
+script = ExtResource("1_arsenal")
+CurrentChapter = 0
+Weapons = Array[Resource]([ExtResource("2_p9"), ExtResource("3_smg"), ExtResource("4_shotgun"), ExtResource("5_sniper")])
+SwapLowerTime = 0.16
+SwapRaiseTime = 0.2
+SwapLowerDrop = 0.22
