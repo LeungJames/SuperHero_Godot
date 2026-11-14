@@ -58,7 +58,7 @@ public partial class WeaponController : Node3D
 		: 0f;
 
 	private const float MuzzleFlashEnergy = 1.2f;
-	private const int MaxSlots = 4;
+	private const int MaxSlots = 5;
 
 	private readonly List<WeaponData> _weapons = new();
 	private int[] _mags = System.Array.Empty<int>();
@@ -348,6 +348,9 @@ public partial class WeaponController : Node3D
 		AddChild(model);
 		_model = model;
 
+		if (data.ToonViewmodel)
+			ApplyToonMaterials(model);
+
 		_slidePivot = FindNode<Node3D>(model, "SlidePivot");
 		_magPivot = FindNode<Node3D>(model, "MagPivot");
 		_handLPivot = FindNode<Node3D>(model, "HandLPivot");
@@ -360,7 +363,6 @@ public partial class WeaponController : Node3D
 
 	/// <summary>视角模型描边叠层（反向壳），全局共用一个材质。</summary>
 	private static ShaderMaterial _outlineMaterial;
-
 	private static ShaderMaterial ViewmodelOutline()
 	{
 		if (_outlineMaterial != null)
@@ -372,6 +374,42 @@ public partial class WeaponController : Node3D
 		};
 		_outlineMaterial.SetShaderParameter("width", 0.0025f);
 		return _outlineMaterial;
+	}
+
+	/// <summary>
+	/// 逐 surface 把视角模型的纯色材质换成 toon 平涂，保留原模型的配色分件。
+	/// 只在武器开启 ToonViewmodel 时调用，避免改动已定稿的其他枪。
+	/// </summary>
+	private static void ApplyToonMaterials(Node root)
+	{
+		if (root is MeshInstance3D mesh && mesh.Mesh != null)
+		{
+			for (int i = 0; i < mesh.Mesh.GetSurfaceCount(); i++)
+			{
+				Material source = mesh.GetActiveMaterial(i);
+				Color color = source is StandardMaterial3D standard ? standard.AlbedoColor : new Color(0.8f, 0.8f, 0.8f);
+				mesh.SetSurfaceOverrideMaterial(i, ToonMaterial(color));
+			}
+		}
+
+		foreach (Node child in root.GetChildren())
+			ApplyToonMaterials(child);
+	}
+
+	private static readonly System.Collections.Generic.Dictionary<Color, ShaderMaterial> ToonCache = new();
+
+	private static ShaderMaterial ToonMaterial(Color color)
+	{
+		if (ToonCache.TryGetValue(color, out ShaderMaterial cached))
+			return cached;
+
+		var material = new ShaderMaterial
+		{
+			Shader = GD.Load<Shader>("res://shaders/toon.gdshader"),
+		};
+		material.SetShaderParameter("albedo_color", color);
+		ToonCache[color] = material;
+		return material;
 	}
 
 	/// <summary>把当前武器的数值同步到相机与枪口标记。</summary>

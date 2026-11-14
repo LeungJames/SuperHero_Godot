@@ -16,6 +16,9 @@ public partial class WeaponData : Resource
 	/// <summary>第一人称视角模型（枢轴分件）。</summary>
 	[Export] public PackedScene Viewmodel { get; set; }
 
+	/// <summary>把视角模型的纯色材质换成 toon 平涂（按原材质的基色逐个替换 surface）。</summary>
+	[Export] public bool ToonViewmodel { get; set; }
+
 	/// <summary>枪口位置（相对武器节点，Godot 坐标：-Z 朝前）。</summary>
 	[Export] public Vector3 MuzzleOffset { get; set; } = new(0f, 0.026f, -0.21f);
 

@@ -1,0 +1,69 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/WeaponData.cs" id="1_weapondata"]
+[ext_resource type="PackedScene" path="res://art/models/WPN_AssaultRifle.glb" id="2_viewmodel"]
+
+[resource]
+script = ExtResource("1_weapondata")
+DisplayName = "AR-5"
+UnlockChapter = 2
+Viewmodel = ExtResource("2_viewmodel")
+ToonViewmodel = true
+MuzzleOffset = Vector3(0, 0.015, -0.55)
+BaseDamage = 30.0
+FullDamageDistance = 35.0
+MinDamageDistance = 90.0
+MinDamageMultiplier = 0.65
+ShotsPerSecond = 9.0
+Automatic = true
+PelletsPerShot = 1
+MagazineSize = 30
+StartingReserve = 120
+MaxReserve = 240
+ReloadTime = 2.2
+MaxRange = 220.0
+HipSpread = 2.0
+AdsSpread = 0.35
+MovingSpreadPenalty = 1.1
+AirSpreadPenalty = 3.0
+SlideSpreadPenalty = 2.5
+AdsTime = 0.17
+AdsMoveMultiplier = 0.58
+AdsRecoilMultiplier = 0.7
+AdsFov = 50.0
+RecoilPitch = 1.3
+RecoilYaw = 0.4
+RecoilRecovery = 12.0
+RecoilStackPerShot = 0.09
+RecoilStackMax = 2.0
+RecoilStackResetTime = 0.35
+ReloadMoveMultiplier = 0.78
+MuzzleFlashTime = 0.045
+FireKickBack = 0.03
+FireKickPitch = 3.5
+FireKickRecoverTime = 0.07
+FireKickPitchRecoverTime = 0.11
+SwayAmountX = 0.013
+SwayAmountY = 0.009
+AdsSwayScale = 0.22
+AdsSwayRateScale = 0.55
+ReloadDrop = 0.12
+ReloadRoll = 20.0
+ReloadMagRise = 0.2
+ReloadMagLateral = 0.15
+ReloadMagPullBack = 0.1
+ReloadMagTiltDegrees = 32.0
+ReloadMagInsertDrop = 0.03
+ReloadMagDropStart = 0.1
+ReloadMagDropEnd = 0.32
+ReloadMagInsertStart = 0.46
+ReloadMagInsertEnd = 0.7
+ReloadSlideStart = 0.8
+ReloadSlideEnd = 0.9
+ReloadSlideTravel = 0.06
+ReloadHandDropDegrees = 30.0
+ReloadHandLeaveStart = 0.06
+ReloadHandLeaveEnd = 0.2
+ReloadHandReturnStart = 0.66
+ReloadHandReturnEnd = 0.82
+ReloadBoneBlendSpeed = 14.0
