@@ -36,6 +36,9 @@ public partial class PlayerCamera : Node3D
 	/// <summary>相机是否正被外部（如处决演出）临时接管。</summary>
 	public bool IsTakenOver => _takeoverActive;
 
+	/// <summary>当前是否能看到玩家全身（第三人称，或被演出临时打开）。</summary>
+	public bool IsBodyVisible => _mode == CameraMode.ThirdPerson || _performanceBody;
+
 	private const float LandingDipDepth = 0.05f;
 	private const float LandingDipRecoverTime = 0.15f;
 	private const float DeathSinkDepth = 0.5f;
@@ -59,6 +62,7 @@ public partial class PlayerCamera : Node3D
 
 	private CameraMode _mode = CameraMode.FirstPerson;
 	private float _modeBlend;
+	private bool _performanceBody;
 
 	private Node3D _takeoverAnchor;
 	private Transform3D _takeoverWorld;
@@ -143,12 +147,25 @@ public partial class PlayerCamera : Node3D
 	private void ApplyModeVisibility()
 	{
 		if (BodyModel != null)
-			BodyModel.Visible = _mode == CameraMode.ThirdPerson;
+			BodyModel.Visible = IsBodyVisible;
 		if (ViewModelNode != null)
-			ViewModelNode.Visible = _mode == CameraMode.FirstPerson;
+			ViewModelNode.Visible = !_performanceBody && _mode == CameraMode.FirstPerson;
 	}
 
-	// ---------------------------------------------------------------- 外部接管（C 阶段处决演出预留）
+	/// <summary>
+	/// 演出期间临时显示全身、隐藏视角手臂（C 阶段处决用）。
+	/// 不改变当前视角模式，关闭后按模式自动恢复。
+	/// </summary>
+	public void SetPerformanceBody(bool visible)
+	{
+		if (_performanceBody == visible)
+			return;
+
+		_performanceBody = visible;
+		ApplyModeVisibility();
+	}
+
+	// ---------------------------------------------------------------- 外部接管（处决演出用）
 
 	/// <summary>把相机临时接管到世界空间的一个锚点（例如处决机位），过渡结束后稳定跟随该锚点。</summary>
 	public void TakeOver(Node3D anchor, float blendTime = 0.3f)

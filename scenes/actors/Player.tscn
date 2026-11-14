@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene load_steps=19 format=3]
 
 [ext_resource type="Script" path="res://scripts/player/PlayerController.cs" id="1_controller"]
 [ext_resource type="Resource" path="res://data/player/PlayerData.tres" id="2_data"]
@@ -16,6 +16,8 @@
 [ext_resource type="Script" path="res://scripts/player/PlayerAnimation.cs" id="16_anim"]
 [ext_resource type="Resource" path="res://data/player/PlayerAnim.tres" id="17_animdata"]
 [ext_resource type="Script" path="res://scripts/player/PlayerWeaponMount.cs" id="18_mount"]
+[ext_resource type="Script" path="res://scripts/player/ExecutionController.cs" id="19_exec"]
+[ext_resource type="Resource" path="res://data/player/Execution.tres" id="20_exec_data"]
 
 [sub_resource type="CapsuleShape3D" id="Capsule_player"]
 radius = 0.35
@@ -95,3 +97,7 @@ script = ExtResource("18_mount")
 Data = ExtResource("17_animdata")
 BodyModel = NodePath("../BodyModel")
 Weapon = NodePath("Head/Camera3D/ViewModel/Weapon")
+
+[node name="Execution" type="Node3D" parent="."]
+script = ExtResource("19_exec")
+Data = ExtResource("20_exec_data")

@@ -214,6 +214,15 @@ public partial class PlayerAnimation : Node
 
 	// ---------------------------------------------------------------- 事件
 
+	/// <summary>处决演出：素材没有单独的处决动作，借开火剪辑做一次短促的挥击。</summary>
+	public void PlayExecutionStrike()
+	{
+		if (!_ready || _dead)
+			return;
+
+		_fireTimer = Data.FireHoldTime;
+	}
+
 	private void OnShotResolved(HitscanHit hit)
 	{
 		_fireTimer = Data.FireHoldTime;

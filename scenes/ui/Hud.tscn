@@ -259,6 +259,25 @@ max_value = 1.0
 step = 0.001
 show_percentage = false
 
+[node name="ExecutionPrompt" type="Label" parent="."]
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = 56.0
+offset_right = 300.0
+offset_bottom = 88.0
+grow_horizontal = 2
+grow_vertical = 2
+visible = false
+theme_override_colors/font_color = Color(0.86, 0.72, 0.35, 1)
+theme_override_colors/font_outline_color = Color(0.16, 0.13, 0.1, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 20
+horizontal_alignment = 1
+
 [node name="MessageLabel" type="Label" parent="."]
 layout_mode = 1
 anchor_left = 0.5

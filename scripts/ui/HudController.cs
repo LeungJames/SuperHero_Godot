@@ -28,6 +28,7 @@ public partial class HudController : Control
 	private Label _weaponLabel;
 	private ProgressBar _reloadBar;
 	private Label _messageLabel;
+	private Label _promptLabel;
 	private Label _bannerLabel;
 	private Label _hitMarker;
 	private ColorRect _damageFlash;
@@ -46,9 +47,12 @@ public partial class HudController : Control
 	private float _enemyPulse;
 	private bool _combatVisible = true;
 	private int _lastAlive = -1;
+	private string _promptText = string.Empty;
 
 	public override void _Ready()
 	{
+		AddToGroup("hud");
+
 		_enemiesLabel = GetNode<Label>("EnemiesLabel");
 		_objectiveLabel = GetNode<Label>("ObjectiveLabel");
 		_heightLabel = GetNode<Label>("HeightLabel");
@@ -144,6 +148,10 @@ public partial class HudController : Control
 		_objectiveLabel.Visible = visible;
 		_heightLabel.Visible = visible;
 		_reloadBar.Visible = visible && _weapon != null && _weapon.IsReloading;
+
+		_promptLabel ??= GetNodeOrNull<Label>("ExecutionPrompt");
+		if (_promptLabel != null)
+			_promptLabel.Visible = visible && !string.IsNullOrEmpty(_promptText);
 	}
 
 	public void ShowBanner(string text)
@@ -162,6 +170,20 @@ public partial class HudController : Control
 		_messageLabel.Text = text;
 		_messageLabel.AddThemeColorOverride("font_color", color);
 		_messageTimer = MessageTime;
+	}
+
+	public void SetPrompt(string text)
+	{
+		if (_promptText == text)
+			return;
+
+		_promptText = text;
+		_promptLabel ??= GetNodeOrNull<Label>("ExecutionPrompt");
+		if (_promptLabel == null)
+			return;
+
+		_promptLabel.Text = text;
+		_promptLabel.Visible = _combatVisible && !string.IsNullOrEmpty(text);
 	}
 
 	/// <summary>演出淡出：0 透明 → 1 全米白。</summary>

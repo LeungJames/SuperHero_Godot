@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ExecutionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/player/ExecutionData.cs" id="1_execdata"]
+
+[resource]
+script = ExtResource("1_execdata")
+Range = 2.4
+RearDot = -0.2
+FacingDot = 0.35
+MaxVerticalGap = 1.2
+AimHeight = 1.15
+Cooldown = 1.4
+PromptText = "【F】处决"
+BlendInTime = 0.22
+StrikeTime = 0.45
+RecoverTime = 0.65
+BlendOutTime = 0.25
+CameraSideOffset = 1.9
+CameraRise = 0.45
+CameraLookHeight = 1.1
+CameraLookAhead = 0.3
+CameraCollisionRadius = 0.3
+BodyHideDistance = 0.7

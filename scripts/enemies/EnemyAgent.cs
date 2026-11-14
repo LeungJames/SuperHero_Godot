@@ -69,6 +69,7 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 	private Vector3 _peekPosition;
 
 	private float _flashTimer;
+	private bool _seized;
 
 	public override void _Ready()
 	{
@@ -123,12 +124,39 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 		_health?.TakeDamage(info);
 	}
 
+	/// <summary>
+	/// 处决演出期间被制服：停火、停移动、停在原地，直到结算结束。
+	/// 不改生命值与状态机，只冻结本帧行为（处决对任意敌人有效）。
+	/// </summary>
+	public void Seize()
+	{
+		if (_health == null || _health.IsDead)
+			return;
+
+		_seized = true;
+		_burstShotsLeft = 0;
+		_fireTimer = 0f;
+		_velocity = Vector3.Zero;
+		Velocity = Vector3.Zero;
+		_nav.TargetPosition = GlobalPosition;
+		_animation?.SetSpeed(0f);
+	}
+
 	public override void _PhysicsProcess(double delta)
 	{
 		float dt = (float)delta;
 
 		if (Data == null || _health == null || _health.IsDead)
 			return;
+
+		// 处决演出期间被制服：停止移动、开火与转向，等待致命一击
+		if (_seized)
+		{
+			_velocity = Vector3.Zero;
+			Velocity = Vector3.Zero;
+			_animation?.SetSpeed(0f);
+			return;
+		}
 
 		// 敌人节点可能比玩家先 _Ready，玩家进树后再补抓一次
 		if (!EnsurePlayer())

@@ -43,7 +43,7 @@ public partial class PlayerWeaponMount : Node3D
 
 	public override void _Process(double delta)
 	{
-		bool visible = _camera != null && _camera.Mode == CameraMode.ThirdPerson;
+		bool visible = _camera != null && _camera.IsBodyVisible;
 		Visible = visible;
 		if (!visible || _visual == null || _skeleton == null || _handBone < 0 || _player == null)
 			return;
