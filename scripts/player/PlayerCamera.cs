@@ -11,6 +11,9 @@ public partial class PlayerCamera : Node3D
 	/// <summary>后坐回正速度（度/秒），由武器在启动时按 PistolData 写入。</summary>
 	public float RecoilRecovery { get; set; } = 14f;
 
+	/// <summary>侧倾跟随速度（度/秒），蹬墙跑时由移动系统写入目标角。</summary>
+	public float RollSpeed { get; set; } = 180f;
+
 	/// <summary>死亡或演出期间由外部关闭。</summary>
 	public bool LookEnabled { get; set; } = true;
 
@@ -30,6 +33,8 @@ public partial class PlayerCamera : Node3D
 	private float _aimBlend;
 	private float _deathBlend;
 	private bool _deathActive;
+	private float _roll;
+	private float _rollTarget;
 
 	public override void _Ready()
 	{
@@ -91,6 +96,12 @@ public partial class PlayerCamera : Node3D
 			_landingDip = LandingDipDepth;
 	}
 
+	/// <summary>屏幕侧倾（度），蹬墙跑时由移动系统设置，普通状态下传 0 回正。</summary>
+	public void SetRoll(float degrees)
+	{
+		_rollTarget = degrees;
+	}
+
 	/// <summary>死亡沉镜：0.5m 下沉 + 侧倾 8°（设计文档 §3.6）。</summary>
 	public void BeginDeath()
 	{
@@ -128,7 +139,9 @@ public partial class PlayerCamera : Node3D
 		if (_deathActive && _deathBlend < 1f)
 			_deathBlend = Mathf.MoveToward(_deathBlend, 1f, dt / DeathTransitionTime);
 
+		_roll = Mathf.MoveToward(_roll, _rollTarget, RollSpeed * dt);
+
 		_camera.Position = new Vector3(0f, -(_landingDip + DeathSinkDepth * _deathBlend), 0f);
-		_camera.Rotation = new Vector3(0f, 0f, Mathf.DegToRad(-DeathRollDegrees) * _deathBlend);
+		_camera.Rotation = new Vector3(0f, 0f, Mathf.DegToRad(-DeathRollDegrees * _deathBlend + _roll));
 	}
 }

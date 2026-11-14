@@ -229,6 +229,9 @@ public partial class PistolController : Node3D
 		if (!_player.IsOnFloor())
 			spread += Data.AirSpreadPenalty;
 
+		if (_player.IsSliding)
+			spread += Data.SlideSpreadPenalty;
+
 		return spread;
 	}
 

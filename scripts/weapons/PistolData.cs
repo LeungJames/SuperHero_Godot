@@ -25,6 +25,8 @@ public partial class PistolData : Resource
 	[Export] public float AdsSpread { get; set; } = 0.25f;
 	[Export] public float MovingSpreadPenalty { get; set; } = 1.2f;
 	[Export] public float AirSpreadPenalty { get; set; } = 3f;
+	/// <summary>滑铲中开火的额外散布（度），机动越快精度越差（§5.1）。</summary>
+	[Export] public float SlideSpreadPenalty { get; set; } = 2.5f;
 
 	[ExportGroup("开镜")]
 	[Export] public float AdsTime { get; set; } = 0.15f;
