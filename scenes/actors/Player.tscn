@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=16 format=3]
 
 [ext_resource type="Script" path="res://scripts/player/PlayerController.cs" id="1_controller"]
 [ext_resource type="Resource" path="res://data/player/PlayerData.tres" id="2_data"]
@@ -11,6 +11,8 @@
 [ext_resource type="PackedScene" path="res://art/models/WPN_P9.glb" id="9_viewmodel"]
 [ext_resource type="Shader" path="res://shaders/outline.gdshader" id="10_outline"]
 [ext_resource type="Script" path="res://scripts/actors/ModelOutline.cs" id="10_model_outline"]
+[ext_resource type="Script" path="res://scripts/weapons/MeleeController.cs" id="11_melee"]
+[ext_resource type="Resource" path="res://data/weapons/Melee.tres" id="12_melee_data"]
 
 [sub_resource type="CapsuleShape3D" id="Capsule_player"]
 radius = 0.35
@@ -71,3 +73,7 @@ omni_range = 3.0
 
 [node name="Health" type="Node" parent="."]
 script = ExtResource("4_health")
+
+[node name="Melee" type="Node3D" parent="."]
+script = ExtResource("11_melee")
+Data = ExtResource("12_melee_data")

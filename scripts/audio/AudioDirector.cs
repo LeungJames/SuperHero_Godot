@@ -19,6 +19,7 @@ public partial class AudioDirector : Node
 	private PlayerController _player;
 	private PlayerHealth _health;
 	private PistolController _pistol;
+	private MeleeController _melee;
 	private Node3D _helicopter;
 	private VictorySequenceController _victory;
 	private bool _victoryStarted;
@@ -66,6 +67,17 @@ public partial class AudioDirector : Node
 			_pistol.ShotResolved += OnShotResolved;
 			_pistol.ReloadStarted += () => PlayAt(SfxKind.Reload, _player.GlobalPosition, -6f);
 			_pistol.DryFired += () => PlayAt(SfxKind.DryFire, _player.GlobalPosition, -5f);
+		}
+
+		_melee = _player.GetNodeOrNull<MeleeController>("Melee");
+		if (_melee != null)
+		{
+			_melee.Swung += () => PlayAt(SfxKind.Melee, _player.GlobalPosition, -5f);
+			_melee.Resolved += (point, hit) =>
+			{
+				if (hit)
+					PlayAt(SfxKind.Hit, point, -2f, 0.9f);
+			};
 		}
 
 		if (_victory != null)

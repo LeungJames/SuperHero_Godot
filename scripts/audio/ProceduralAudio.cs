@@ -15,6 +15,7 @@ public enum SfxKind
 	Land,
 	Alert,
 	Death,
+	Melee,
 }
 
 /// <summary>
@@ -45,6 +46,7 @@ public static class ProceduralAudio
 			SfxKind.Land => Build(LandSamples(), false),
 			SfxKind.Alert => Build(AlertSamples(), false),
 			SfxKind.Death => Build(DeathSamples(), false),
+			SfxKind.Melee => Build(MeleeSamples(), false),
 			_ => Build(FootstepSamples(), false),
 		};
 
@@ -105,8 +107,18 @@ public static class ProceduralAudio
 		return Normalize(b, 0.7f);
 	}
 
-	private static float[] ReloadSamples()
+	/// <summary>近战：短促的挥空风声 + 命中闷响。</summary>
+	private static float[] MeleeSamples()
 	{
+		var rng = new Random(41);
+		float[] b = new float[Frames(0.30f)];
+		AddBurst(b, rng, 0.0f, 0.11f, 0.28f);
+		AddClick(b, 0.02f, 240f, 0.05f, 0.25f);
+		AddClick(b, 0.13f, 520f, 0.035f, 0.6f);
+		return Normalize(b, 0.7f);
+	}
+
+	private static float[] ReloadSamples()	{
 		var rng = new Random(23);
 		float[] b = new float[Frames(0.55f)];
 		AddClick(b, 0.0f, 900f, 0.03f, 0.55f);

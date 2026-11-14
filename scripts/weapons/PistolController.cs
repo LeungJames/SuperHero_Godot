@@ -31,6 +31,9 @@ public partial class PistolController : Node3D
 	/// <summary>当前散布角（度），准星按它张开（§7.2）。</summary>
 	public float CurrentSpreadDegrees => Data != null ? GetSpreadDegrees() : 0f;
 
+	/// <summary>近战挥动姿势 0~1，由近战系统写入；只影响第一人称持枪位移。</summary>
+	public float MeleeSwing { get; set; }
+
 	/// <summary>换弹进度 0~1，未换弹时为 0。</summary>
 	public float ReloadProgress => IsReloading && Data != null
 		? Mathf.Clamp(1f - _reloadTimer / Mathf.Max(Data.ReloadTime, 0.001f), 0f, 1f)
@@ -325,8 +328,12 @@ public partial class PistolController : Node3D
 			0f);
 
 		Vector3 basePosition = _basePosition.Lerp(_adsPosition, _aimBlend);
-		Position = basePosition + sway + new Vector3(0f, -Data.ReloadDrop * reloadPose, Data.FireKickBack * _kickBack);
-		RotationDegrees = _baseRotationDegrees + new Vector3(Data.FireKickPitch * _kickPitch, 0f, Data.ReloadRoll * reloadPose);
+		float swing = Mathf.Clamp(MeleeSwing, 0f, 1f);
+		Position = basePosition + sway
+			+ new Vector3(0f, -Data.ReloadDrop * reloadPose, Data.FireKickBack * _kickBack)
+			+ new Vector3(-0.04f * swing, -0.02f * swing, 0.10f * swing);
+		RotationDegrees = _baseRotationDegrees
+			+ new Vector3(Data.FireKickPitch * _kickPitch - 34f * swing, 16f * swing, Data.ReloadRoll * reloadPose);
 	}
 
 	/// <summary>

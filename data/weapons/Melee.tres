@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MeleeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/MeleeData.cs" id="1_meleedata"]
+
+[resource]
+script = ExtResource("1_meleedata")
+Damage = 55.0
+ConeDegrees = 70.0
+Range = 2.1
+HitRadius = 0.55
+Cooldown = 0.75
+SwingTime = 0.32
+HitTimeRatio = 0.4
