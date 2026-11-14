@@ -75,6 +75,7 @@ public partial class WeaponController : Node3D
 	private Vector3 _basePosition;
 	private Vector3 _baseRotationDegrees;
 	private Vector3 _adsPosition;
+	private Vector3 _adsRotationDegrees;
 
 	private float _cooldown;
 	private float _reloadTimer;
@@ -115,8 +116,9 @@ public partial class WeaponController : Node3D
 
 		_basePosition = Position;
 		_baseRotationDegrees = RotationDegrees;
-		// 开镜时把枪摆到相机正前下方；两套姿势都由代码插值，场景里只存腰射基准姿势
+		// 开镜时把枪摆到相机正前下方；长枪可在 WeaponData 里追加偏移，避免枪身挡住准星
 		_adsPosition = new Vector3(0f, _basePosition.Y + 0.10f, _basePosition.Z + 0.06f);
+		_adsRotationDegrees = _baseRotationDegrees;
 
 		_exclude = new Godot.Collections.Array<Rid> { _player.GetRid() };
 
@@ -418,6 +420,10 @@ public partial class WeaponController : Node3D
 		_cameraOwner.RecoilRecovery = Data.RecoilRecovery;
 		_cameraOwner.SetAdsFov(Data.AdsFov);
 
+		// 开镜姿势按武器数据重算（狙击枪需要把枪身推远，避免枪托顶住画面中心）
+		_adsPosition = new Vector3(0f, _basePosition.Y + 0.10f, _basePosition.Z + 0.06f) + Data.AdsPositionOffset;
+		_adsRotationDegrees = _baseRotationDegrees + Data.AdsRotationDegrees;
+
 		if (_muzzle != null)
 			_muzzle.Position = Data.MuzzleOffset;
 		if (_muzzleLight != null)
@@ -573,7 +579,7 @@ public partial class WeaponController : Node3D
 			+ new Vector3(0f, -Data.ReloadDrop * reloadPose, Data.FireKickBack * _kickBack)
 			+ new Vector3(-0.04f * swing, -0.02f * swing, 0.10f * swing)
 			+ new Vector3(0f, -(Arsenal?.SwapLowerDrop ?? 0f) * swap, 0f);
-		RotationDegrees = _baseRotationDegrees
+		RotationDegrees = _baseRotationDegrees.Lerp(_adsRotationDegrees, _aimBlend)
 			+ new Vector3(Data.FireKickPitch * _kickPitch - 34f * swing, 16f * swing, Data.ReloadRoll * reloadPose)
 			+ new Vector3(-28f * swap, 0f, 0f);
 	}

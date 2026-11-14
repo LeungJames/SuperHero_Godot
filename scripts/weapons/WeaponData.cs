@@ -54,6 +54,10 @@ public partial class WeaponData : Resource
 	[Export] public float AdsRecoilMultiplier { get; set; } = 0.7f;
 	/// <summary>开镜后的相机 FOV（狙击枪用小值做瞄准镜效果）。</summary>
 	[Export] public float AdsFov { get; set; } = 55f;
+	/// <summary>开镜姿势相对通用开镜位的额外偏移（米）；用于长枪把枪身推远，避免遮住准星。</summary>
+	[Export] public Vector3 AdsPositionOffset { get; set; } = Vector3.Zero;
+	/// <summary>开镜姿势相对腰射基准的额外旋转（度），与位置一起决定镜心位置。</summary>
+	[Export] public Vector3 AdsRotationDegrees { get; set; } = Vector3.Zero;
 
 	[ExportGroup("后坐（度）")]
 	[Export] public float RecoilPitch { get; set; } = 1.6f;
