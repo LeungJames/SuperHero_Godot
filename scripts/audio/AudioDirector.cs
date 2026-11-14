@@ -88,15 +88,18 @@ public partial class AudioDirector : Node
 
 		foreach (Node node in GetTree().GetNodesInGroup("enemy"))
 		{
-			if (node is not EnemyAgent agent)
+			// 组挂在 EnemyHealth 上，EnemyAgent 是它的父节点
+			EnemyHealth health = node as EnemyHealth ?? node.GetNodeOrNull<EnemyHealth>("Health");
+			Node owner = node is EnemyHealth ? health?.GetParent() : node;
+			if (owner is not EnemyAgent agent)
 				continue;
 
 			agent.Fired += position =>
 				PlayAt(SfxKind.Gunshot, position, -3f, 0.94f + (float)GD.RandRange(0f, 0.12f));
 			agent.Alerted += () => PlayAt(SfxKind.Alert, agent.GlobalPosition, -7f);
 
-			if (agent.GetNodeOrNull<EnemyHealth>("Health") is EnemyHealth enemyHealth)
-				enemyHealth.Died += () =>
+			if (health != null)
+				health.Died += () =>
 					PlayAt(SfxKind.Death, agent.GlobalPosition, -4f, 0.9f + (float)GD.RandRange(0f, 0.2f));
 		}
 	}

@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="ComicStyleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/ComicStyleData.cs" id="1_style"]
+
+[resource]
+script = ExtResource("1_style")
+InkColor = Color(0.06, 0.05, 0.09, 1)
+PaperColor = Color(0.97, 0.93, 0.85, 1)
+AccentColor = Color(0.89, 0.34, 0.18, 1)
+KillColor = Color(0.85, 0.24, 0.22, 1)
+HalftoneSpacing = 14.0
+HalftoneStrength = 0.30
+HalftoneEdgeStart = 0.50
+HalftoneFadeTime = 0.7
+SpeedLineStrength = 0.32
+SpeedLineCount = 64.0
+SpeedLineMinSpeed = 6.2
+SpeedLineInner = 0.62
+SpeedLineBlend = 8.0
+PopupLifetime = 0.75
+PopupFontSize = 54
+PopupRise = 34.0
+PopupTilt = 12.0
+KillPanelTime = 0.55
+KillPanelThickness = 46.0
+HitInkThickness = 26.0
+HitInkTime = 0.35

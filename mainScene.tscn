@@ -13,6 +13,8 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/ResultsPanel.tscn" id="11_results"]
 [ext_resource type="Script" path="res://scripts/level/EnvironmentController.cs" id="12_env"]
 [ext_resource type="Script" path="res://scripts/audio/AudioDirector.cs" id="13_audio"]
+[ext_resource type="Script" path="res://scripts/ui/ComicOverlay.cs" id="14_comic"]
+[ext_resource type="Resource" path="res://data/ui/ComicStyle.tres" id="15_comic_style"]
 
 [sub_resource type="ProceduralSkyMaterial" id="Sky_Dusk"]
 sky_top_color = Color(0.78, 0.45, 0.17, 1)
@@ -101,7 +103,35 @@ script = ExtResource("13_audio")
 [node name="UI" type="CanvasLayer" parent="."]
 process_mode = 3
 
+[node name="ComicHalftone" type="ColorRect" parent="UI"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 1)
+
+[node name="ComicSpeedLines" type="ColorRect" parent="UI"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 1)
+
 [node name="Hud" parent="UI" instance=ExtResource("9_hud")]
+
+[node name="ComicFx" type="Control" parent="UI"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("14_comic")
+Style = ExtResource("15_comic_style")
 
 [node name="PauseMenu" parent="UI" instance=ExtResource("10_pause")]
 visible = false
