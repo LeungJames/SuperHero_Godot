@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/enemies/EnemyAgent.cs" id="1_agent"]
 [ext_resource type="Resource" path="res://data/enemies/Holder.tres" id="2_data"]
@@ -7,52 +7,12 @@
 [ext_resource type="PackedScene" path="res://scenes/fx/Tracer.tscn" id="5_tracer"]
 [ext_resource type="PackedScene" path="res://scenes/fx/Impact.tscn" id="6_impact"]
 [ext_resource type="PackedScene" path="res://scenes/fx/AmmoPickup.tscn" id="7_pickup"]
+[ext_resource type="PackedScene" path="res://art/models/SM_Holder.glb" id="8_model"]
+[ext_resource type="Shader" path="res://shaders/outline.gdshader" id="9_outline"]
 
 [sub_resource type="CapsuleShape3D" id="Shape_Body"]
 radius = 0.34
 height = 1.85
-
-[sub_resource type="StandardMaterial3D" id="Mat_Pants"]
-albedo_color = Color(0.2275, 0.2275, 0.2196, 1)
-roughness = 0.9
-
-[sub_resource type="StandardMaterial3D" id="Mat_Coat"]
-albedo_color = Color(0.1843, 0.4353, 0.4, 1)
-roughness = 0.9
-
-[sub_resource type="StandardMaterial3D" id="Mat_Shirt"]
-albedo_color = Color(0.9294, 0.8902, 0.8078, 1)
-roughness = 0.85
-
-[sub_resource type="StandardMaterial3D" id="Mat_Skin"]
-albedo_color = Color(0.78, 0.6, 0.47, 1)
-roughness = 0.85
-
-[sub_resource type="StandardMaterial3D" id="Mat_Gun"]
-albedo_color = Color(0.1, 0.1, 0.11, 1)
-metallic = 0.4
-roughness = 0.6
-
-[sub_resource type="BoxMesh" id="Mesh_Legs"]
-material = SubResource("Mat_Pants")
-size = Vector3(0.44, 0.9, 0.34)
-
-[sub_resource type="BoxMesh" id="Mesh_Torso"]
-material = SubResource("Mat_Coat")
-size = Vector3(0.54, 0.66, 0.34)
-
-[sub_resource type="BoxMesh" id="Mesh_Shirt"]
-material = SubResource("Mat_Shirt")
-size = Vector3(0.2, 0.3, 0.04)
-
-[sub_resource type="SphereMesh" id="Mesh_Head"]
-material = SubResource("Mat_Skin")
-radius = 0.17
-height = 0.34
-
-[sub_resource type="BoxMesh" id="Mesh_Gun"]
-material = SubResource("Mat_Gun")
-size = Vector3(0.05, 0.1, 0.22)
 
 [sub_resource type="SphereShape3D" id="Shape_Head"]
 radius = 0.2
@@ -62,6 +22,10 @@ size = Vector3(0.56, 0.66, 0.38)
 
 [sub_resource type="BoxShape3D" id="Shape_Limbs"]
 size = Vector3(0.48, 0.9, 0.36)
+
+[sub_resource type="ShaderMaterial" id="Mat_EnemyOutline"]
+shader = ExtResource("9_outline")
+shader_parameter/width = 0.03
 
 [node name="Holder" type="CharacterBody3D"]
 collision_layer = 4
@@ -77,25 +41,10 @@ shape = SubResource("Shape_Body")
 
 [node name="Model" type="Node3D" parent="."]
 
-[node name="Legs" type="MeshInstance3D" parent="Model"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
-mesh = SubResource("Mesh_Legs")
+[node name="Mesh" parent="Model" instance=ExtResource("8_model")]
 
-[node name="Torso" type="MeshInstance3D" parent="Model"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
-mesh = SubResource("Mesh_Torso")
-
-[node name="Shirt" type="MeshInstance3D" parent="Model"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.22, -0.17)
-mesh = SubResource("Mesh_Shirt")
-
-[node name="Head" type="MeshInstance3D" parent="Model"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.68, 0)
-mesh = SubResource("Mesh_Head")
-
-[node name="Gun" type="MeshInstance3D" parent="Model"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.28, 1.25, -0.24)
-mesh = SubResource("Mesh_Gun")
+[node name="SM_Holder" parent="Model/Mesh" index="0"]
+material_overlay = SubResource("Mat_EnemyOutline")
 
 [node name="Eye" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 0)
