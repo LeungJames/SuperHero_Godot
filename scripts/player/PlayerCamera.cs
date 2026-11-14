@@ -1,12 +1,26 @@
 using Godot;
 
+/// <summary>玩家视角模式。第一人称沿用视角手臂，第三人称显示全身并跟随。</summary>
+public enum CameraMode
+{
+	FirstPerson,
+	ThirdPerson,
+}
+
 /// <summary>
-/// 第一人称视角：鼠标偏航写进玩家身体，俯仰与落地下沉写进 Head。
-/// 不做命中判定（设计文档 §9.3）。
+/// 视角控制：鼠标偏航写进玩家身体，俯仰与落地下沉写进 Head。
+/// A 阶段新增第一 / 第三人称切换、第三人称跟随相机（带遮挡回拉）与外部临时接管接口。
+/// 两种模式共用同一套 Head 朝向，因此准星与射击判定的视线方向完全一致；不做命中判定（设计文档 §9.3）。
 /// </summary>
 public partial class PlayerCamera : Node3D
 {
 	[Export] public float PitchLimitDegrees { get; set; } = 89f;
+
+	/// <summary>第三人称时显示的全身模型根节点；第一人称隐藏，避免看到身体内部。</summary>
+	[Export] public Node3D BodyModel { get; set; }
+
+	/// <summary>第一人称视角手臂根节点；第三人称隐藏，避免手臂悬空穿帮。</summary>
+	[Export] public Node3D ViewModelNode { get; set; }
 
 	/// <summary>后坐回正速度（度/秒），由武器在启动时按 WeaponData 写入。</summary>
 	public float RecoilRecovery { get; set; } = 14f;
@@ -17,11 +31,17 @@ public partial class PlayerCamera : Node3D
 	/// <summary>死亡或演出期间由外部关闭。</summary>
 	public bool LookEnabled { get; set; } = true;
 
+	public CameraMode Mode => _mode;
+
+	/// <summary>相机是否正被外部（如处决演出）临时接管。</summary>
+	public bool IsTakenOver => _takeoverActive;
+
 	private const float LandingDipDepth = 0.05f;
 	private const float LandingDipRecoverTime = 0.15f;
 	private const float DeathSinkDepth = 0.5f;
 	private const float DeathRollDegrees = 8f;
 	private const float DeathTransitionTime = 0.5f;
+	private const uint WorldMask = 1;
 
 	private PlayerController _player;
 	private PlayerData _data;
@@ -37,22 +57,48 @@ public partial class PlayerCamera : Node3D
 	private float _rollTarget;
 	private float _adsFovOverride = -1f;
 
+	private CameraMode _mode = CameraMode.FirstPerson;
+	private float _modeBlend;
+
+	private Node3D _takeoverAnchor;
+	private Transform3D _takeoverWorld;
+	private float _takeoverWeight;
+	private float _takeoverBlendTime = 0.3f;
+	private bool _takeoverActive;
+
+	private readonly Godot.Collections.Array<Rid> _rayExclude = new();
+
 	public override void _Ready()
 	{
 		_player = GetParent<PlayerController>();
 		_data = _player.Data;
 		_camera = GetNode<Camera3D>("Camera3D");
 
+		if (ViewModelNode == null)
+			ViewModelNode = GetNodeOrNull<Node3D>("Camera3D/ViewModel");
+		if (BodyModel == null)
+			BodyModel = _player.GetNodeOrNull<Node3D>("BodyModel");
+
 		if (_data == null)
 			GD.PushError("PlayerCamera: Player 节点没有配置 PlayerData。");
 		else
 			_camera.Fov = _data.DefaultFov;
+
+		_rayExclude.Add(_player.GetRid());
+		ApplyModeVisibility();
 
 		Input.MouseMode = Input.MouseModeEnum.Captured;
 	}
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
+		if (@event.IsActionPressed("camera_mode"))
+		{
+			if (LookEnabled && _player.InputEnabled)
+				ToggleMode();
+			return;
+		}
+
 		if (@event is not InputEventMouseMotion motion)
 			return;
 
@@ -76,6 +122,60 @@ public partial class PlayerCamera : Node3D
 		UpdateAim();
 		UpdateCameraOffset(dt);
 	}
+
+	// ---------------------------------------------------------------- 视角模式
+
+	public void ToggleMode()
+	{
+		SetMode(_mode == CameraMode.FirstPerson ? CameraMode.ThirdPerson : CameraMode.FirstPerson);
+	}
+
+	/// <summary>切换第一 / 第三人称；身体与视角手臂互斥显示，相机位置做短过渡。</summary>
+	public void SetMode(CameraMode mode)
+	{
+		if (_mode == mode)
+			return;
+
+		_mode = mode;
+		ApplyModeVisibility();
+	}
+
+	private void ApplyModeVisibility()
+	{
+		if (BodyModel != null)
+			BodyModel.Visible = _mode == CameraMode.ThirdPerson;
+		if (ViewModelNode != null)
+			ViewModelNode.Visible = _mode == CameraMode.FirstPerson;
+	}
+
+	// ---------------------------------------------------------------- 外部接管（C 阶段处决演出预留）
+
+	/// <summary>把相机临时接管到世界空间的一个锚点（例如处决机位），过渡结束后稳定跟随该锚点。</summary>
+	public void TakeOver(Node3D anchor, float blendTime = 0.3f)
+	{
+		_takeoverAnchor = anchor;
+		_takeoverActive = true;
+		_takeoverBlendTime = Mathf.Max(blendTime, 0.001f);
+	}
+
+	/// <summary>把相机临时接管到世界空间的一个固定变换（例如处决机位）。</summary>
+	public void TakeOverTransform(Transform3D worldTransform, float blendTime = 0.3f)
+	{
+		_takeoverAnchor = null;
+		_takeoverWorld = worldTransform;
+		_takeoverActive = true;
+		_takeoverBlendTime = Mathf.Max(blendTime, 0.001f);
+	}
+
+	/// <summary>交还相机，平滑过渡回当前视角模式。</summary>
+	public void ReleaseTakeOver(float blendTime = 0.3f)
+	{
+		_takeoverAnchor = null;
+		_takeoverActive = false;
+		_takeoverBlendTime = Mathf.Max(blendTime, 0.001f);
+	}
+
+	// ---------------------------------------------------------------- 既有第一人称行为
 
 	/// <summary>后坐只写相机偏移，不改玩家实际朝向（设计文档 §4.5）。</summary>
 	public void AddRecoil(float pitchDegrees, float yawDegrees)
@@ -148,7 +248,69 @@ public partial class PlayerCamera : Node3D
 
 		_roll = Mathf.MoveToward(_roll, _rollTarget, RollSpeed * dt);
 
-		_camera.Position = new Vector3(0f, -(_landingDip + DeathSinkDepth * _deathBlend), 0f);
+		float blendTime = _data != null ? Mathf.Max(_data.CameraModeBlendTime, 0.001f) : 0.2f;
+		_modeBlend = Mathf.MoveToward(_modeBlend, _mode == CameraMode.ThirdPerson ? 1f : 0f, dt / blendTime);
+
+		Vector3 firstPerson = new(0f, -(_landingDip + DeathSinkDepth * _deathBlend), 0f);
+		Vector3 thirdPerson = new(0f, 0f, 0f);
+		if (_data != null)
+		{
+			thirdPerson = new Vector3(
+				_data.ThirdPersonShoulderOffset,
+				_data.ThirdPersonHeightOffset,
+				_data.ThirdPersonDistance);
+		}
+
+		Vector3 local = firstPerson.Lerp(thirdPerson, _modeBlend);
+		if (_modeBlend > 0.001f && _data != null)
+			local = PullInFromObstacles(local);
+
+		_camera.Position = local;
 		_camera.Rotation = new Vector3(0f, 0f, Mathf.DegToRad(-DeathRollDegrees * _deathBlend + _roll));
+
+		UpdateTakeOver(dt);
+	}
+
+	/// <summary>第三人称相机被墙挡住时沿视线回拉，避免镜头穿进几何体。</summary>
+	private Vector3 PullInFromObstacles(Vector3 local)
+	{
+		Vector3 desired = GlobalTransform * local;
+		Vector3 pivot = GlobalPosition;
+		Vector3 delta = desired - pivot;
+		float distance = delta.Length();
+		if (distance < 0.05f)
+			return local;
+
+		PhysicsRayQueryParameters3D query = PhysicsRayQueryParameters3D.Create(pivot, desired, WorldMask);
+		query.Exclude = _rayExclude;
+		Godot.Collections.Dictionary hit = GetWorld3D().DirectSpaceState.IntersectRay(query);
+		if (hit.Count == 0)
+			return local;
+
+		Vector3 point = (Vector3)hit["position"];
+		Vector3 direction = (point - pivot) / distance;
+		float safeDistance = Mathf.Max(distance - _data.CameraCollisionRadius, 0.1f);
+		Vector3 safe = pivot + direction * safeDistance;
+		return GlobalTransform.AffineInverse() * safe;
+	}
+
+	/// <summary>临时接管：把相机混合到外部机位；释放后按 setter 的过渡时间回到正常视角。</summary>
+	private void UpdateTakeOver(float dt)
+	{
+		float target = _takeoverActive ? 1f : 0f;
+		_takeoverWeight = Mathf.MoveToward(_takeoverWeight, target, dt / _takeoverBlendTime);
+		if (_takeoverWeight <= 0.0001f)
+			return;
+
+		Transform3D world = _takeoverAnchor != null ? _takeoverAnchor.GlobalTransform : _takeoverWorld;
+		Transform3D localTarget = GlobalTransform.AffineInverse() * world;
+		float weight = Mathf.SmoothStep(0f, 1f, _takeoverWeight);
+
+		// InterpolateWith 要求基正交归一，父节点带缩放时会断言；这里显式做位置线性插值与旋转球面插值。
+		Transform3D current = _camera.Transform;
+		Quaternion from = current.Basis.Orthonormalized().GetRotationQuaternion().Normalized();
+		Quaternion to = localTarget.Basis.Orthonormalized().GetRotationQuaternion().Normalized();
+		Basis basis = new Basis(from.Slerp(to, weight));
+		_camera.Transform = new Transform3D(basis, current.Origin.Lerp(localTarget.Origin, weight));
 	}
 }

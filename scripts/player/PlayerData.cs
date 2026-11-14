@@ -29,6 +29,18 @@ public partial class PlayerData : Resource
 	/// <summary>ADS 期间的鼠标灵敏度倍率。</summary>
 	[Export] public float AdsSensitivityScale { get; set; } = 0.7f;
 
+	[ExportGroup("相机 · 第三人称")]
+	/// <summary>第三人称相机到头部枢轴的距离（米）。</summary>
+	[Export] public float ThirdPersonDistance { get; set; } = 2.6f;
+	/// <summary>第三人称相机向右的肩部偏移（米），避免身体挡住准星。</summary>
+	[Export] public float ThirdPersonShoulderOffset { get; set; } = 0.42f;
+	/// <summary>第三人称相机相对头部的高度偏移（米）。</summary>
+	[Export] public float ThirdPersonHeightOffset { get; set; } = 0.12f;
+	/// <summary>第三人称相机遮挡回拉时与墙面保持的半径（米）。</summary>
+	[Export] public float CameraCollisionRadius { get; set; } = 0.22f;
+	/// <summary>第一 / 第三人称切换的相机过渡时间（秒）。</summary>
+	[Export] public float CameraModeBlendTime { get; set; } = 0.2f;
+
 	/// <summary>落差超过该值才计算摔伤（米）。</summary>
 	[Export] public float FallSafeHeight { get; set; } = 4f;
 

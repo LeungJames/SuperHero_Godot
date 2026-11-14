@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://scripts/player/PlayerController.cs" id="1_controller"]
 [ext_resource type="Resource" path="res://data/player/PlayerData.tres" id="2_data"]
@@ -10,6 +10,12 @@
 [ext_resource type="PackedScene" path="res://scenes/fx/Impact.tscn" id="8_impact"]
 [ext_resource type="Script" path="res://scripts/weapons/MeleeController.cs" id="11_melee"]
 [ext_resource type="Resource" path="res://data/weapons/Melee.tres" id="12_melee_data"]
+[ext_resource type="PackedScene" path="res://art/models/hero/player_hero_lod0.glb" id="13_lod0"]
+[ext_resource type="PackedScene" path="res://art/models/hero/player_hero_lod1.glb" id="14_lod1"]
+[ext_resource type="PackedScene" path="res://art/models/hero/player_hero_lod2.glb" id="15_lod2"]
+[ext_resource type="Script" path="res://scripts/player/PlayerAnimation.cs" id="16_anim"]
+[ext_resource type="Resource" path="res://data/player/PlayerAnim.tres" id="17_animdata"]
+[ext_resource type="Script" path="res://scripts/player/PlayerWeaponMount.cs" id="18_mount"]
 
 [sub_resource type="CapsuleShape3D" id="Capsule_player"]
 radius = 0.35
@@ -25,9 +31,21 @@ Data = ExtResource("2_data")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
 shape = SubResource("Capsule_player")
 
+[node name="BodyModel" type="Node3D" parent="."]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0)
+visible = false
+
+[node name="LOD0" parent="BodyModel" instance=ExtResource("13_lod0")]
+
+[node name="LOD1" parent="BodyModel" visible="false" instance=ExtResource("14_lod1")]
+
+[node name="LOD2" parent="BodyModel" visible="false" instance=ExtResource("15_lod2")]
+
 [node name="Head" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.62, 0)
 script = ExtResource("3_camera")
+BodyModel = NodePath("../BodyModel")
+ViewModelNode = NodePath("Camera3D/ViewModel")
 
 [node name="Camera3D" type="Camera3D" parent="Head"]
 current = true
@@ -66,3 +84,14 @@ script = ExtResource("4_health")
 [node name="Melee" type="Node3D" parent="."]
 script = ExtResource("11_melee")
 Data = ExtResource("12_melee_data")
+
+[node name="Animation" type="Node" parent="."]
+script = ExtResource("16_anim")
+Data = ExtResource("17_animdata")
+BodyModel = NodePath("../BodyModel")
+
+[node name="WeaponMount" type="Node3D" parent="."]
+script = ExtResource("18_mount")
+Data = ExtResource("17_animdata")
+BodyModel = NodePath("../BodyModel")
+Weapon = NodePath("Head/Camera3D/ViewModel/Weapon")

@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="PlayerAnimData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/player/PlayerAnimData.cs" id="1_animdata"]
+
+[resource]
+script = ExtResource("1_animdata")
+WalkSpeedThreshold = 0.3
+RunSpeedThreshold = 2.4
+WalkClipSpeed = 0.7
+RunClipSpeed = 1.77
+MinPlaybackScale = 0.5
+MaxPlaybackScale = 4.0
+StateBlendTime = 0.15
+LandHoldTime = 0.6
+FireHoldTime = 0.4
+HitHoldTime = 0.5
+IdleClip = "idle"
+WalkClip = "walk"
+RunClip = "run"
+JumpClip = "jump_start"
+LandClip = "jump_land"
+AimClip = "aim"
+FireClip = "fire"
+ReloadClip = "reload"
+HitClip = "hit"
+DeathClip = "death"
+SlideClip = ""
+Lod0Distance = 10.0
+Lod1Distance = 25.0
+WeaponGripOffset = Vector3(0.02, -0.02, -0.02)
+WeaponYawOffset = 0.0
+GeneratePlaceholderClips = false
+PlaceholderWalkCycle = 1.0
+PlaceholderRunCycle = 0.66
