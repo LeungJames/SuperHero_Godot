@@ -19,11 +19,13 @@ public partial class CollectiblesMenu : Control
 
 	public override void _Ready()
 	{
+		ComicTheme.Apply(this);
 		Visible = false;
 		_title = GetNode<Label>("Panel/VBox/Title");
 		_list = GetNode<VBoxContainer>("Panel/VBox/Scroll/List");
 		_back = GetNode<Button>("Panel/VBox/BackButton");
 		_back.Pressed += Close;
+		ComicTheme.Heading(GetNode<VBoxContainer>("Panel/VBox"), "证物档案  /  潮水带不走的痕迹");
 	}
 
 	public void Open()
@@ -70,7 +72,7 @@ public partial class CollectiblesMenu : Control
 		if (index == null)
 		{
 			_title.Text = "收集品 0/0";
-			_list.AddChild(new Label { Text = "收集品数据缺失。" });
+			_list.AddChild(new Label { Text = "还没有发现港口的秘密。" });
 			return;
 		}
 
@@ -86,8 +88,13 @@ public partial class CollectiblesMenu : Control
 				CustomMinimumSize = new Vector2(0, 34),
 			};
 			header.AddThemeFontSizeOverride("font_size", 21);
-			header.AddThemeColorOverride("font_color", new Color(0.95f, 0.78f, 0.4f));
+			header.AddThemeFontOverride("font", ComicTheme.Bold);
+			header.AddThemeColorOverride("font_color", ComicTheme.Ink);
 			_list.AddChild(header);
+			var grid = new GridContainer { Columns = 2, SizeFlagsHorizontal = SizeFlags.ExpandFill };
+			grid.AddThemeConstantOverride("h_separation", 12);
+			grid.AddThemeConstantOverride("v_separation", 12);
+			_list.AddChild(grid);
 
 			foreach (CollectibleData item in index.Items)
 			{
@@ -95,16 +102,10 @@ public partial class CollectiblesMenu : Control
 					continue;
 
 				bool has = SaveSystem.HasInstance && SaveSystem.Instance.HasCollectible(item.Id);
-				var row = new Label
-				{
-					Text = has ? $"● {item.Name}\n　{item.Text}" : "● ？？？\n　未发现",
-					AutowrapMode = TextServer.AutowrapMode.WordSmart,
-					CustomMinimumSize = new Vector2(0, 48),
-				};
-				row.AddThemeFontSizeOverride("font_size", 17);
-				row.AddThemeColorOverride("font_color",
-					has ? new Color(0.93f, 0.9f, 0.84f) : new Color(0.58f, 0.55f, 0.5f));
-				_list.AddChild(row);
+				Texture2D illustration = has ? GD.Load<Texture2D>($"res://art/ui/evidence/{item.Id}.svg") : ComicTheme.Icon("lock");
+				var row = ComicCards.Create(has ? item.Name : "未发现的证物", has ? item.Text : "留意角落、背街与暗处。", illustration, 160, 78, false);
+				row.TooltipText = has ? item.Text : "探索关卡以发现这件证物";
+				grid.AddChild(row);
 			}
 		}
 	}

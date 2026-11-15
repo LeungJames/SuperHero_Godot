@@ -16,6 +16,7 @@ public partial class TalentMenu : Control
 	private Label _hint;
 	private VBoxContainer _list;
 	private Button _closeButton;
+	private readonly Dictionary<string, Button> _nodeButtons = new();
 
 	private bool _editable;
 	private TalentLine? _armedLine;
@@ -23,6 +24,7 @@ public partial class TalentMenu : Control
 
 	public override void _Ready()
 	{
+		ComicTheme.Apply(this);
 		Visible = false;
 		_title = GetNode<Label>("Panel/VBox/Title");
 		_hint = GetNode<Label>("Panel/VBox/Hint");
@@ -30,6 +32,7 @@ public partial class TalentMenu : Control
 		_closeButton = GetNode<Button>("Panel/VBox/CloseButton");
 		_closeButton.Pressed += Close;
 		SetHint(string.Empty);
+		ComicTheme.Heading(GetNode<VBoxContainer>("Panel/VBox"), "行动专长  /  三条路线，由你决定");
 	}
 
 	public void Open(bool editable)
@@ -87,8 +90,9 @@ public partial class TalentMenu : Control
 		}
 	}
 
-	private void Rebuild()
+	private void Rebuild(string focusId = null)
 	{
+		_nodeButtons.Clear();
 		foreach (Node child in _list.GetChildren())
 		{
 			_list.RemoveChild(child);
@@ -101,13 +105,20 @@ public partial class TalentMenu : Control
 			return;
 		}
 
+		var columns = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+		columns.AddThemeConstantOverride("separation", 16);
+		_list.AddChild(columns);
 		foreach (TalentLine line in new[] { TalentLine.Mobility, TalentLine.Weapon, TalentLine.Assassin })
-			BuildSection(line);
-
-		SetHint(string.Empty);
+		{
+			var column = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+			columns.AddChild(column);
+			BuildSection(line, column);
+		}
+		if (focusId != null && _nodeButtons.TryGetValue(focusId, out Button focus))
+			focus.CallDeferred(Control.MethodName.GrabFocus);
 	}
 
-	private void BuildSection(TalentLine line)
+	private void BuildSection(TalentLine line, VBoxContainer column)
 	{
 		int earned = TalentSystem.EarnedPoints(line);
 		int spent = TalentSystem.SpentPoints(line);
@@ -117,18 +128,25 @@ public partial class TalentMenu : Control
 		string penaltyText = penalty > 0 ? $"　重置罚分 -{penalty}" : string.Empty;
 		var header = new Label
 		{
-			Text = $"{LineName(line)}　　可用 {available} / 已获得 {earned} / 已投入 {spent}{penaltyText}",
+			Text = $"{LineName(line)}\n可用 {available}  ·  已投入 {spent}{penaltyText}",
 			CustomMinimumSize = new Vector2(0, 34),
+			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 		};
 		header.AddThemeFontSizeOverride("font_size", 20);
-		_list.AddChild(header);
+		header.AddThemeFontOverride("font", ComicTheme.Bold);
+		header.AddThemeColorOverride("font_color", line == TalentLine.Mobility ? ComicTheme.Blue : line == TalentLine.Weapon ? ComicTheme.Orange.Darkened(0.2f) : ComicTheme.Red);
+		column.AddChild(header);
 
 		foreach (TalentNodeData node in TalentSystem.NodesOf(line))
-			_list.AddChild(BuildNodeButton(node));
+		{
+			Button button = BuildNodeButton(node);
+			column.AddChild(button);
+			_nodeButtons[node.Id] = button;
+		}
 
 		Button reset = BuildResetButton(line);
-		_list.AddChild(reset);
-		_list.AddChild(new Control { CustomMinimumSize = new Vector2(0, 10) });
+		column.AddChild(reset);
+		_nodeButtons[$"reset_{line}"] = reset;
 	}
 
 	private Button BuildNodeButton(TalentNodeData node)
@@ -148,15 +166,10 @@ public partial class TalentMenu : Control
 		else
 			state = $"{node.Cost} 点";
 
-		string prefix = owned ? "✓ " : !chapter || !prereq ? "[锁] " : "○ ";
-		var button = new Button
-		{
-			Text = $"{prefix}{node.DisplayName}　（{state}）",
-			TooltipText = node.Description,
-			Disabled = !canBuy,
-			CustomMinimumSize = new Vector2(0, 42),
-			SizeFlagsHorizontal = SizeFlags.ExpandFill,
-		};
+		string prefix = owned ? "✓ " : !chapter || !prereq ? "[锁] " : "";
+		var button = ComicCards.Create($"{prefix}{node.DisplayName}", $"{state}\n{node.Description}", null, 144);
+		button.TooltipText = node.Description;
+		button.AddThemeStyleboxOverride("normal", ComicTheme.Box(owned ? new Color("f1c47d") : canBuy ? ComicTheme.PaperLight : new Color("ddd2bd"), owned ? 3 : 1));
 
 		if (!owned && (!prereq || !chapter))
 			button.AddThemeColorOverride("font_disabled_color", new Color(0.55f, 0.52f, 0.48f));
@@ -181,6 +194,7 @@ public partial class TalentMenu : Control
 			Disabled = !_editable || !TalentSystem.CanReset(line, inChapter: false),
 			CustomMinimumSize = new Vector2(0, 38),
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
+			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 		};
 		button.Pressed += () => RequestReset(line);
 		return button;
@@ -193,7 +207,7 @@ public partial class TalentMenu : Control
 
 		_armedLine = null;
 		SetHint($"已加点：{node.DisplayName}");
-		Rebuild();
+		Rebuild(node.Id);
 	}
 
 	private void RequestReset(TalentLine line)
@@ -205,8 +219,8 @@ public partial class TalentMenu : Control
 		{
 			_armedLine = line;
 			_armTimer = ConfirmWindow;
-			SetHint($"再次点击确认重置：已点节点会全部退还，代价按配置扣除。");
-			Rebuild();
+			SetHint("再次选择以确认重置。已投入点数将退还，并扣除重置费用。");
+			Rebuild($"reset_{line}");
 			return;
 		}
 
@@ -218,7 +232,7 @@ public partial class TalentMenu : Control
 
 		_armedLine = null;
 		SetHint($"已重置{LineName(line)}。");
-		Rebuild();
+		Rebuild($"reset_{line}");
 	}
 
 	private void SetHint(string text)

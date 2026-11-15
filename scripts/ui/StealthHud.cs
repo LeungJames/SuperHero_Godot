@@ -30,7 +30,7 @@ public partial class StealthHud : Control
 	public override void _Ready()
 	{
 		MouseFilter = MouseFilterEnum.Ignore;
-		SetAnchorsPreset(LayoutPreset.FullRect);
+		SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 	}
 
 	public void SetLevel(StealthAlertLevel level) => _level = level;
@@ -98,8 +98,14 @@ public partial class StealthHud : Control
 			_ => Level0Color,
 		};
 
-		Vector2 center = new(Size.X * 0.5f, 92f);
+		Vector2 center = new(60, 151f);
 		const float radius = 15f;
+		var plate = new Rect2(18, 125, 218, 52);
+		DrawRect(plate, ComicTheme.Paper);
+		DrawRect(plate, ComicTheme.Ink, false, 2);
+		DrawRect(new Rect2(plate.Position, new Vector2(5, plate.Size.Y)), color);
+		string state = _level == StealthAlertLevel.L2 ? "增援抵达" : _level == StealthAlertLevel.L1 ? "正在搜索" : "提高警戒";
+		DrawString(ComicTheme.Bold, center + new Vector2(25, 7), state, HorizontalAlignment.Left, -1, 18, ComicTheme.Ink);
 
 		// 眼睛轮廓：圆 + 瞳孔，避免和准星混淆
 		DrawArc(center, radius, 0f, Mathf.Tau, 32, color, 2.4f);
@@ -109,7 +115,7 @@ public partial class StealthHud : Control
 		int filled = (int)_level;
 		for (int i = 0; i < 3; i++)
 		{
-			Vector2 pip = center + new Vector2(-22f + i * 22f, 30f);
+			Vector2 pip = center + new Vector2(35f + i * 22f, 19f);
 			var rect = new Rect2(pip - new Vector2(8f, 3f), new Vector2(16f, 6f));
 			if (i < filled)
 				DrawRect(rect, color, true);
@@ -127,7 +133,7 @@ public partial class StealthHud : Control
 		if (camera == null)
 			return;
 
-		Font font = ThemeDB.FallbackFont;
+		Font font = ComicTheme.Bold;
 		Vector2 screen = GetViewportRect().Size;
 
 		foreach (IconToast icon in _icons)

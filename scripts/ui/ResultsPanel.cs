@@ -25,6 +25,7 @@ public partial class ResultsPanel : Control
 	private Button _restart;
 	private Button _quit;
 	private Button _talent;
+	private readonly ComicRatingBadge[] _badges = new ComicRatingBadge[3];
 
 	private static readonly Color GradeS = new(0.85f, 0.68f, 0.25f);
 	private static readonly Color GradeA = new(0.31f, 0.52f, 0.33f);
@@ -33,6 +34,7 @@ public partial class ResultsPanel : Control
 
 	public override void _Ready()
 	{
+		ComicTheme.Apply(this);
 		_title = GetNode<Label>("Panel/VBox/Title");
 		_subtitle = GetNode<Label>("Panel/VBox/Subtitle");
 		_stats = GetNode<Label>("Panel/VBox/Stats");
@@ -50,6 +52,23 @@ public partial class ResultsPanel : Control
 		_restart.Pressed += () => RestartPressed?.Invoke();
 		_quit.Pressed += () => QuitPressed?.Invoke();
 		_talent.Pressed += () => TalentPressed?.Invoke();
+		ComicTheme.Heading(GetNode<VBoxContainer>("Panel/VBox"), "行动报告  /  PUERTO SAN MIGUEL");
+		GetNode<VBoxContainer>("Panel/VBox").AddThemeConstantOverride("separation", 7);
+		_stats.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+		_stats.AddThemeFontSizeOverride("font_size", 16);
+		_subtitle.AddThemeFontSizeOverride("font_size", 17);
+		_ratingMobility.Hide(); _ratingWeapon.Hide(); _ratingAssassin.Hide();
+		var badgeRow = new HBoxContainer();
+		_ratingBox.AddChild(badgeRow); _ratingBox.MoveChild(badgeRow, 0);
+		for (int i = 0; i < _badges.Length; i++) { _badges[i] = new ComicRatingBadge(); badgeRow.AddChild(_badges[i]); }
+		foreach (Button button in new[] { _next, _restart, _quit, _talent })
+		{
+			button.CustomMinimumSize = new Vector2(360, 36);
+			button.AddThemeFontSizeOverride("font_size", 17);
+		}
+		ComicTheme.Accent(_next, "continue");
+		ComicTheme.Accent(_restart, "continue");
+		_talent.Icon = ComicTheme.Icon("mobility");
 
 		Visible = false;
 	}
@@ -64,15 +83,16 @@ public partial class ResultsPanel : Control
 	{
 		_title.Text = finale ? "终局 · 三章全通" : victory ? "区域清空 · 撤离成功" : "阵亡";
 		_title.AddThemeColorOverride("font_color", victory || finale
-			? new Color(0.85f, 0.68f, 0.25f)
+			? ComicTheme.Orange.Darkened(0.32f)
 			: new Color(0.69f, 0.16f, 0.16f));
 		_subtitle.Text = subtitle;
-		_stats.Text = stats;
+		_stats.Text = stats.Replace("\n", "    ·    ");
 
 		ShowRating(rating);
 
 		bool hasNext = victory && !finale && !string.IsNullOrEmpty(nextLabel);
 		_next.Visible = hasNext;
+		Visible = true;
 		if (hasNext)
 		{
 			_next.Text = nextLabel;
@@ -83,7 +103,6 @@ public partial class ResultsPanel : Control
 			_restart.GrabFocus();
 		}
 
-		Visible = true;
 	}
 
 	private void ShowRating(RatingOutcome rating)
@@ -98,6 +117,9 @@ public partial class ResultsPanel : Control
 		SetRatingLabel(_ratingMobility, rating.Mobility);
 		SetRatingLabel(_ratingWeapon, rating.Weapon);
 		SetRatingLabel(_ratingAssassin, rating.Assassin);
+		_badges[0].Present(rating.Mobility);
+		_badges[1].Present(rating.Weapon);
+		_badges[2].Present(rating.Assassin);
 		_ratingTotal.Text = $"本次新增 {rating.AwardedTotal} 点　历史最佳 {rating.BestTotal} 点";
 	}
 

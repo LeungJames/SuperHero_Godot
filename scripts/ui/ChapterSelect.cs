@@ -17,10 +17,12 @@ public partial class ChapterSelect : Control
 
 	public override void _Ready()
 	{
+		ComicTheme.Apply(this);
 		Visible = false;
 		_list = GetNode<VBoxContainer>("Panel/VBox/List");
 		_backButton = GetNode<Button>("Panel/VBox/BackButton");
 		_backButton.Pressed += Close;
+		ComicTheme.Heading(GetNode<VBoxContainer>("Panel/VBox"), "行动档案  /  选择章节");
 	}
 
 	public void Open()
@@ -70,12 +72,12 @@ public partial class ChapterSelect : Control
 				continue;
 
 			any = true;
-			var button = new Button
-			{
-				Text = BuildLabel(chapter),
-				CustomMinimumSize = new Vector2(0, 52),
-				SizeFlagsHorizontal = SizeFlags.ExpandFill,
-			};
+			string place = chapter.Id switch {
+				"factory" => "赤蛇会的蒸汽与管道。穿过红光，切断他们的退路。",
+				"stronghold" or "anchor" => "铁锚帮的干船坞。链条尽头，霍克正在等你。",
+				_ => "从吊塔一路下压。金色海面之下，盐帮控制着每一条走道。" };
+			float cardHeight = Mathf.Clamp((GetViewportRect().Size.Y - 300f) / 3f, 88f, 140f);
+			var button = ComicCards.Create(BuildLabel(chapter), place, ComicArt.Panel(ComicArt.ChapterPage(chapter.Id)), cardHeight);
 			button.Pressed += () => Enter(chapter);
 			_list.AddChild(button);
 		}

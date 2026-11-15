@@ -46,6 +46,8 @@ public partial class HudController : Control
 
 	private StyleBoxFlat _healthFill;
 	private float _messageTimer;
+	private float _messageDuration = MessageTime;
+	private ComicPanel _messagePanel;
 	private float _flashAlpha;
 	private float _hitMarkerTimer;
 	private float _hitMarkerPop;
@@ -65,6 +67,7 @@ public partial class HudController : Control
 	public override void _Ready()
 	{
 		AddToGroup("hud");
+		Theme = ComicTheme.Shared;
 
 		_enemiesLabel = GetNode<Label>("EnemiesLabel");
 		_objectiveLabel = GetNode<Label>("ObjectiveLabel");
@@ -87,6 +90,7 @@ public partial class HudController : Control
 		_crossRight = GetNode<ColorRect>("Crosshair/Right");
 
 		_healthFill = _healthBar.GetThemeStylebox("fill") as StyleBoxFlat;
+		StylePaperHud();
 
 		_bannerLabel.Visible = false;
 		_reloadBar.Visible = false;
@@ -103,12 +107,12 @@ public partial class HudController : Control
 		// 暗角垫在最底层，方向箭头盖在最上层；都只做提示，不拦输入
 		_vignetteOverlay = new VignetteOverlay { Name = "SuppressionVignette", MouseFilter = MouseFilterEnum.Ignore };
 		AddChild(_vignetteOverlay);
-		_vignetteOverlay.SetAnchorsPreset(LayoutPreset.FullRect);
+		_vignetteOverlay.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 		MoveChild(_vignetteOverlay, 0);
 
 		_warningArrow = new WarningArrow { Name = "DirectionalWarning", MouseFilter = MouseFilterEnum.Ignore };
 		AddChild(_warningArrow);
-		_warningArrow.SetAnchorsPreset(LayoutPreset.FullRect);
+		_warningArrow.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 
 		_player = GetTree().GetFirstNodeInGroup("player") as PlayerController;
 		_weapon = GetTree().GetFirstNodeInGroup("weapon") as WeaponController;
@@ -139,6 +143,41 @@ public partial class HudController : Control
 		UpdateReloadBar();
 	}
 
+	private void StylePaperHud()
+	{
+		foreach (Label label in new[] { _healthLabel, _ammoLabel, _weaponLabel, _enemiesLabel, _objectiveLabel, _heightLabel })
+		{
+			label.AddThemeColorOverride("font_color", ComicTheme.Ink);
+			label.AddThemeConstantOverride("outline_size", 0);
+			label.AddThemeFontOverride("font", ComicTheme.Bold);
+			label.MouseFilter = MouseFilterEnum.Ignore;
+		}
+		_heightLabel.AddThemeColorOverride("font_color", ComicTheme.Orange.Darkened(0.25f));
+		var fill = ComicTheme.Box(ComicTheme.Orange, 1, 0);
+		_healthBar.AddThemeStyleboxOverride("fill", fill);
+		_healthBar.AddThemeStyleboxOverride("background", ComicTheme.Box(ComicTheme.Ink, 2, 0));
+		_healthFill = fill;
+		foreach (string name in new[] { "ObjectivePanel", "EnemyPanel", "HeightPanel" })
+		{
+			var panel = new ComicPanel { Name = name, MouseFilter = MouseFilterEnum.Ignore, AccentStripe = name == "ObjectivePanel" };
+			AddChild(panel);
+			MoveChild(panel, 1);
+			if (name == "ObjectivePanel") { panel.Position = new Vector2(18, 18); panel.Size = new Vector2(320, 48); }
+			if (name == "EnemyPanel") { panel.Position = new Vector2(18, 76); panel.Size = new Vector2(250, 40); }
+			if (name == "HeightPanel") {
+				panel.AnchorLeft = 1; panel.AnchorRight = 1;
+				panel.OffsetLeft = -144; panel.OffsetRight = -18; panel.OffsetTop = 18; panel.OffsetBottom = 62;
+			}
+		}
+		_messagePanel = new ComicPanel { Name = "MessagePanel", MouseFilter = MouseFilterEnum.Ignore, Visible = false };
+		AddChild(_messagePanel);
+		MoveChild(_messagePanel, 1);
+		_messageLabel.AddThemeFontOverride("font", ComicTheme.Bold);
+		_messageLabel.AddThemeConstantOverride("outline_size", 0);
+		_messageLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+		_messageLabel.VerticalAlignment = VerticalAlignment.Center;
+	}
+
 	// ------------------------------------------------------------ 外部指令
 
 	public void SetEnemyCount(int alive, int total)
@@ -155,7 +194,7 @@ public partial class HudController : Control
 	public void SetHeight(float height)
 	{
 		_heightLabel ??= GetNode<Label>("HeightLabel");
-		_heightLabel.Text = $"高度 {Mathf.RoundToInt(height)}m";
+		_heightLabel.Text = $"{Mathf.RoundToInt(height)} m";
 	}
 
 	public void SetObjective(string text)
@@ -175,6 +214,8 @@ public partial class HudController : Control
 		_enemiesLabel.Visible = visible;
 		_objectiveLabel.Visible = visible;
 		_heightLabel.Visible = visible;
+		foreach (string name in new[] { "HealthPanel", "AmmoPanel", "ObjectivePanel", "EnemyPanel", "HeightPanel" })
+			if (GetNodeOrNull<Control>(name) is Control panel) panel.Visible = visible;
 		_reloadBar.Visible = visible && _weapon != null && _weapon.IsReloading;
 
 		_promptLabel ??= GetNodeOrNull<Label>("ExecutionPrompt");
@@ -196,8 +237,19 @@ public partial class HudController : Control
 	public void ShowMessage(string text, Color color)
 	{
 		_messageLabel.Text = text;
-		_messageLabel.AddThemeColorOverride("font_color", color);
-		_messageTimer = MessageTime;
+		bool radio = text.StartsWith("无线电");
+		_messageLabel.AddThemeColorOverride("font_color", color.G < 0.3f && color.R > 0.5f ? ComicTheme.Red : ComicTheme.Ink);
+		_messageLabel.AnchorLeft = 0.5f; _messageLabel.AnchorRight = 0.5f;
+		_messageLabel.AnchorTop = radio ? 1 : 0.5f; _messageLabel.AnchorBottom = _messageLabel.AnchorTop;
+		_messageLabel.OffsetLeft = -330; _messageLabel.OffsetRight = 330;
+		_messageLabel.OffsetTop = radio ? -190 : 88; _messageLabel.OffsetBottom = radio ? -128 : 136;
+		_messagePanel.AnchorLeft = 0.5f; _messagePanel.AnchorRight = 0.5f;
+		_messagePanel.AnchorTop = _messageLabel.AnchorTop; _messagePanel.AnchorBottom = _messageLabel.AnchorBottom;
+		_messagePanel.OffsetLeft = -350; _messagePanel.OffsetRight = 350;
+		_messagePanel.OffsetTop = _messageLabel.OffsetTop - 6; _messagePanel.OffsetBottom = _messageLabel.OffsetBottom + 6;
+		_messageDuration = radio ? Mathf.Clamp(text.Length * 0.09f, 2.8f, 5f) : MessageTime;
+		_messageTimer = _messageDuration;
+		_messagePanel.Visible = true;
 	}
 
 	public void SetPrompt(string text)
@@ -262,7 +314,7 @@ public partial class HudController : Control
 			else if (health <= 50f)
 				_healthFill.BgColor = Warning;
 			else
-				_healthFill.BgColor = Cream;
+				_healthFill.BgColor = ComicTheme.Orange;
 		}
 	}
 
@@ -282,11 +334,11 @@ public partial class HudController : Control
 		_weaponLabel.Text = _weapon?.Data?.DisplayName ?? "—";
 
 		if (mag <= 0)
-			_ammoLabel.Text = "0 / " + reserve + "   按 R 换弹";
+			_ammoLabel.Text = "0 / " + reserve;
 		else
 			_ammoLabel.Text = $"{mag} / {reserve}";
 
-		_ammoLabel.AddThemeColorOverride("font_color", mag <= 3 ? Danger : Cream);
+		_ammoLabel.AddThemeColorOverride("font_color", mag <= 3 ? Danger : ComicTheme.Ink);
 	}
 
 	/// <summary>刀槽：武器名显示“刀”，弹药位显示“近战”，切回枪时恢复。</summary>
@@ -300,7 +352,7 @@ public partial class HudController : Control
 
 		_weaponLabel.Text = LoadoutSystem.KnifeName;
 		_ammoLabel.Text = "近战";
-		_ammoLabel.AddThemeColorOverride("font_color", Cream);
+		_ammoLabel.AddThemeColorOverride("font_color", ComicTheme.Ink);
 	}
 
 	private void OnShotResolved(HitscanHit hit)
@@ -333,12 +385,14 @@ public partial class HudController : Control
 		if (_messageTimer > 0f)
 		{
 			_messageTimer -= dt;
-			float alpha = Mathf.Clamp(_messageTimer / MessageTime, 0f, 1f);
+			float alpha = Mathf.Clamp(_messageTimer / Mathf.Min(_messageDuration, 0.3f), 0f, 1f);
 			_messageLabel.Modulate = new Color(1f, 1f, 1f, alpha);
+			_messagePanel.Modulate = _messageLabel.Modulate;
 		}
 		else if (_messageLabel.Modulate.A > 0f)
 		{
 			_messageLabel.Modulate = new Color(1f, 1f, 1f, 0f);
+			_messagePanel.Visible = false;
 		}
 
 		if (_hitMarkerTimer > 0f)

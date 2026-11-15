@@ -1,6 +1,8 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/ResultsPanel.cs" id="1_results"]
+
+[ext_resource type="Script" path="res://scripts/ui/ComicMenuBackdrop.cs" id="99_backdrop"]
 
 [sub_resource type="StyleBoxFlat" id="SB_Panel"]
 bg_color = Color(0.96, 0.9, 0.8, 1)
@@ -36,7 +38,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_results")
 
-[node name="Dim" type="ColorRect" parent="."]
+[node name="Dim" type="Control" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -44,7 +46,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.06, 0.05, 0.04, 0.72)
+script = ExtResource("99_backdrop")
 
 [node name="Panel" type="PanelContainer" parent="."]
 layout_mode = 1
@@ -58,33 +60,29 @@ offset_right = 340.0
 offset_bottom = 280.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = SubResource("SB_Panel")
 
 [node name="VBox" type="VBoxContainer" parent="Panel"]
 layout_mode = 2
 theme_override_constants/separation = 14
-alignment = 1
+alignment = 0
 
 [node name="Title" type="Label" parent="Panel/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.69, 0.16, 0.16, 1)
 theme_override_font_sizes/font_size = 34
 text = "阵亡"
-horizontal_alignment = 1
+horizontal_alignment = 0
 
 [node name="Subtitle" type="Label" parent="Panel/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.35, 0.29, 0.24, 1)
 theme_override_font_sizes/font_size = 20
 text = "死于枪伤"
-horizontal_alignment = 1
+horizontal_alignment = 0
 
 [node name="Stats" type="Label" parent="Panel/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.16, 0.13, 0.1, 1)
 theme_override_font_sizes/font_size = 20
 text = "击杀 0/8"
-horizontal_alignment = 1
+horizontal_alignment = 0
 
 [node name="RatingBox" type="VBoxContainer" parent="Panel/VBox"]
 visible = false
@@ -93,31 +91,27 @@ theme_override_constants/separation = 4
 
 [node name="Mobility" type="Label" parent="Panel/VBox/RatingBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.16, 0.13, 0.1, 1)
 theme_override_font_sizes/font_size = 18
 text = "战术机动"
-horizontal_alignment = 1
+horizontal_alignment = 0
 
 [node name="Weapon" type="Label" parent="Panel/VBox/RatingBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.16, 0.13, 0.1, 1)
 theme_override_font_sizes/font_size = 18
 text = "武器大师"
-horizontal_alignment = 1
+horizontal_alignment = 0
 
 [node name="Assassin" type="Label" parent="Panel/VBox/RatingBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.16, 0.13, 0.1, 1)
 theme_override_font_sizes/font_size = 18
 text = "忍杀"
-horizontal_alignment = 1
+horizontal_alignment = 0
 
 [node name="Total" type="Label" parent="Panel/VBox/RatingBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.45, 0.35, 0.18, 1)
 theme_override_font_sizes/font_size = 18
 text = "本次新增 0 点　历史最佳 0 点"
-horizontal_alignment = 1
+horizontal_alignment = 0
 
 [node name="Spacer" type="Control" parent="Panel/VBox"]
 custom_minimum_size = Vector2(0, 10)
@@ -128,12 +122,7 @@ mouse_filter = 2
 custom_minimum_size = Vector2(300, 44)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_colors/font_color = Color(0.96, 0.9, 0.8, 1)
 theme_override_font_sizes/font_size = 20
-theme_override_styles/normal = SubResource("SB_Button")
-theme_override_styles/hover = SubResource("SB_Button")
-theme_override_styles/pressed = SubResource("SB_Button")
-theme_override_styles/focus = SubResource("SB_Button")
 text = "天赋（加点 / 重置）"
 
 [node name="NextButton" type="Button" parent="Panel/VBox"]
@@ -141,34 +130,19 @@ visible = false
 custom_minimum_size = Vector2(300, 52)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_colors/font_color = Color(0.96, 0.9, 0.8, 1)
 theme_override_font_sizes/font_size = 22
-theme_override_styles/normal = SubResource("SB_Button")
-theme_override_styles/hover = SubResource("SB_Button")
-theme_override_styles/pressed = SubResource("SB_Button")
-theme_override_styles/focus = SubResource("SB_Button")
 text = "进入下一章（Enter）"
 
 [node name="RestartButton" type="Button" parent="Panel/VBox"]
 custom_minimum_size = Vector2(300, 52)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_colors/font_color = Color(0.96, 0.9, 0.8, 1)
 theme_override_font_sizes/font_size = 22
-theme_override_styles/normal = SubResource("SB_Button")
-theme_override_styles/hover = SubResource("SB_Button")
-theme_override_styles/pressed = SubResource("SB_Button")
-theme_override_styles/focus = SubResource("SB_Button")
 text = "重新开始（Enter）"
 
 [node name="QuitButton" type="Button" parent="Panel/VBox"]
 custom_minimum_size = Vector2(300, 44)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_colors/font_color = Color(0.96, 0.9, 0.8, 1)
 theme_override_font_sizes/font_size = 20
-theme_override_styles/normal = SubResource("SB_Button")
-theme_override_styles/hover = SubResource("SB_Button")
-theme_override_styles/pressed = SubResource("SB_Button")
-theme_override_styles/focus = SubResource("SB_Button")
 text = "退出"

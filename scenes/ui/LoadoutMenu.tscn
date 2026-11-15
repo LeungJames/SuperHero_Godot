@@ -1,6 +1,8 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/LoadoutMenu.cs" id="1_loadout"]
+
+[ext_resource type="Script" path="res://scripts/ui/ComicMenuBackdrop.cs" id="99_backdrop"]
 
 [sub_resource type="StyleBoxFlat" id="SB_Panel"]
 bg_color = Color(0.13, 0.11, 0.09, 0.97)
@@ -19,7 +21,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_loadout")
 
-[node name="Dim" type="ColorRect" parent="."]
+[node name="Dim" type="Control" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -27,7 +29,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.04, 0.03, 0.02, 0.72)
+script = ExtResource("99_backdrop")
 
 [node name="Panel" type="PanelContainer" parent="."]
 layout_mode = 1
@@ -42,7 +44,6 @@ offset_right = 360.0
 offset_bottom = 300.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = SubResource("SB_Panel")
 
 [node name="VBox" type="VBoxContainer" parent="Panel"]
 layout_mode = 2
@@ -50,26 +51,24 @@ theme_override_constants/separation = 12
 
 [node name="Title" type="Label" parent="Panel/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.96, 0.9, 0.8, 1)
 theme_override_font_sizes/font_size = 28
 text = "武器库"
-horizontal_alignment = 1
+horizontal_alignment = 0
 
 [node name="Slots" type="Label" parent="Panel/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.95, 0.78, 0.4, 1)
 theme_override_font_sizes/font_size = 20
 text = "第一格：—      第二格：—"
-horizontal_alignment = 1
+horizontal_alignment = 0
 
 [node name="Hint" type="Label" parent="Panel/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.95, 0.45, 0.3, 1)
 theme_override_font_sizes/font_size = 16
-horizontal_alignment = 1
+horizontal_alignment = 0
 visible = false
 
 [node name="Scroll" type="ScrollContainer" parent="Panel/VBox"]
+follow_focus = true
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0

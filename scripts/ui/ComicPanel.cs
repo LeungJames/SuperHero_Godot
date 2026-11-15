@@ -6,12 +6,13 @@ using Godot;
 [GlobalClass]
 public partial class ComicPanel : Control
 {
-	[Export] public Color Paper { get; set; } = new(0.97f, 0.93f, 0.85f, 0.55f);
-	[Export] public Color Ink { get; set; } = new(0.06f, 0.05f, 0.09f, 1f);
+	[Export] public Color Paper { get; set; } = new(0.97f, 0.91f, 0.78f, 0.98f);
+	[Export] public Color Ink { get; set; } = new(0.09f, 0.10f, 0.13f, 1f);
+	[Export] public bool AccentStripe { get; set; } = true;
 	[Export] public float BorderWidth { get; set; } = 3f;
-	[Export] public float DotSpacing { get; set; } = 12f;
-	[Export] public float DotRadius { get; set; } = 1.2f;
-	[Export] public float DotAlpha { get; set; } = 0.10f;
+	[Export] public float DotSpacing { get; set; } = 6f;
+	[Export] public float DotRadius { get; set; } = 0.8f;
+	[Export] public float DotAlpha { get; set; } = 0.12f;
 	/// <summary>左右斜切量（像素），模仿手贴分格。</summary>
 	[Export] public float Skew { get; set; } = 10f;
 
@@ -27,20 +28,26 @@ public partial class ComicPanel : Control
 		if (size.X < 4f || size.Y < 4f)
 			return;
 
+		float skew = Mathf.Abs(Skew);
 		Vector2[] quad =
 		{
-			new(Skew, 0f),
+			new(skew, 0f),
 			new(size.X, 0f),
-			new(size.X - Skew, size.Y),
+			new(size.X - skew, size.Y),
 			new(0f, size.Y),
 		};
-
+		Vector2[] shadow = new Vector2[4];
+		for (int i = 0; i < 4; i++) shadow[i] = quad[i] + new Vector2(3, 4);
+		DrawColoredPolygon(shadow, new Color(Ink, 0.8f));
 		DrawColoredPolygon(quad, Paper);
 
 		Color dot = new(Ink.R, Ink.G, Ink.B, DotAlpha);
 		for (float y = DotSpacing * 0.5f; y < size.Y; y += DotSpacing)
-			for (float x = DotSpacing * 0.5f; x < size.X; x += DotSpacing)
-				DrawCircle(new Vector2(x, y), DotRadius, dot);
+			for (float x = size.X * 0.58f; x < size.X - skew - 4; x += DotSpacing)
+				if (x > size.X * 0.93f - y * 0.75f)
+					DrawCircle(new Vector2(x, y), DotRadius, dot);
+		if (AccentStripe)
+			DrawColoredPolygon(new[] { new Vector2(skew, 1), new Vector2(skew + 8, 1), new Vector2(8, size.Y - 1), new Vector2(0, size.Y - 1) }, ComicTheme.Orange);
 
 		for (int i = 0; i < quad.Length; i++)
 			DrawLine(quad[i], quad[(i + 1) % quad.Length], Ink, BorderWidth, true);

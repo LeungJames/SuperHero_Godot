@@ -23,6 +23,7 @@ public partial class LoadoutMenu : Control
 
 	public override void _Ready()
 	{
+		ComicTheme.Apply(this);
 		Visible = false;
 		_title = GetNode<Label>("Panel/VBox/Title");
 		_slots = GetNode<Label>("Panel/VBox/Slots");
@@ -33,6 +34,8 @@ public partial class LoadoutMenu : Control
 
 		_start.Pressed += OnStartPressed;
 		_back.Pressed += Close;
+		ComicTheme.Heading(GetNode<VBoxContainer>("Panel/VBox"), "装备检查  /  出发之前");
+		ComicTheme.Accent(_start, "continue");
 	}
 
 	/// <summary>从章节选择进入；沿用本章待选组合，没有则用章节默认。</summary>
@@ -89,15 +92,15 @@ public partial class LoadoutMenu : Control
 		foreach (LoadoutSystem.Option option in LoadoutSystem.GetOptions(_chapter.Id))
 		{
 			bool selected = _selected.Contains(option.Id);
-			var button = new Button
-			{
-				Text = option.Unlocked
-					? $"{(selected ? "✓" : "○")} {option.Name}"
-					: $"{option.Name}    [锁]",
-				Disabled = !option.Unlocked,
-				CustomMinimumSize = new Vector2(0, 46),
-				SizeFlagsHorizontal = SizeFlags.ExpandFill,
-			};
+			WeaponData weapon = LoadoutSystem.FindWeapon(option.Id);
+			string description = option.Id == LoadoutSystem.KnifeId ? "近战  /  暗杀与格挡"
+				: weapon != null ? $"弹匣 {weapon.MagazineSize}  ·  伤害 {weapon.BaseDamage:0}  ·  换弹 {weapon.ReloadTime:0.0}s" : "备用装备";
+			string path = $"res://art/ui/weapons/{option.Id}.svg";
+			Texture2D picture = ResourceLoader.Exists(path) ? GD.Load<Texture2D>(path) : ComicTheme.Icon("weapon");
+			var button = ComicCards.Create($"{(selected ? "已携带  /  " : "")}{option.Name}", option.Unlocked ? description : "尚未解锁", picture, 104, 170, false);
+			button.Disabled = !option.Unlocked;
+			if (!option.Unlocked) button.Modulate = new Color(0.7f, 0.7f, 0.7f);
+			if (selected) button.AddThemeStyleboxOverride("normal", ComicTheme.Box(new Color("f4cc8a"), 3));
 
 			if (!option.Unlocked)
 				button.AddThemeColorOverride("font_disabled_color", new Color(0.55f, 0.52f, 0.48f));
@@ -127,10 +130,10 @@ public partial class LoadoutMenu : Control
 		List<string> ordered = LoadoutSystem.OrderForSlots(_selected);
 		string first = ordered.Count > 0 ? LoadoutSystem.DisplayName(ordered[0]) : "—";
 		string second = ordered.Count > 1 ? LoadoutSystem.DisplayName(ordered[1]) : "—";
-		_slots.Text = $"第一格：{first}      第二格：{second}";
+		_slots.Text = $"01   {first}                 02   {second}";
 
 		_start.Disabled = _selected.Count != 2 || !LoadoutSystem.IsValid(_chapter.Id, _selected);
-		_start.Text = _start.Disabled ? "开始（需选满两格）" : "开始（Enter）";
+		_start.Text = _start.Disabled ? "选择两件装备后出发" : "携带装备 · 出发";
 	}
 
 	private void Toggle(string id)

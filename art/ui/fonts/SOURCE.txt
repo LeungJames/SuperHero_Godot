@@ -1,0 +1,8 @@
+﻿SuperHero Sans Medium / Bold
+Derived from Noto Sans SC, The Noto Project Authors / Adobe.
+Source: https://github.com/google/fonts/tree/main/ofl/notosanssc
+Licensed under SIL Open Font License 1.1; full upstream license and copyright are in OFL.txt.
+
+The variable wght axis was instantiated at 500 (Medium) and 750 (Bold) using fontTools,
+and the derived family was renamed SuperHero Sans for portable, consistent game rendering.
+All original copyright/license metadata is retained. Original variable font is not needed at runtime.

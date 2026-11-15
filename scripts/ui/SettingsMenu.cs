@@ -52,6 +52,7 @@ public partial class SettingsMenu : Control
 
 	public override void _Ready()
 	{
+		ComicTheme.Apply(this);
 		Visible = false;
 		_tabs = GetNode<TabContainer>("Panel/VBox/Tabs");
 		_status = GetNode<Label>("Panel/VBox/Status");
@@ -62,6 +63,7 @@ public partial class SettingsMenu : Control
 		BuildVolumeTab();
 		BuildGraphicsTab();
 		BuildControlsTab();
+		ComicTheme.Heading(GetNode<VBoxContainer>("Panel/VBox"), "现场手册  /  设置");
 	}
 
 	// ------------------------------------------------------------ 开关
@@ -211,13 +213,14 @@ public partial class SettingsMenu : Control
 			SizeFlagsVertical = SizeFlags.ExpandFill,
 		};
 		scroll.HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled;
+		scroll.FollowFocus = true;
 
 		var box = new VBoxContainer
 		{
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			SizeFlagsVertical = SizeFlags.ExpandFill,
 		};
-		box.AddThemeConstantOverride("separation", 8);
+		box.AddThemeConstantOverride("separation", 18);
 
 		scroll.AddChild(box);
 		_tabs.AddChild(scroll);
@@ -234,6 +237,7 @@ public partial class SettingsMenu : Control
 			Text = label,
 			CustomMinimumSize = new Vector2(220, 32),
 			VerticalAlignment = VerticalAlignment.Center,
+			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 		};
 
 		row.AddChild(name);
@@ -264,7 +268,7 @@ public partial class SettingsMenu : Control
 			Value = value,
 			SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			SizeFlagsVertical = SizeFlags.ShrinkCenter,
-			CustomMinimumSize = new Vector2(320, 28),
+			CustomMinimumSize = new Vector2(240, 28),
 		};
 
 		var readout = new Label
@@ -353,6 +357,11 @@ public partial class SettingsMenu : Control
 			v => SaveSystem.Instance?.SetSfxVolume(v),
 			() => SaveSystem.Instance?.SaveSettings());
 
+		AddSlider(box, "音乐", 0f, 1f, 0.01f, SaveSystem.HasInstance ? SaveSystem.Instance.MusicVolume : 0.65f,
+			v => $"{v * 100f:0}%",
+			v => SaveSystem.Instance?.SetMusicVolume(v),
+			() => SaveSystem.Instance?.SaveSettings());
+
 		AddSlider(box, "环境", 0f, 1f, 0.01f, SaveSystem.HasInstance ? SaveSystem.Instance.AmbientVolume : 0.8f,
 			v => $"{v * 100f:0}%",
 			v => SaveSystem.Instance?.SetAmbientVolume(v),
@@ -378,7 +387,7 @@ public partial class SettingsMenu : Control
 		AddCheck(box, "方向光阴影", !SaveSystem.HasInstance || SaveSystem.Instance.Shadows,
 			on => SaveSystem.Instance?.SetShadows(on));
 
-		AddHint(box, "分辨率跟随窗口 / 全屏切换；体积雾按关卡高度自动插值，暂不单独开关。");
+		AddHint(box, "画面随窗口大小调整。全屏可获得更开阔的视野。");
 	}
 
 	private void BuildControlsTab()

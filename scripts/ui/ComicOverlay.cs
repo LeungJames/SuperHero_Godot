@@ -54,7 +54,7 @@ public partial class ComicOverlay : Control
 		ZIndex = 5;
 		AddToGroup("comic_overlay");
 		_rng.Randomize();
-		_font = ThemeDB.FallbackFont;
+		_font = ComicTheme.Bold;
 
 		_player = GetTree().GetFirstNodeInGroup("player") as PlayerController;
 		if (_player != null)
@@ -255,8 +255,8 @@ public partial class ComicOverlay : Control
 			Color fill = popup.Color;
 			fill.A = alpha * Style.PopupAlpha;
 
-			DrawStringOutline(_font, origin, popup.Text, HorizontalAlignment.Left, -1, fontSize, 16, halo);
-			DrawStringOutline(_font, origin, popup.Text, HorizontalAlignment.Left, -1, fontSize, 9, ink);
+			DrawStringOutline(_font, origin, popup.Text, HorizontalAlignment.Left, -1, fontSize, 8, halo);
+			DrawStringOutline(_font, origin, popup.Text, HorizontalAlignment.Left, -1, fontSize, 4, ink);
 			DrawString(_font, origin, popup.Text, HorizontalAlignment.Left, -1, fontSize, fill);
 		}
 

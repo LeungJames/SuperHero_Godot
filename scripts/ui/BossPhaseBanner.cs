@@ -21,8 +21,8 @@ public partial class BossPhaseBanner : CanvasLayer
 		Layer = 16;
 		ProcessMode = ProcessModeEnum.Always;
 
-		_root = new Control { Name = "BannerRoot", MouseFilter = Control.MouseFilterEnum.Ignore };
-		_root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+		_root = new Control { Name = "BannerRoot", Theme = ComicTheme.Shared, MouseFilter = Control.MouseFilterEnum.Ignore };
+		_root.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
 		AddChild(_root);
 
 		_panel = new Panel { Name = "BannerPanel", MouseFilter = Control.MouseFilterEnum.Ignore };
@@ -50,17 +50,27 @@ public partial class BossPhaseBanner : CanvasLayer
 		style.ShadowColor = new Color(0f, 0f, 0f, 0.35f);
 		style.ShadowSize = 6;
 		_panel.AddThemeStyleboxOverride("panel", style);
+		var portrait = new TextureRect {
+			Texture = ComicArt.Panel("boss_intro", 2), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+			StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered,
+			MouseFilter = Control.MouseFilterEnum.Ignore,
+			Position = new Vector2(6, 6), Size = new Vector2(150, 92),
+		};
+		_panel.AddChild(portrait);
 
 		_title = new Label
 		{
 			Name = "Title",
 			Text = string.Empty,
-			HorizontalAlignment = HorizontalAlignment.Center,
+			HorizontalAlignment = HorizontalAlignment.Left,
 			VerticalAlignment = VerticalAlignment.Center,
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 		};
-		_title.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-		_title.AddThemeFontSizeOverride("font_size", 36);
+		_title.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+		_title.OffsetLeft = 172;
+		_title.OffsetRight = -16;
+		_title.AddThemeFontOverride("font", ComicTheme.Bold);
+		_title.AddThemeFontSizeOverride("font_size", 30);
 		_title.AddThemeColorOverride("font_color", new Color(0.08f, 0.07f, 0.06f));
 		_panel.AddChild(_title);
 
@@ -72,7 +82,7 @@ public partial class BossPhaseBanner : CanvasLayer
 			VerticalAlignment = VerticalAlignment.Bottom,
 			MouseFilter = Control.MouseFilterEnum.Ignore,
 		};
-		_sfx.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+		_sfx.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
 		_sfx.OffsetRight = -18f;
 		_sfx.OffsetBottom = -12f;
 		_sfx.AddThemeFontSizeOverride("font_size", 24);
