@@ -1,6 +1,6 @@
 using Godot;
 
-/// <summary>Small diegetic supply tins and evidence folders share the printed UI art.</summary>
+/// <summary>Modeled story artifacts and small diegetic ammunition tins.</summary>
 public partial class PickupPresentation : Node3D
 {
 	public override void _Ready()
@@ -9,18 +9,20 @@ public partial class PickupPresentation : Node3D
 		parent.GetNodeOrNull<Node3D>("Mesh")?.Hide();
 		if (parent is CollectiblePickup collectible)
 		{
-			Box(Vector3.Zero, new Vector3(0.28f, 0.04f, 0.36f), "c6a168");
-			Box(new Vector3(-0.13f, 0.015f, 0), new Vector3(0.035f, 0.045f, 0.37f), "563d36");
-			string path = $"res://art/ui/evidence/{collectible.Data?.Id}.svg";
+			string path = $"res://art/models/collectibles/{collectible.Data?.Id}.glb";
 			if (ResourceLoader.Exists(path))
-				AddChild(new MeshInstance3D { Position = new Vector3(0.007f, 0.024f, 0),
-					Mesh = new PlaneMesh { Size = new Vector2(0.23f, 0.30f) },
-					MaterialOverride = new StandardMaterial3D { AlbedoTexture = GD.Load<Texture2D>(path), Roughness = 1f },
-					CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
+			{
+				Node3D model = GD.Load<PackedScene>(path).Instantiate<Node3D>();
+				model.Name = "Artifact";
+				ComicMaterials.Apply(model);
+				var ink = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/outline.gdshader") };
+				ink.SetShaderParameter("pixel_width", 0.85f);
+				model.AddChild(new ModelOutline { Overlay = ink });
+				AddChild(model);
+			}
+			else GD.PushError($"Missing collectible model: {path}");
 			var glow = parent.GetNodeOrNull<OmniLight3D>("Glow");
-			if (glow != null) { glow.LightEnergy = 0.25f; glow.OmniRange = 1.2f; }
-			var label = parent.GetNodeOrNull<Label3D>("Label");
-			if (label != null) { label.Font = ComicTheme.Bold; label.Modulate = ComicTheme.Paper; label.OutlineModulate = ComicTheme.Ink; }
+			if (glow != null) { glow.LightEnergy = 0.18f; glow.OmniRange = 1.0f; }
 		}
 		else
 		{
