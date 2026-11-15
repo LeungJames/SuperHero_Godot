@@ -7,14 +7,14 @@
 [ext_resource type="PackedScene" path="res://scenes/fx/Tracer.tscn" id="5_tracer"]
 [ext_resource type="PackedScene" path="res://scenes/fx/Impact.tscn" id="6_impact"]
 [ext_resource type="PackedScene" path="res://scenes/fx/AmmoPickup.tscn" id="7_pickup"]
-[ext_resource type="PackedScene" path="res://art/models/enemies/enemy_salt_sentry_lod0.glb" id="8_lod0"]
+[ext_resource type="PackedScene" path="res://art/models/enemies/enemy_anchor_sentry_lod0.glb" id="8_lod0"]
 [ext_resource type="Shader" path="res://shaders/outline.gdshader" id="9_outline"]
 [ext_resource type="PackedScene" path="res://scenes/fx/DeathBurst.tscn" id="10_burst"]
 [ext_resource type="Script" path="res://scripts/enemies/EnemyAnimation.cs" id="11_anim"]
 [ext_resource type="Script" path="res://scripts/actors/ModelOutline.cs" id="12_outline"]
 [ext_resource type="Script" path="res://scripts/enemies/EnemyWeaponMount.cs" id="13_mount"]
-[ext_resource type="PackedScene" path="res://art/models/enemies/enemy_salt_sentry_lod1.glb" id="14_lod1"]
-[ext_resource type="PackedScene" path="res://art/models/enemies/enemy_salt_sentry_lod2.glb" id="15_lod2"]
+[ext_resource type="PackedScene" path="res://art/models/enemies/enemy_anchor_sentry_lod1.glb" id="14_lod1"]
+[ext_resource type="PackedScene" path="res://art/models/enemies/enemy_anchor_sentry_lod2.glb" id="15_lod2"]
 
 [sub_resource type="CapsuleShape3D" id="Shape_Body"]
 radius = 0.34

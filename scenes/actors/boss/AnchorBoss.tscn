@@ -1,11 +1,12 @@
-[gd_scene load_steps=20 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scripts/boss/BossController.cs" id="1_boss"]
 [ext_resource type="Resource" path="res://data/boss/anchor_boss.tres" id="2_cfg"]
 [ext_resource type="Resource" path="res://data/boss/anchor_boss_moves.tres" id="3_moves"]
-[ext_resource type="PackedScene" path="res://art/models/enemies/enemy_salt_raider_lod0.glb" id="4_model"]
+[ext_resource type="PackedScene" path="res://art/models/boss/anchor_foreman.glb" id="4_model"]
 [ext_resource type="Script" path="res://scripts/enemies/Hitbox.cs" id="5_hitbox"]
 [ext_resource type="PackedScene" path="res://scenes/fx/DeathBurst.tscn" id="6_burst"]
+[ext_resource type="Script" path="res://scripts/boss/BossAnimation.cs" id="7_animation"]
 
 [sub_resource type="CapsuleShape3D" id="Shape_Body"]
 radius = 0.78
@@ -17,50 +18,19 @@ size = Vector3(1.7, 3.35, 1.4)
 [sub_resource type="SphereShape3D" id="Shape_HitCore"]
 radius = 0.42
 
-[sub_resource type="StandardMaterial3D" id="Mat_Rust"]
-albedo_color = Color(0.62, 0.3, 0.12, 1)
-metallic = 0.35
-roughness = 0.62
-
-[sub_resource type="StandardMaterial3D" id="Mat_Iron"]
-albedo_color = Color(0.24, 0.22, 0.21, 1)
-metallic = 0.6
-roughness = 0.55
-
-[sub_resource type="StandardMaterial3D" id="Mat_Core"]
-albedo_color = Color(1, 0.52, 0.16, 1)
+[sub_resource type="StandardMaterial3D" id="Mat_CoreGlow"]
+shading_mode = 0
+albedo_color = Color(1, 0.52, 0.13, 1)
 emission_enabled = true
-emission = Color(1, 0.38, 0.08, 1)
-emission_energy_multiplier = 3.0
+emission = Color(1, 0.38, 0.06, 1)
+emission_energy_multiplier = 1.4
 
-[sub_resource type="BoxMesh" id="Mesh_Fist"]
-size = Vector3(0.58, 0.58, 0.58)
-material = SubResource("Mat_Rust")
-
-[sub_resource type="CylinderMesh" id="Mesh_Prong"]
-top_radius = 0.07
-bottom_radius = 0.09
-height = 0.5
-radial_segments = 8
-material = SubResource("Mat_Rust")
-
-[sub_resource type="SphereMesh" id="Mesh_Core"]
-radius = 0.24
-height = 0.48
+[sub_resource type="SphereMesh" id="Mesh_CoreGlow"]
+radius = 0.10
+height = 0.20
 radial_segments = 16
 rings = 8
-material = SubResource("Mat_Core")
-
-[sub_resource type="BoxMesh" id="Mesh_BackPlate"]
-size = Vector3(0.95, 0.85, 0.16)
-material = SubResource("Mat_Iron")
-
-[sub_resource type="TorusMesh" id="Mesh_Chain"]
-inner_radius = 0.16
-outer_radius = 0.23
-rings = 16
-ring_segments = 8
-material = SubResource("Mat_Iron")
+material = SubResource("Mat_CoreGlow")
 
 [node name="AnchorBoss" type="CharacterBody3D" groups=["boss"]]
 collision_layer = 4
@@ -75,62 +45,26 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.45, 0)
 shape = SubResource("Shape_Body")
 
 [node name="Visual" type="Node3D" parent="."]
-transform = Transform3D(1.8, 0, 0, 0, 1.8, 0, 0, 0, 1.8, 0, 0, 0)
+transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5, 0, 0, 0)
 
 [node name="Model" type="Node3D" parent="Visual"]
 transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0)
 
-[node name="LOD0" parent="Visual/Model" instance=ExtResource("4_model")]
+[node name="Foreman" parent="Visual/Model" instance=ExtResource("4_model")]
 
-[node name="BackPlate" type="MeshInstance3D" parent="Visual"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.32, 0.3)
-mesh = SubResource("Mesh_BackPlate")
-
-[node name="Core" type="MeshInstance3D" parent="Visual"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.24, 0.36)
-mesh = SubResource("Mesh_Core")
+[node name="CoreGlow" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 1.34, 0.345)
+mesh = SubResource("Mesh_CoreGlow")
 
 [node name="CoreLight" type="OmniLight3D" parent="Visual"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.28, 0.52)
+position = Vector3(0, 1.34, 0.4)
 light_color = Color(1, 0.48, 0.16, 1)
-light_energy = 1.4
+light_energy = 0.28
 omni_range = 3.2
+shadow_enabled = false
 
-[node name="ChainA" type="MeshInstance3D" parent="Visual"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.18, 1.02, 0.34)
-mesh = SubResource("Mesh_Chain")
-
-[node name="ChainB" type="MeshInstance3D" parent="Visual"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.18, 1.52, 0.34)
-mesh = SubResource("Mesh_Chain")
-
-[node name="FistL" type="Node3D" parent="Visual"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.62, 0.92, -0.14)
-
-[node name="Block" type="MeshInstance3D" parent="Visual/FistL"]
-mesh = SubResource("Mesh_Fist")
-
-[node name="ProngA" type="MeshInstance3D" parent="Visual/FistL"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.2, 0.36, 0)
-mesh = SubResource("Mesh_Prong")
-
-[node name="ProngB" type="MeshInstance3D" parent="Visual/FistL"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.36, 0)
-mesh = SubResource("Mesh_Prong")
-
-[node name="FistR" type="Node3D" parent="Visual"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.62, 0.92, -0.14)
-
-[node name="Block" type="MeshInstance3D" parent="Visual/FistR"]
-mesh = SubResource("Mesh_Fist")
-
-[node name="ProngA" type="MeshInstance3D" parent="Visual/FistR"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.2, 0.36, 0)
-mesh = SubResource("Mesh_Prong")
-
-[node name="ProngB" type="MeshInstance3D" parent="Visual/FistR"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.36, 0)
-mesh = SubResource("Mesh_Prong")
+[node name="Animation" type="Node" parent="."]
+script = ExtResource("7_animation")
 
 [node name="Hitboxes" type="Node3D" parent="."]
 

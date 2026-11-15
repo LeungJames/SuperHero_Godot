@@ -32,6 +32,8 @@ public partial class BossController : CharacterBody3D, IDamageable
 	public event Action<bool> WeakPointChanged;
 	public event Action Engaged;
 	public event Action Defeated;
+	/// <summary>Presentation cue at the existing damage/ability resolution frame.</summary>
+	public event Action<BossMoveKind, int> AttackResolved;
 
 	public float Health { get; private set; }
 	public float MaxHealth => Config != null ? Config.MaxHealth : 0f;
@@ -41,6 +43,11 @@ public partial class BossController : CharacterBody3D, IDamageable
 	public bool WeakPointExposed { get; private set; }
 	public bool HasSummoned { get; private set; }
 	public string StateName => _state.ToString();
+	public BossMoveKind CurrentMoveKind => _currentMove?.Kind ?? BossMoveKind.Sweep;
+	public int CurrentMoveStage => _moveStage;
+	public float WindupProgress => _state == BossState.Windup && _currentMove != null
+		? Mathf.Clamp(1f - _stateTimer / Mathf.Max(_moveStage > 0 ? _currentMove.SecondWindup : _currentMove.Windup, 0.01f), 0f, 1f)
+		: 0f;
 
 	private PlayerController _player;
 	private PlayerHealth _playerHealth;
@@ -348,6 +355,7 @@ public partial class BossController : CharacterBody3D, IDamageable
 			return;
 		}
 
+		AttackResolved?.Invoke(move.Kind, _moveStage);
 		switch (move.Kind)
 		{
 			case BossMoveKind.Sweep:
@@ -767,7 +775,7 @@ public partial class BossController : CharacterBody3D, IDamageable
 			}
 		}
 
-		if (_visual != null)
+		if (_visual != null && GetNodeOrNull<BossAnimation>("Animation") == null)
 		{
 			_visual.Rotation = new Vector3(-1.15f, 0f, 0.35f);
 			_visual.Position = new Vector3(0f, -0.55f, 0f);

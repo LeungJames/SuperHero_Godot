@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="AlertData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/core/AlertData.cs" id="1_alert"]
-[ext_resource type="PackedScene" path="res://scenes/actors/enemies/StreetRunner.tscn" id="2_runner"]
+[ext_resource type="PackedScene" path="res://scenes/actors/enemies/FactoryRunner.tscn" id="2_runner"]
 
 [resource]
 script = ExtResource("1_alert")
