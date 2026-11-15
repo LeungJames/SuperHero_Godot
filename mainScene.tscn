@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene load_steps=19 format=3]
 
 [ext_resource type="Script" path="res://MainScene.cs" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/levels/PortLevel.tscn" id="2_level"]
@@ -25,6 +25,8 @@
 [ext_resource type="Resource" path="res://data/stealth/alert_config.tres" id="23_stealth_cfg"]
 [ext_resource type="Resource" path="res://data/stealth/port_route.tres" id="24_stealth_route"]
 [ext_resource type="Resource" path="res://data/stealth/port_posts.tres" id="25_stealth_posts"]
+[ext_resource type="Script" path="res://scripts/narrative/NarrativeDirector.cs" id="26_narrative"]
+[ext_resource type="Resource" path="res://data/narrative/cutscenes/port_opening.tres" id="27_opening"]
 
 [sub_resource type="ProceduralSkyMaterial" id="Sky_Dusk"]
 sky_top_color = Color(0.78, 0.45, 0.17, 1)
@@ -151,6 +153,12 @@ Posts = ExtResource("25_stealth_posts")
 script = ExtResource("19_chapter")
 Arsenal = ExtResource("18_arsenal")
 Chapter = 0
+
+[node name="NarrativeDirector" type="Node" parent="Managers"]
+script = ExtResource("26_narrative")
+ChapterId = "port"
+GangId = "salt"
+OpeningCutscene = ExtResource("27_opening")
 
 [node name="VictorySequenceController" type="Node" parent="Managers"]
 script = ExtResource("7_victory")

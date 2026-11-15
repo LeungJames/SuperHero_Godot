@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="RadioLineSet" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/narrative/RadioLineSet.cs" id="1_set"]
+
+[resource]
+script = ExtResource("1_set")
+GangId = "salt"
+Context = "reinforce"
+Lines = PackedStringArray("倒下了一个！要支援！", "这边顶不住了，来人！", "叫后巷的兄弟上来！")

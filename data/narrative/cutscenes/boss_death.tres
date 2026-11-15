@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="CutsceneData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/narrative/CutsceneData.cs" id="1_data"]
+[ext_resource type="Script" path="res://scripts/narrative/CutscenePanelData.cs" id="2_panel"]
+
+[sub_resource type="Resource" id="P1"]
+script = ExtResource("2_panel")
+Caption = "铁锚沉了，潮水慢慢把甲板盖住。"
+SfxText = "SPLASH"
+Art = 9
+Duration = 2.6
+Sky = Color(0.14, 0.15, 0.2, 1)
+Accent = Color(0.96, 0.6, 0.28, 1)
+
+[sub_resource type="Resource" id="P2"]
+script = ExtResource("2_panel")
+Caption = "天亮之前，港口会安静下来。"
+SfxText = "WHIRR"
+Art = 0
+Duration = 2.6
+Sky = Color(0.18, 0.22, 0.32, 1)
+Accent = Color(0.98, 0.78, 0.42, 1)
+
+[resource]
+script = ExtResource("1_data")
+Id = "boss_death"
+Title = "尾声 · 潮水退去"
+Panels = Array[Resource]([SubResource("P1"), SubResource("P2")])
+PanelFadeTime = 0.25

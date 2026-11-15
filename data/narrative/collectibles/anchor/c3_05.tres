@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CollectibleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/narrative/CollectibleData.cs" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+Id = "C3-05"
+ChapterId = "anchor"
+GangId = "anchor"
+Name = "空白的通缉令"
+Text = "画像被撕掉了，只剩悬赏金额：一个零。"
+Position = Vector3(-1, 4, 0)
+Placement = 2

@@ -26,6 +26,7 @@ public partial class SquadDirector : Node
 	private ComicOverlay _comic;
 	private AIDebugOverlay _overlay;
 	private AudioDirector _audio;
+	private RadioBarkPlayer _radio;
 	private bool _built;
 	private int _buildAttempts;
 
@@ -80,6 +81,8 @@ public partial class SquadDirector : Node
 			_hud = GetTree().GetFirstNodeInGroup("hud") as HudController;
 		if (_comic == null || !GodotObject.IsInstanceValid(_comic))
 			_comic = GetTree().GetFirstNodeInGroup("comic_overlay") as ComicOverlay;
+		if (_radio == null || !GodotObject.IsInstanceValid(_radio))
+			_radio = GetTree().GetFirstNodeInGroup("radio_bark") as RadioBarkPlayer;
 		if (_camera == null)
 			_camera = GetViewport()?.GetCamera3D();
 
@@ -110,6 +113,7 @@ public partial class SquadDirector : Node
 			return;
 
 		_suppressCalloutCd = Config.SuppressCalloutCooldown;
+		_radio?.TryBark(RadioBarkPlayer.ContextSuppress, _player.GlobalPosition + Vector3.Up * 1.2f);
 		_hud?.ShowSuppression();
 
 		_audio ??= GetTree().CurrentScene?.FindChild("AudioDirector", true, false) as AudioDirector;
@@ -524,7 +528,8 @@ public partial class SquadDirector : Node
 		if (_flankCalloutCd > 0f)
 			return;
 		_flankCalloutCd = Config.FlankCalloutCooldown;
-		_hud?.ShowMessage("无线电：有人绕后。", new Color(0.92f, 0.55f, 0.25f));
+		if (_radio?.TryBark(RadioBarkPlayer.ContextFlank, flanker.GlobalPosition) != true)
+			_hud?.ShowMessage("无线电：有人绕后。", new Color(0.92f, 0.55f, 0.25f));
 		// 屏幕边缘红色箭头 0.6s：只给方向（§2.7）
 		_hud?.ShowDirectionalWarning(flanker.GlobalPosition, new Color(0.92f, 0.28f, 0.22f), 0.6f);
 		_comic?.ShowWorld("TCH!", flanker.GlobalPosition, new Color(0.95f, 0.72f, 0.30f), 0.7f);
@@ -535,6 +540,7 @@ public partial class SquadDirector : Node
 		if (_retreatCalloutCd > 0f)
 			return;
 		_retreatCalloutCd = Config.RetreatCalloutCooldown;
+		_radio?.TryBark(RadioBarkPlayer.ContextRetreat, agent.GlobalPosition);
 		_comic?.ShowWorld("TCH!", agent.GlobalPosition, new Color(0.72f, 0.75f, 0.80f), 0.7f);
 		// 脚步方向音：让玩家听出"有人退下去了"
 		_audio ??= GetTree().CurrentScene?.FindChild("AudioDirector", true, false) as AudioDirector;
@@ -547,6 +553,7 @@ public partial class SquadDirector : Node
 		if (_helpCalloutCd > 0f)
 			return;
 		_helpCalloutCd = Config.HelpCalloutCooldown;
-		_hud?.ShowMessage("无线电：需要支援！", new Color(0.89f, 0.34f, 0.18f));
+		if (_radio?.TryBark(RadioBarkPlayer.ContextReinforce, _player?.GlobalPosition ?? Vector3.Zero) != true)
+			_hud?.ShowMessage("无线电：需要支援！", new Color(0.89f, 0.34f, 0.18f));
 	}
 }

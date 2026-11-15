@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CollectibleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/narrative/CollectibleData.cs" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+Id = "C3-02"
+ChapterId = "anchor"
+GangId = "anchor"
+Name = "船坞值班日志"
+Text = "最后一页写着：“今天没有人下锚。”"
+Position = Vector3(0, 1, -10)
+Placement = 0

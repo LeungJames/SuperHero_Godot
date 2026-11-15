@@ -73,6 +73,8 @@ public partial class SaveSystem : Node
 
 	private Godot.Collections.Dictionary _data = new();
 	private readonly Godot.Collections.Dictionary _chapters = new();
+	private readonly HashSet<string> _collectibles = new();
+	private readonly HashSet<string> _cutscenesSeen = new();
 	private readonly Dictionary<string, Godot.Collections.Array<InputEvent>> _defaults = new();
 	private readonly Dictionary<string, Godot.Collections.Array<InputEvent>> _overrides = new();
 
@@ -143,6 +145,35 @@ public partial class SaveSystem : Node
 		if (best <= 0f || time < best)
 			entry["best_time"] = time;
 
+		Write();
+	}
+
+	// ------------------------------------------------------------ 叙事进度（§4.2、§4.4）
+
+	public bool HasCollectible(string id) =>
+		!string.IsNullOrEmpty(id) && _collectibles.Contains(id);
+
+	/// <summary>已收集数量，用于暂停菜单 "x/15"。</summary>
+	public int CollectedCount => _collectibles.Count;
+
+	public IReadOnlyCollection<string> CollectedCollectibles => _collectibles;
+
+	/// <summary>拾取收集品：只记录 ID，不提供任何数值收益。</summary>
+	public void AddCollectible(string id)
+	{
+		if (string.IsNullOrEmpty(id) || !_collectibles.Add(id))
+			return;
+		Write();
+	}
+
+	public bool IsCutsceneSeen(string id) =>
+		!string.IsNullOrEmpty(id) && _cutscenesSeen.Contains(id);
+
+	/// <summary>首次看完（或首次播放结束）后标记，之后重看可跳过。</summary>
+	public void MarkCutsceneSeen(string id)
+	{
+		if (string.IsNullOrEmpty(id) || !_cutscenesSeen.Add(id))
+			return;
 		Write();
 	}
 
@@ -570,6 +601,9 @@ public partial class SaveSystem : Node
 			_chapters[key] = chapters[key];
 
 		DifficultyId = GetString(_data, "difficulty", DifficultyId);
+
+		ReadStringSet(_data, "collectibles", _collectibles);
+		ReadStringSet(_data, "cutscenes_seen", _cutscenesSeen);
 	}
 
 	private void Write()
@@ -590,6 +624,8 @@ public partial class SaveSystem : Node
 		_data["settings"] = settings;
 		_data["difficulty"] = DifficultyId;
 		_data["chapters"] = _chapters;
+		_data["collectibles"] = ToSortedArray(_collectibles);
+		_data["cutscenes_seen"] = ToSortedArray(_cutscenesSeen);
 
 		if (_overrides.Count > 0)
 		{
@@ -625,6 +661,30 @@ public partial class SaveSystem : Node
 	}
 
 	// ------------------------------------------------------------ 取值辅助
+
+	private static void ReadStringSet(Godot.Collections.Dictionary data, string key, HashSet<string> target)
+	{
+		target.Clear();
+		if (data == null || !data.TryGetValue(key, out Variant value) || value.VariantType != Variant.Type.Array)
+			return;
+
+		foreach (Variant item in value.AsGodotArray())
+		{
+			if (item.VariantType == Variant.Type.String)
+				target.Add(item.AsString());
+		}
+	}
+
+	private static Godot.Collections.Array ToSortedArray(HashSet<string> values)
+	{
+		var list = new List<string>(values);
+		list.Sort();
+
+		var array = new Godot.Collections.Array();
+		foreach (string value in list)
+			array.Add(value);
+		return array;
+	}
 
 	private static Godot.Collections.Dictionary GetDictionary(Godot.Collections.Dictionary dict, string key)
 	{

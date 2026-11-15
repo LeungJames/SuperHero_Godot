@@ -191,6 +191,9 @@ public partial class AudioDirector : Node
 	public void PlayWorld(SfxKind kind, Vector3 position, float volumeDb = 0f, float pitch = 1f) =>
 		PlayAt(kind, position, volumeDb, pitch);
 
+	/// <summary>无线电台词提示音（2.0 设计 §4.3），与撤离电台共用 Radio 总线。</summary>
+	public void PlayRadioCue() => _radio?.Play();
+
 	private void PlayAt(SfxKind kind, Vector3 position, float volumeDb = 0f, float pitch = 1f)	{
 		AudioStreamPlayer3D source = _pool[_next];
 		_next = (_next + 1) % _pool.Length;

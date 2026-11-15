@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CollectibleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/narrative/CollectibleData.cs" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+Id = "C1-05"
+ChapterId = "port"
+GangId = "salt"
+Name = "儿童画的吊塔"
+Text = "橙色吊塔，旁边站着两个没有脸的大人。"
+Position = Vector3(0, 42.6, 73)
+Placement = 2

@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="CutsceneData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/narrative/CutsceneData.cs" id="1_data"]
+[ext_resource type="Script" path="res://scripts/narrative/CutscenePanelData.cs" id="2_panel"]
+
+[sub_resource type="Resource" id="P1"]
+script = ExtResource("2_panel")
+Caption = "赤蛇会把旧工厂变成了制毒窝点，烟囱一直在吐白气。"
+SfxText = "HSSS"
+Art = 4
+Duration = 2.4
+Sky = Color(0.14, 0.17, 0.14, 1)
+Accent = Color(0.55, 0.82, 0.35, 1)
+
+[sub_resource type="Resource" id="P2"]
+script = ExtResource("2_panel")
+Caption = "他们管自己叫蛇，躲在管道、蒸汽和二层铁架后面。"
+SfxText = "HSSS!"
+Art = 5
+Duration = 2.4
+Sky = Color(0.1, 0.16, 0.12, 1)
+Accent = Color(0.45, 0.9, 0.42, 1)
+
+[sub_resource type="Resource" id="P3"]
+script = ExtResource("2_panel")
+Caption = "别让任何一个人把消息传出去。"
+SfxText = "BANG!"
+Art = 7
+Duration = 2.4
+Sky = Color(0.18, 0.1, 0.1, 1)
+Accent = Color(0.95, 0.45, 0.2, 1)
+
+[resource]
+script = ExtResource("1_data")
+Id = "factory_opening"
+Title = "第二章 · 赤蛇工厂"
+Panels = Array[Resource]([SubResource("P1"), SubResource("P2"), SubResource("P3")])
+PanelFadeTime = 0.25

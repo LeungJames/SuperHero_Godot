@@ -1,4 +1,5 @@
 using Godot;
+using System;
 using System.Collections.Generic;
 
 public enum StealthAlertLevel
@@ -31,6 +32,9 @@ public partial class StealthDirector : Node
 	public float PlayerUnseenStillTime => _unseenStillTime;
 	public IReadOnlyList<CorpseMarker> Corpses => _corpses;
 	public bool RouteOverlayOn => _routeOverlay != null && _routeOverlay.Visible;
+
+	/// <summary>警戒等级迁移（2.0 设计 §4.3 的警报升级电台由此触发）。</summary>
+	public event Action<StealthAlertLevel> LevelChanged;
 
 	private static readonly Color Level0Color = new(0.95f, 0.83f, 0.28f);
 	private static readonly Color Level1Color = new(0.95f, 0.55f, 0.22f);
@@ -303,6 +307,7 @@ public partial class StealthDirector : Node
 		Level = level;
 		LevelTimeLeft = Mathf.Max(0f, duration);
 		_hudOverlay?.SetLevel(level);
+		LevelChanged?.Invoke(level);
 
 		if (!announce)
 			return;

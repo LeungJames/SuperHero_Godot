@@ -54,6 +54,7 @@ public partial class GameManager : Node
 	private Control _pauseMenu;
 	private SettingsMenu _settings;
 	private ChapterSelect _chapterSelect;
+	private CollectiblesMenu _collectiblesMenu;
 	private Button _difficultyButton;
 
 	private float _defeatTimer;
@@ -73,6 +74,7 @@ public partial class GameManager : Node
 		_pauseMenu = GetNode<Control>("../../UI/PauseMenu");
 		_settings = _pauseMenu.GetNodeOrNull<SettingsMenu>("SettingsMenu");
 		_chapterSelect = _pauseMenu.GetNodeOrNull<ChapterSelect>("ChapterSelect");
+		_collectiblesMenu = _pauseMenu.GetNodeOrNull<CollectiblesMenu>("CollectiblesMenu");
 
 		_weapon = GetTree().GetFirstNodeInGroup("weapon") as WeaponController;
 
@@ -93,6 +95,8 @@ public partial class GameManager : Node
 			_settings.Closed += OnSubmenuClosed;
 		if (_chapterSelect != null)
 			_chapterSelect.Closed += OnSubmenuClosed;
+		if (_collectiblesMenu != null)
+			_collectiblesMenu.Closed += OnSubmenuClosed;
 
 		MaxHeight = _player.GlobalPosition.Y;
 		_hud.SetEnemyCount(_registry.AliveCount, _registry.TotalCount);
@@ -129,6 +133,9 @@ public partial class GameManager : Node
 
 	public override void _UnhandledInput(InputEvent @event)
 	{
+		// 过场播放时 Esc 属于「跳过」输入，交给 CutsceneComicPlayer
+		if (CutsceneComicPlayer.AnyPlaying)
+			return;
 		if (!@event.IsActionPressed("pause") || State != GameState.Playing)
 			return;
 
@@ -139,6 +146,12 @@ public partial class GameManager : Node
 	/// <summary>设置 / 章节选择打开时，Esc 先退子页，而不是直接继续游戏。</summary>
 	private void HandlePausePressed()
 	{
+		if (_collectiblesMenu is { Visible: true })
+		{
+			_collectiblesMenu.Close();
+			return;
+		}
+
 		if (_settings is { Visible: true })
 		{
 			_settings.Close();
@@ -280,6 +293,7 @@ public partial class GameManager : Node
 		var resume = _pauseMenu.GetNodeOrNull<Button>("Panel/VBox/ResumeButton");
 		var settings = _pauseMenu.GetNodeOrNull<Button>("Panel/VBox/SettingsButton");
 		var chapters = _pauseMenu.GetNodeOrNull<Button>("Panel/VBox/ChaptersButton");
+		var collectibles = _pauseMenu.GetNodeOrNull<Button>("Panel/VBox/CollectiblesButton");
 		_difficultyButton = _pauseMenu.GetNodeOrNull<Button>("Panel/VBox/DifficultyButton");
 		var quit = _pauseMenu.GetNodeOrNull<Button>("Panel/VBox/QuitButton");
 
@@ -289,6 +303,8 @@ public partial class GameManager : Node
 			settings.Pressed += OpenSettings;
 		if (chapters != null)
 			chapters.Pressed += OpenChapterSelect;
+		if (collectibles != null)
+			collectibles.Pressed += OpenCollectibles;
 		if (_difficultyButton != null)
 			_difficultyButton.Pressed += CycleDifficulty;
 		if (quit != null)
@@ -337,6 +353,12 @@ public partial class GameManager : Node
 		_chapterSelect?.Open();
 	}
 
+	private void OpenCollectibles()
+	{
+		SetPauseMainPanelVisible(false);
+		_collectiblesMenu?.Open();
+	}
+
 	private void OnSubmenuClosed()
 	{
 		SetPauseMainPanelVisible(true);
@@ -359,6 +381,7 @@ public partial class GameManager : Node
 		{
 			_settings?.Close();
 			_chapterSelect?.Close();
+			_collectiblesMenu?.Close();
 		}
 
 		GetTree().Paused = paused;

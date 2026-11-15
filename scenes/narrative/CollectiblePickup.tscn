@@ -1,0 +1,45 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/narrative/CollectiblePickup.cs" id="1_pickup"]
+
+[sub_resource type="StandardMaterial3D" id="Mat_Collectible"]
+albedo_color = Color(0.36, 0.82, 0.92, 1)
+metallic = 0.3
+roughness = 0.35
+emission_enabled = true
+emission = Color(0.3, 0.8, 0.95, 1)
+emission_energy_multiplier = 2.2
+
+[sub_resource type="BoxMesh" id="Mesh_Collectible"]
+material = SubResource("Mat_Collectible")
+size = Vector3(0.3, 0.16, 0.2)
+
+[sub_resource type="SphereShape3D" id="Shape_Pickup"]
+radius = 1.5
+
+[node name="CollectiblePickup" type="Area3D"]
+collision_layer = 16
+collision_mask = 2
+script = ExtResource("1_pickup")
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("Shape_Pickup")
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("Mesh_Collectible")
+
+[node name="Glow" type="OmniLight3D" parent="."]
+light_color = Color(0.35, 0.82, 0.95, 1)
+light_energy = 0.9
+omni_range = 3.0
+
+[node name="Label" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
+pixel_size = 0.0022
+billboard = 1
+no_depth_test = true
+fixed_size = true
+font_size = 32
+outline_size = 8
+modulate = Color(0.85, 0.97, 1, 1)
+text = "收集品"

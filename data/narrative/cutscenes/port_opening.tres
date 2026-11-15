@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="CutsceneData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/narrative/CutsceneData.cs" id="1_data"]
+[ext_resource type="Script" path="res://scripts/narrative/CutscenePanelData.cs" id="2_panel"]
+
+[sub_resource type="Resource" id="P1"]
+script = ExtResource("2_panel")
+Caption = "黄昏落在港口，海面像一块烧红的铁。"
+SfxText = "WHIRR"
+Art = 0
+Duration = 2.4
+Sky = Color(0.16, 0.19, 0.3, 1)
+Accent = Color(0.96, 0.55, 0.22, 1)
+
+[sub_resource type="Resource" id="P2"]
+script = ExtResource("2_panel")
+Caption = "盐帮把货栈改成了据点，吊臂整夜没停。"
+SfxText = "CLANK!"
+Art = 1
+Duration = 2.4
+Sky = Color(0.2, 0.17, 0.22, 1)
+Accent = Color(0.95, 0.72, 0.3, 1)
+
+[sub_resource type="Resource" id="P3"]
+script = ExtResource("2_panel")
+Caption = "你只有一把手枪，和一副还听得使唤的拳头。清空这里。"
+SfxText = "STEP"
+Art = 2
+Duration = 2.6
+Sky = Color(0.12, 0.11, 0.16, 1)
+Accent = Color(0.88, 0.24, 0.18, 1)
+
+[resource]
+script = ExtResource("1_data")
+Id = "port_opening"
+Title = "第一章 · 黄昏港口"
+Panels = Array[Resource]([SubResource("P1"), SubResource("P2"), SubResource("P3")])
+PanelFadeTime = 0.25

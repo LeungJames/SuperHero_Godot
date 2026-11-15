@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="RadioLineSet" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/narrative/RadioLineSet.cs" id="1_set"]
+
+[resource]
+script = ExtResource("1_set")
+GangId = "salt"
+Context = "flank"
+Lines = PackedStringArray("我从侧面过去。", "包过去，断他退路。", "绕到集装箱后面，别出声。")

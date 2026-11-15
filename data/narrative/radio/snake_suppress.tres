@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="RadioLineSet" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/narrative/RadioLineSet.cs" id="1_set"]
+
+[resource]
+script = ExtResource("1_set")
+GangId = "snake"
+Context = "suppress"
+Lines = PackedStringArray("压住他，别让他抬头！", "烧干净，别留活口！", "火力压住，我从侧面。")

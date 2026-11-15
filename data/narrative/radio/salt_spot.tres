@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="RadioLineSet" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/narrative/RadioLineSet.cs" id="1_set"]
+
+[resource]
+script = ExtResource("1_set")
+GangId = "salt"
+Context = "spot"
+Lines = PackedStringArray("有人！在集装箱那边！", "西侧楼梯有动静，上去看看。", "塔顶有人影，别让他跑了。")

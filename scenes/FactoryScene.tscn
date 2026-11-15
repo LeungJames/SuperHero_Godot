@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3]
+[gd_scene load_steps=24 format=3]
 
 [ext_resource type="Script" path="res://MainScene.cs" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/levels/FactoryLevel.tscn" id="2_level"]
@@ -24,6 +24,8 @@
 [ext_resource type="Resource" path="res://data/stealth/alert_config.tres" id="22_stealth_cfg"]
 [ext_resource type="Resource" path="res://data/stealth/factory_route.tres" id="23_stealth_route"]
 [ext_resource type="Resource" path="res://data/stealth/factory_posts.tres" id="24_stealth_posts"]
+[ext_resource type="Script" path="res://scripts/narrative/NarrativeDirector.cs" id="25_narrative"]
+[ext_resource type="Resource" path="res://data/narrative/cutscenes/factory_opening.tres" id="26_opening"]
 
 [sub_resource type="ProceduralSkyMaterial" id="Sky_Factory"]
 sky_top_color = Color(0.1, 0.1, 0.14, 1)
@@ -143,6 +145,12 @@ script = ExtResource("12_audio")
 script = ExtResource("17_chapter")
 Arsenal = ExtResource("18_arsenal")
 Chapter = 2
+
+[node name="NarrativeDirector" type="Node" parent="Managers"]
+script = ExtResource("25_narrative")
+ChapterId = "factory"
+GangId = "snake"
+OpeningCutscene = ExtResource("26_opening")
 
 [node name="UI" type="CanvasLayer" parent="."]
 process_mode = 3

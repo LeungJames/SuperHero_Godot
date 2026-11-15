@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="CutsceneData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/narrative/CutsceneData.cs" id="1_data"]
+[ext_resource type="Script" path="res://scripts/narrative/CutscenePanelData.cs" id="2_panel"]
+
+[sub_resource type="Resource" id="P1"]
+script = ExtResource("2_panel")
+Caption = "铁锚帮的据点悬在干船坞上方，铁链在风里响了一夜。"
+SfxText = "CLANG"
+Art = 8
+Duration = 2.4
+Sky = Color(0.13, 0.16, 0.2, 1)
+Accent = Color(0.72, 0.78, 0.86, 1)
+
+[sub_resource type="Resource" id="P2"]
+script = ExtResource("2_panel")
+Caption = "闸门后面，是他们的头目。"
+SfxText = "CREAK"
+Art = 7
+Duration = 2.2
+Sky = Color(0.1, 0.11, 0.14, 1)
+Accent = Color(0.9, 0.62, 0.22, 1)
+
+[sub_resource type="Resource" id="P3"]
+script = ExtResource("2_panel")
+Caption = "他等你很久了。"
+SfxText = "……"
+Art = 2
+Duration = 2.6
+Sky = Color(0.09, 0.08, 0.12, 1)
+Accent = Color(0.86, 0.22, 0.18, 1)
+
+[resource]
+script = ExtResource("1_data")
+Id = "boss_intro"
+Title = "第三章 · 铁锚据点"
+Panels = Array[Resource]([SubResource("P1"), SubResource("P2"), SubResource("P3")])
+PanelFadeTime = 0.25

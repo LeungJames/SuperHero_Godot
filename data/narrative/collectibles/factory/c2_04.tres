@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CollectibleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/narrative/CollectibleData.cs" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+Id = "C2-04"
+ChapterId = "factory"
+GangId = "snake"
+Name = "蛇形耳钉"
+Text = "赤蛇会中层以上才有的标记。少了一颗。"
+Position = Vector3(-21, 1.2, -20)
+Placement = 1

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CollectibleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/narrative/CollectibleData.cs" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+Id = "C3-04"
+ChapterId = "anchor"
+GangId = "anchor"
+Name = "锚形钥匙"
+Text = "打不开据点里任何一扇门。也许是给别的地方用的。"
+Position = Vector3(-27.5, 1.2, -14)
+Placement = 1
