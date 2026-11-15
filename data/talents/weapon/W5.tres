@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TalentNodeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/talents/TalentNodeData.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+Id = "W5"
+Line = 1
+DisplayName = "穿甲弹"
+Cost = 3
+PrerequisiteId = "W4"
+Effects = PackedStringArray("armor_pierce")
+Description = "穿透 1 层薄掩体或肢体，穿透后伤害 -15%。"
+RequiredClearedChapter = ""

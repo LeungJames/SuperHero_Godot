@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TalentNodeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/talents/TalentNodeData.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+Id = "A8"
+Line = 2
+DisplayName = "杀气感知"
+Cost = 1
+PrerequisiteId = "A6"
+Effects = PackedStringArray("kill_sense")
+Description = "击杀后 5s，8m 内敌人轮廓高亮。"
+RequiredClearedChapter = ""

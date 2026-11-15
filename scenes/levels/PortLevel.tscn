@@ -1,4 +1,4 @@
-[gd_scene load_steps=296 format=3]
+[gd_scene load_steps=298 format=3]
 
 [ext_resource type="Shader" path="res://shaders/toon.gdshader" id="1_toon"]
 [ext_resource type="Shader" path="res://shaders/outline.gdshader" id="2_outline"]
@@ -42,6 +42,8 @@
 [ext_resource type="PackedScene" path="res://scenes/fx/Tracer.tscn" id="40_tracer"]
 [ext_resource type="PackedScene" path="res://scenes/fx/Impact.tscn" id="41_impact"]
 [ext_resource type="Script" path="res://scripts/level/WaterKillVolume.cs" id="42_water"]
+[ext_resource type="PackedScene" path="res://scenes/fx/HookAnchor.tscn" id="90_anchor"]
+[ext_resource type="PackedScene" path="res://scenes/fx/GrapplePerch.tscn" id="91_perch"]
 
 [sub_resource type="ShaderMaterial" id="Mat_Outline"]
 shader = ExtResource("2_outline")
@@ -5400,7 +5402,7 @@ shape = SubResource("Shape_1p2_2_2p4")
 [node name="SM_Forklift_1p2x2x2p4" parent="Geometry/Yard/Forklift_B/@MeshInstance3D@201" index="0"]
 material_override = SubResource("Mat_Mustard")
 
-[node name="Barrier_0" type="StaticBody3D" parent="Geometry/Yard"]
+[node name="Barrier_0" type="StaticBody3D" parent="Geometry/Yard" groups=["penetrable"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 0.55, -34)
 
 [node name="@CollisionShape3D" type="CollisionShape3D" parent="Geometry/Yard/Barrier_0"]
@@ -5422,7 +5424,7 @@ shape = SubResource("Shape_3_1p1_0p4")
 [node name="SM_Barrier_3x1p1x0p4" parent="Geometry/Yard/Barrier_1/@MeshInstance3D@203" index="0"]
 material_override = SubResource("Mat_Warn")
 
-[node name="Barrier_2" type="StaticBody3D" parent="Geometry/Yard"]
+[node name="Barrier_2" type="StaticBody3D" parent="Geometry/Yard" groups=["penetrable"]]
 transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 20, 0.55, -30)
 
 [node name="@CollisionShape3D" type="CollisionShape3D" parent="Geometry/Yard/Barrier_2"]
@@ -6177,3 +6179,32 @@ script = ExtResource("42_water")
 
 [node name="@CollisionShape3D" type="CollisionShape3D" parent="WaterKillVolume"]
 shape = SubResource("Shape_400_10_400")
+
+[node name="Anchors" type="Node3D" parent="."]
+
+[node name="Anchor_CraneDeck" parent="Anchors" instance=ExtResource("90_anchor")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 47.5, 75)
+
+[node name="Anchor_StairLA" parent="Anchors" instance=ExtResource("90_anchor")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 47.5, 83)
+
+[node name="Anchor_StairLC" parent="Anchors" instance=ExtResource("90_anchor")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 30.7, 83)
+
+[node name="Anchor_L1bWalkway" parent="Anchors" instance=ExtResource("90_anchor")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 43.6, 51.3)
+
+[node name="Anchor_J3Launch" parent="Anchors" instance=ExtResource("90_anchor")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 35.6, 34.5)
+
+[node name="Anchor_L2Arm" parent="Anchors" instance=ExtResource("90_anchor")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 32.5, 25.6)
+
+[node name="Anchor_YardStack" parent="Anchors" instance=ExtResource("90_anchor")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28.6, 13.3, 12)
+
+[node name="Anchor_WarehousePerch" parent="Anchors" instance=ExtResource("90_anchor")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29, 13.5, -11)
+
+[node name="Perch_Warehouse" parent="Anchors" instance=ExtResource("91_perch")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29, 9, -11)

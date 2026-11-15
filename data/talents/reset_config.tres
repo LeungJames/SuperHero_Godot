@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="TalentResetConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/talents/TalentResetConfig.cs" id="1_reset"]
+
+[resource]
+script = ExtResource("1_reset")
+FreeResets = 1
+PointCost = 2
+AllowMidChapter = false

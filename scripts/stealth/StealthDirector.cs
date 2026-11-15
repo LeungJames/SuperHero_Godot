@@ -36,6 +36,9 @@ public partial class StealthDirector : Node
 	/// <summary>警戒等级迁移（2.0 设计 §4.3 的警报升级电台由此触发）。</summary>
 	public event Action<StealthAlertLevel> LevelChanged;
 
+	/// <summary>暗杀 / 处决命中（评级统计用）。</summary>
+	public event Action<EnemyHealth, bool> ExecutionNoticed;
+
 	private static readonly Color Level0Color = new(0.95f, 0.83f, 0.28f);
 	private static readonly Color Level1Color = new(0.95f, 0.55f, 0.22f);
 	private static readonly Color Level2Color = new(0.88f, 0.22f, 0.18f);
@@ -179,7 +182,12 @@ public partial class StealthDirector : Node
 	/// <summary>处决 / 暗杀命中：留下尸体（环境击杀与枪杀不调用这里）。</summary>
 	public void NotifyExecution(EnemyHealth target, bool unaware)
 	{
-		if (target == null || Config == null)
+		if (target == null)
+			return;
+
+		ExecutionNoticed?.Invoke(target, unaware);
+
+		if (Config == null)
 			return;
 
 		EnemyAgent agent = target.GetParent() as EnemyAgent;
@@ -387,14 +395,14 @@ public partial class StealthDirector : Node
 
 	// ---------------------------------------------------------------- 噪音 / 提示
 
-	private void OnNoiseEmitted(Vector3 position, NoiseKind kind)
+	private void OnNoiseEmitted(Vector3 position, NoiseKind kind, float radiusScale)
 	{
 		if (Config == null || _playerHealth == null || _playerHealth.IsDead)
 			return;
 		if (Level >= StealthAlertLevel.L1)
 			return;
 
-		float radius = StealthSystem.NoiseRadius(kind);
+		float radius = StealthSystem.NoiseRadius(kind) * radiusScale;
 		if (radius <= 0f)
 			return;
 

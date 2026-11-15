@@ -1,0 +1,22 @@
+[gd_scene load_steps=4 format=3]
+
+[sub_resource type="StandardMaterial3D" id="Mat_Perch"]
+albedo_color = Color(0.24, 0.26, 0.29, 1)
+metallic = 0.45
+roughness = 0.45
+
+[sub_resource type="BoxMesh" id="Mesh_Perch"]
+material = SubResource("Mat_Perch")
+size = Vector3(2, 0.3, 2)
+
+[sub_resource type="BoxShape3D" id="Shape_Perch"]
+size = Vector3(2, 0.3, 2)
+
+[node name="GrapplePerch" type="StaticBody3D"]
+collision_layer = 1
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("Shape_Perch")
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("Mesh_Perch")

@@ -1,0 +1,49 @@
+[gd_resource type="Resource" script_class="TalentEffectsConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/talents/TalentEffectsConfig.cs" id="1_effects"]
+
+[resource]
+script = ExtResource("1_effects")
+WallRunMaxTimeAdd = 0.4
+WallRunFallScale = 0.75
+AirDashDistance = 6.0
+AirDashCooldown = 4.0
+DoubleJumpHeightScale = 0.6
+GrappleRange = 40.0
+GrappleCooldown = 1.2
+EdgeSpeedBonus = 0.15
+EdgeSpeedDuration = 2.0
+SlideDistanceScale = 1.3
+FallSafeHeightAdd = 4.0
+FallDamageScale = 0.7
+MagazineScale = 1.25
+ReloadScale = 0.8
+SwapScale = 0.6
+SwapSpreadScale = 0.5
+SwapSpreadWindow = 1.0
+RecoilScale = 0.8
+RecoilRecoveryScale = 1.15
+PierceDamageScale = 0.85
+AmmoRecoverRounds = 4
+AdsTimeScale = 0.75
+AdsMoveScale = 0.7
+BurstHitCount = 3
+BurstDamageScale = 1.3
+MeleeDamageScale = 1.3
+SwingIntervalScale = 0.8
+SlowWalkSpeed = 3.0
+FootstepRangeScale = 0.6
+ExecutionRangeAdd = 1.5
+ExecutionDamageReduction = 0.5
+ExecutionReductionTime = 1.0
+BlockWindow = 0.25
+BlockCooldown = 6.0
+ChainWindow = 2.0
+ChainRangeAdd = 2.0
+LaserDamage = 60.0
+LaserRange = 25.0
+LaserWidth = 1.2
+LaserCooldown = 15.0
+LaserStockScale = 0.8
+SenseDuration = 5.0
+SenseRadius = 8.0

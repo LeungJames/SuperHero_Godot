@@ -52,10 +52,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -320.0
-offset_top = -220.0
-offset_right = 320.0
-offset_bottom = 220.0
+offset_left = -340.0
+offset_top = -280.0
+offset_right = 340.0
+offset_bottom = 280.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("SB_Panel")
@@ -86,10 +86,55 @@ theme_override_font_sizes/font_size = 20
 text = "击杀 0/8"
 horizontal_alignment = 1
 
+[node name="RatingBox" type="VBoxContainer" parent="Panel/VBox"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Mobility" type="Label" parent="Panel/VBox/RatingBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.16, 0.13, 0.1, 1)
+theme_override_font_sizes/font_size = 18
+text = "战术机动"
+horizontal_alignment = 1
+
+[node name="Weapon" type="Label" parent="Panel/VBox/RatingBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.16, 0.13, 0.1, 1)
+theme_override_font_sizes/font_size = 18
+text = "武器大师"
+horizontal_alignment = 1
+
+[node name="Assassin" type="Label" parent="Panel/VBox/RatingBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.16, 0.13, 0.1, 1)
+theme_override_font_sizes/font_size = 18
+text = "忍杀"
+horizontal_alignment = 1
+
+[node name="Total" type="Label" parent="Panel/VBox/RatingBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.45, 0.35, 0.18, 1)
+theme_override_font_sizes/font_size = 18
+text = "本次新增 0 点　历史最佳 0 点"
+horizontal_alignment = 1
+
 [node name="Spacer" type="Control" parent="Panel/VBox"]
 custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
 mouse_filter = 2
+
+[node name="TalentButton" type="Button" parent="Panel/VBox"]
+custom_minimum_size = Vector2(300, 44)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_colors/font_color = Color(0.96, 0.9, 0.8, 1)
+theme_override_font_sizes/font_size = 20
+theme_override_styles/normal = SubResource("SB_Button")
+theme_override_styles/hover = SubResource("SB_Button")
+theme_override_styles/pressed = SubResource("SB_Button")
+theme_override_styles/focus = SubResource("SB_Button")
+text = "天赋（加点 / 重置）"
 
 [node name="NextButton" type="Button" parent="Panel/VBox"]
 visible = false

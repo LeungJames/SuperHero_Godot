@@ -17,7 +17,7 @@ public partial class SaveSystem : Node
 	public static readonly string[] RebindableActions =
 	{
 		"move_forward", "move_back", "move_left", "move_right",
-		"jump", "sprint", "crouch", "walk_slow",
+		"jump", "sprint", "dash", "grapple", "crouch", "walk_slow",
 		"fire", "aim", "reload", "melee", "execution",
 		"camera_mode", "pause",
 	};
@@ -76,6 +76,14 @@ public partial class SaveSystem : Node
 	private readonly HashSet<string> _collectibles = new();
 	private readonly HashSet<string> _cutscenesSeen = new();
 	private readonly HashSet<string> _weaponUnlocks = new();
+	/// <summary>ratings.&lt;chapter&gt;.&lt;dimension&gt; = { grade, points }（§6.7）。</summary>
+	private readonly Dictionary<string, Godot.Collections.Dictionary> _ratings = new();
+	/// <summary>talents.&lt;line&gt;[] = 已点节点（§10.4）。</summary>
+	private readonly Dictionary<string, HashSet<string>> _talents = new();
+	/// <summary>talent_resets.&lt;line&gt; = 已用重置次数（免费次数判定）。</summary>
+	private readonly Dictionary<string, int> _talentResets = new();
+	/// <summary>talent_penalties.&lt;line&gt; = 重置代价累计扣除，从该线可用点里永久扣。</summary>
+	private readonly Dictionary<string, int> _talentPenalties = new();
 	private readonly Dictionary<string, Godot.Collections.Array<InputEvent>> _defaults = new();
 	private readonly Dictionary<string, Godot.Collections.Array<InputEvent>> _overrides = new();
 
@@ -191,6 +199,129 @@ public partial class SaveSystem : Node
 	{
 		if (string.IsNullOrEmpty(id) || !_weaponUnlocks.Add(id))
 			return;
+		Write();
+	}
+
+	// ------------------------------------------------------------ 评级与天赋（§6、§5）
+
+	public readonly struct RatingRecord
+	{
+		public RatingRecord(string grade, int points)
+		{
+			Grade = grade;
+			Points = points;
+		}
+
+		public string Grade { get; }
+		public int Points { get; }
+		public bool HasValue => !string.IsNullOrEmpty(Grade) && Points > 0;
+	}
+
+	public RatingRecord GetRating(string chapterId, string dimension)
+	{
+		if (string.IsNullOrEmpty(chapterId) || string.IsNullOrEmpty(dimension))
+			return default;
+		if (!_ratings.TryGetValue(chapterId, out Godot.Collections.Dictionary entry) ||
+			!entry.TryGetValue(dimension, out Variant value) || value.VariantType != Variant.Type.Dictionary)
+			return default;
+
+		Godot.Collections.Dictionary record = value.AsGodotDictionary();
+		return new RatingRecord(GetString(record, "grade", string.Empty), GetInt(record, "points", 0));
+	}
+
+	/// <summary>
+	/// 只保留历史最高评级：gradeValue 更高才覆盖，并返回本次补发的差额点数；
+	/// 相同或更低返回 0 且不落盘（§6.5）。
+	/// </summary>
+	public int ImproveRating(string chapterId, string dimension, int gradeValue, string grade, int points)
+	{
+		if (string.IsNullOrEmpty(chapterId) || string.IsNullOrEmpty(dimension) || string.IsNullOrEmpty(grade))
+			return 0;
+
+		RatingRecord current = GetRating(chapterId, dimension);
+		int currentValue = GradeValue(current.Grade);
+		if (current.HasValue && gradeValue <= currentValue)
+			return 0;
+
+		if (!_ratings.TryGetValue(chapterId, out Godot.Collections.Dictionary entry))
+		{
+			entry = new Godot.Collections.Dictionary();
+			_ratings[chapterId] = entry;
+		}
+
+		entry[dimension] = new Godot.Collections.Dictionary
+		{
+			["grade"] = grade,
+			["points"] = points,
+		};
+		Write();
+		return Mathf.Max(0, points - current.Points);
+	}
+
+	public static int GradeValue(string grade) => grade switch
+	{
+		"S" => 4,
+		"A" => 3,
+		"B" => 2,
+		"C" => 1,
+		_ => 0,
+	};
+
+	public IReadOnlyCollection<string> GetTalents(string line) =>
+		_talents.TryGetValue(line ?? string.Empty, out HashSet<string> nodes) ? nodes : System.Array.Empty<string>();
+
+	public bool HasTalent(string line, string id) =>
+		!string.IsNullOrEmpty(id) && _talents.TryGetValue(line ?? string.Empty, out HashSet<string> nodes) &&
+		nodes.Contains(id);
+
+	public bool AddTalent(string line, string id)
+	{
+		if (string.IsNullOrEmpty(line) || string.IsNullOrEmpty(id))
+			return false;
+
+		if (!_talents.TryGetValue(line, out HashSet<string> nodes))
+		{
+			nodes = new HashSet<string>();
+			_talents[line] = nodes;
+		}
+
+		if (!nodes.Add(id))
+			return false;
+
+		Write();
+		return true;
+	}
+
+	public void ClearTalents(string line)
+	{
+		if (string.IsNullOrEmpty(line) || !_talents.TryGetValue(line, out HashSet<string> nodes) || nodes.Count == 0)
+			return;
+
+		nodes.Clear();
+		Write();
+	}
+
+	public int GetTalentResetCount(string line) =>
+		_talentResets.TryGetValue(line ?? string.Empty, out int count) ? count : 0;
+
+	public void SetTalentResetCount(string line, int count)
+	{
+		if (string.IsNullOrEmpty(line))
+			return;
+
+		_talentResets[line] = Mathf.Max(0, count);
+		Write();
+	}
+
+	public int GetTalentPenalty(string line) =>
+		_talentPenalties.TryGetValue(line ?? string.Empty, out int amount) ? amount : 0;
+
+	public void SetTalentPenalty(string line, int amount)
+	{
+		if (string.IsNullOrEmpty(line))
+			return;
+
+		_talentPenalties[line] = Mathf.Max(0, amount);
 		Write();
 	}
 
@@ -623,6 +754,52 @@ public partial class SaveSystem : Node
 		ReadStringSet(_data, "collectibles", _collectibles);
 		ReadStringSet(_data, "cutscenes_seen", _cutscenesSeen);
 		ReadWeaponUnlocks();
+		ReadRatings();
+		ReadTalents();
+	}
+
+	/// <summary>ratings 按 { 章节: { 维度: { grade, points } } } 读取。</summary>
+	private void ReadRatings()
+	{
+		_ratings.Clear();
+		Godot.Collections.Dictionary ratings = GetDictionary(_data, "ratings");
+		foreach (Variant key in ratings.Keys)
+		{
+			if (ratings[key].VariantType != Variant.Type.Dictionary)
+				continue;
+			_ratings[key.AsString()] = ratings[key].AsGodotDictionary();
+		}
+	}
+
+	private void ReadTalents()
+	{
+		_talents.Clear();
+		_talentResets.Clear();
+		_talentPenalties.Clear();
+
+		Godot.Collections.Dictionary talents = GetDictionary(_data, "talents");
+		foreach (Variant key in talents.Keys)
+		{
+			if (talents[key].VariantType != Variant.Type.Array)
+				continue;
+
+			var nodes = new HashSet<string>();
+			foreach (Variant item in talents[key].AsGodotArray())
+			{
+				if (item.VariantType == Variant.Type.String)
+					nodes.Add(item.AsString());
+			}
+
+			_talents[key.AsString()] = nodes;
+		}
+
+		Godot.Collections.Dictionary resets = GetDictionary(_data, "talent_resets");
+		foreach (Variant key in resets.Keys)
+			_talentResets[key.AsString()] = GetInt(resets, key.AsString(), 0);
+
+		Godot.Collections.Dictionary penalties = GetDictionary(_data, "talent_penalties");
+		foreach (Variant key in penalties.Keys)
+			_talentPenalties[key.AsString()] = GetInt(penalties, key.AsString(), 0);
 	}
 
 	/// <summary>旧存档没有 unlocks 字段时按空集合处理，由 LoadoutSystem 依已通关章节补齐。</summary>
@@ -664,6 +841,10 @@ public partial class SaveSystem : Node
 		{
 			["weapons"] = ToSortedArray(_weaponUnlocks),
 		};
+		_data["ratings"] = ToRatingsDictionary();
+		_data["talents"] = ToTalentsDictionary();
+		_data["talent_resets"] = ToIntDictionary(_talentResets);
+		_data["talent_penalties"] = ToIntDictionary(_talentPenalties);
 
 		if (_overrides.Count > 0)
 		{
@@ -722,6 +903,30 @@ public partial class SaveSystem : Node
 		foreach (string value in list)
 			array.Add(value);
 		return array;
+	}
+
+	private Godot.Collections.Dictionary ToRatingsDictionary()
+	{
+		var result = new Godot.Collections.Dictionary();
+		foreach (KeyValuePair<string, Godot.Collections.Dictionary> chapter in _ratings)
+			result[chapter.Key] = chapter.Value;
+		return result;
+	}
+
+	private Godot.Collections.Dictionary ToTalentsDictionary()
+	{
+		var result = new Godot.Collections.Dictionary();
+		foreach (KeyValuePair<string, HashSet<string>> line in _talents)
+			result[line.Key] = ToSortedArray(line.Value);
+		return result;
+	}
+
+	private static Godot.Collections.Dictionary ToIntDictionary(Dictionary<string, int> values)
+	{
+		var result = new Godot.Collections.Dictionary();
+		foreach (KeyValuePair<string, int> pair in values)
+			result[pair.Key] = pair.Value;
+		return result;
 	}
 
 	private static Godot.Collections.Dictionary GetDictionary(Godot.Collections.Dictionary dict, string key)

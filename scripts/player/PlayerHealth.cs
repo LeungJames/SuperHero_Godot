@@ -25,13 +25,19 @@ public partial class PlayerHealth : Node
 
 	private PlayerController _player;
 	private PlayerData _data;
+	private WeaponController _weapon;
+	private Camera3D _camera;
 	private bool _airborne;
 	private float _airbornePeakY;
+	private float _damageReduction;
+	private float _damageReductionTimer;
 
 	public override void _Ready()
 	{
 		_player = GetParent<PlayerController>();
 		_data = _player.Data;
+		_weapon = _player.GetNodeOrNull<WeaponController>("Head/Camera3D/ViewModel/Weapon");
+		_camera = _player.GetNodeOrNull<Camera3D>("Head/Camera3D");
 
 		if (_data == null)
 		{
@@ -84,17 +90,64 @@ public partial class PlayerHealth : Node
 		TakeDamage(damage, DeathCause.Fall);
 	}
 
-	public void TakeDamage(float amount, DeathCause cause)
+	public override void _Process(double delta)
+	{
+		if (_damageReductionTimer <= 0f)
+			return;
+
+		_damageReductionTimer = Mathf.Max(0f, _damageReductionTimer - (float)delta);
+		if (_damageReductionTimer <= 0f)
+			_damageReduction = 0f;
+	}
+
+	/// <summary>A4 处决后的短暂减伤；只降低受伤，不涉及回血。</summary>
+	public void ApplyDamageReduction(float fraction, float duration)
+	{
+		if (duration <= 0f || fraction <= 0f)
+			return;
+
+		_damageReduction = Mathf.Clamp(fraction, 0f, 1f);
+		_damageReductionTimer = duration;
+	}
+
+	public void TakeDamage(float amount, DeathCause cause) => TakeDamage(amount, cause, null);
+
+	/// <summary>带来源位置的伤害入口：A5 格挡只在正面来弹时生效（§5.2）。</summary>
+	public void TakeDamage(float amount, DeathCause cause, Vector3? source)
 	{
 		if (IsDead || amount <= 0f)
 			return;
 
+		// A5：刀格右键的 0.25s 窗口内挡下正面子弹；摔伤 / 落水 / 爆炸不受影响
+		if (cause == DeathCause.Gunshot && BlocksIncoming(source))
+			return;
+
+		amount *= 1f - _damageReduction;
 		Health = Mathf.Max(0f, Health - amount);
 		Damaged?.Invoke(amount, cause);
 		HealthChanged?.Invoke(Health, MaxHealth);
 
 		if (Health <= 0f)
 			Die(cause);
+	}
+
+	private bool BlocksIncoming(Vector3? source)
+	{
+		if (_weapon == null || !_weapon.IsBlocking)
+			return false;
+		if (source == null)
+			return true;
+
+		Vector3 forward = _camera != null
+			? -_camera.GlobalTransform.Basis.Z
+			: -_player.GlobalTransform.Basis.Z;
+		Vector3 toSource = source.Value - _player.GlobalPosition;
+		forward.Y = 0f;
+		toSource.Y = 0f;
+
+		if (forward.LengthSquared() < 0.0001f || toSource.LengthSquared() < 0.0001f)
+			return true;
+		return forward.Normalized().Dot(toSource.Normalized()) > 0f;
 	}
 
 	public void Kill(DeathCause cause)
@@ -109,10 +162,12 @@ public partial class PlayerHealth : Node
 
 	private float CalculateFallDamage(float drop)
 	{
-		if (drop <= _data.FallSafeHeight)
+		// M8 落地缓冲：起算高度 +4m，摔伤 ×0.7
+		float safeHeight = _data.FallSafeHeight + TalentEffects.FallSafeHeightAdd;
+		if (drop <= safeHeight)
 			return 0f;
 
-		return Mathf.Min(100f, (drop - _data.FallSafeHeight) * _data.FallDamagePerMeter);
+		return Mathf.Min(100f, (drop - safeHeight) * _data.FallDamagePerMeter) * TalentEffects.FallDamageScale;
 	}
 
 	private void Die(DeathCause cause)

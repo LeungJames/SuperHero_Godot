@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TalentNodeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/talents/TalentNodeData.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+Id = "A3"
+Line = 2
+DisplayName = "无声接近"
+Cost = 2
+PrerequisiteId = "A1"
+Effects = PackedStringArray("silent_approach")
+Description = "静步速度 2.2→3.0 m/s，脚步声范围 -40%。"
+RequiredClearedChapter = ""

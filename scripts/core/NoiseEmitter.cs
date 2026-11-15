@@ -19,10 +19,11 @@ public static class NoiseEmitter
 	/// <summary>枪声传播半径的兜底值；实际半径由 StealthConfig.GunshotNoiseRadius 决定。</summary>
 	public const float GunshotRadius = 30f;
 
-	public static event Action<Vector3, NoiseKind> Emitted;
+	/// <summary>噪声事件：位置、类型、半径倍率（1 = 原半径）。</summary>
+	public static event Action<Vector3, NoiseKind, float> Emitted;
 
-	public static void Emit(Vector3 position, NoiseKind kind)
+	public static void Emit(Vector3 position, NoiseKind kind, float radiusScale = 1f)
 	{
-		Emitted?.Invoke(position, kind);
+		Emitted?.Invoke(position, kind, radiusScale);
 	}
 }

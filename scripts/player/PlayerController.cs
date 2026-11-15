@@ -11,6 +11,17 @@ public enum MoveState
 	Hang,
 }
 
+/// <summary>评级统计的机动动作类型（§6.2）。</summary>
+public enum MobilityAction
+{
+	Slide,
+	WallRun,
+	Vault,
+	Climb,
+	Dash,
+	Hook,
+}
+
 /// <summary>
 /// 第一人称移动：自定义速度积分 + 土狼时间 + 跳跃缓冲；
 /// 机动状态机：滑铲 / 蹬墙跑 / 翻越 / 边缘攀爬（设计文档 §5.1）。
@@ -22,6 +33,9 @@ public partial class PlayerController : CharacterBody3D
 
 	/// <summary>落下一步（脚步声的播放时机由 AudioDirector 决定）。</summary>
 	public event Action Footstepped;
+
+	/// <summary>进入一次机动动作（评级统计用；同一动作由订阅方去重）。</summary>
+	public event Action<MobilityAction> MobilityPerformed;
 
 	/// <summary>死亡或演出期间由外部关闭。</summary>
 	public bool InputEnabled { get; set; } = true;
@@ -94,6 +108,22 @@ public partial class PlayerController : CharacterBody3D
 
 	private float _standCapsuleHeight;
 	private float _standEyeHeight;
+
+	// 天赋机动（M2 / M3 / M4 / M5）
+	private const float DashDuration = 0.25f;
+	private bool _airJumpUsed;
+	private float _dashBuffer;
+	private float _dashTimer;
+	private float _dashCooldown;
+	private Vector3 _dashDirection;
+	private float _grappleBuffer;
+	private float _grappleTimer;
+	private float _grappleCooldown;
+	private Vector3 _grappleTarget;
+	private float _edgeSpeedTimer;
+
+	/// <summary>M5 边缘加速的移速倍率。</summary>
+	private float EdgeSpeedScale => _edgeSpeedTimer > 0f ? 1f + TalentEffects.EdgeSpeedBonus : 1f;
 	private HudController _hud;
 
 	public override void _Ready()
@@ -116,6 +146,10 @@ public partial class PlayerController : CharacterBody3D
 		// 在输入回调里记录跳跃，避免高帧率下物理帧轮询漏掉按键
 		if (InputEnabled && @event.IsActionPressed("jump"))
 			_jumpBufferTimer = Data.JumpBuffer;
+		if (InputEnabled && @event.IsActionPressed("dash"))
+			_dashBuffer = 0.15f;
+		if (InputEnabled && @event.IsActionPressed("grapple"))
+			_grappleBuffer = 0.15f;
 	}
 
 	public override void _PhysicsProcess(double delta)
@@ -126,6 +160,13 @@ public partial class PlayerController : CharacterBody3D
 		_mobilityCooldown = Mathf.Max(0f, _mobilityCooldown - dt);
 		_slideWindow = Mathf.Max(0f, _slideWindow - dt);
 		_wallRunGrace = Mathf.Max(0f, _wallRunGrace - dt);
+		_dashBuffer = Mathf.Max(0f, _dashBuffer - dt);
+		_dashCooldown = Mathf.Max(0f, _dashCooldown - dt);
+		_grappleBuffer = Mathf.Max(0f, _grappleBuffer - dt);
+		_grappleCooldown = Mathf.Max(0f, _grappleCooldown - dt);
+		_edgeSpeedTimer = Mathf.Max(0f, _edgeSpeedTimer - dt);
+		if (IsOnFloor())
+			_airJumpUsed = false;
 		LandedWithMobility = false;
 
 		if (!InputEnabled && _state != MoveState.Normal)
@@ -202,11 +243,14 @@ public partial class PlayerController : CharacterBody3D
 
 	private void UpdateNormal(float dt)
 	{
+		if (TryUpdateTalentMotion(dt))
+			return;
+
 		bool grounded = IsOnFloor();
 		_coyoteTimer = grounded ? Data.CoyoteTime : Mathf.Max(0f, _coyoteTimer - dt);
 
 		Vector3 wishDirection = GetWishDirection();
-		float targetSpeed = InputEnabled ? GetTargetSpeed() * MoveSpeedMultiplier : 0f;
+		float targetSpeed = InputEnabled ? GetTargetSpeed() * MoveSpeedMultiplier * EdgeSpeedScale : 0f;
 
 		Vector3 velocity = Velocity;
 
@@ -230,6 +274,14 @@ public partial class PlayerController : CharacterBody3D
 		if (TryConsumeJump())
 		{
 			velocity.Y = Data.JumpVelocity;
+			_airJumpUsed = false;
+		}
+		else if (TalentEffects.DoubleJump && !grounded && !_airJumpUsed && _jumpBufferTimer > 0f)
+		{
+			// M3 二段跳：空中再消耗一次跳跃，高度按首次跳跃的配置比例换算
+			_jumpBufferTimer = 0f;
+			_airJumpUsed = true;
+			velocity.Y = Data.JumpVelocity * TalentEffects.DoubleJumpVelocityScale;
 		}
 		else
 		{
@@ -243,6 +295,118 @@ public partial class PlayerController : CharacterBody3D
 
 		if (!grounded && IsOnFloor() && _camera != null)
 			_camera.LandingBump(impactSpeed);
+	}
+
+	/// <summary>
+	/// 天赋机动：钩锁拉近、空中冲刺（M2 / M4）。返回 true 表示本帧已接管位移，
+	/// 普通移动与重力不再参与。
+	/// </summary>
+	private bool TryUpdateTalentMotion(float dt)
+	{
+		if (_grappleTimer > 0f)
+		{
+			Vector3 delta = _grappleTarget - GlobalPosition;
+			float distance = delta.Length();
+			if (distance < 1.5f)
+			{
+				EndGrapple();
+				return false;
+			}
+
+			Velocity = delta / distance * 20f;
+			MoveAndSlide();
+			_grappleTimer -= dt;
+			if (_grappleTimer <= 0f)
+				EndGrapple();
+			return true;
+		}
+
+		if (_dashTimer > 0f)
+		{
+			float speed = TalentEffects.AirDashDistance / DashDuration;
+			Velocity = new Vector3(_dashDirection.X * speed, 0f, _dashDirection.Z * speed);
+			MoveAndSlide();
+			_dashTimer -= dt;
+			return true;
+		}
+
+		if (_grappleBuffer > 0f && !IsOnFloor() && TalentEffects.Grapple &&
+			_grappleCooldown <= 0f && TryStartGrapple())
+			return true;
+
+		if (_dashBuffer > 0f && !IsOnFloor() && TalentEffects.AirDash && _dashCooldown <= 0f)
+		{
+			_dashBuffer = 0f;
+			_coyoteTimer = 0f;
+			Vector3 direction = Flat(GetWishDirection());
+			_dashDirection = direction.LengthSquared() > 0.01f
+				? direction.Normalized()
+				: Flat(-GlobalTransform.Basis.Z).Normalized();
+			_dashTimer = DashDuration;
+			_dashCooldown = TalentEffects.AirDashCooldown;
+			MobilityPerformed?.Invoke(MobilityAction.Dash);
+			return true;
+		}
+
+		return false;
+	}
+
+	/// <summary>钩锁只抓带 <c>hook_anchor</c> 组的标记：视线前方、40m 内且中间无墙体遮挡。</summary>
+	private bool TryStartGrapple()
+	{
+		Camera3D camera = GetViewport()?.GetCamera3D();
+		if (camera == null)
+			return false;
+
+		Vector3 origin = camera.GlobalPosition;
+		Vector3 forward = -camera.GlobalTransform.Basis.Z;
+		Node3D best = null;
+		float bestScore = float.MinValue;
+
+		foreach (Node node in GetTree().GetNodesInGroup("hook_anchor"))
+		{
+			if (node is not Node3D anchor || !anchor.IsVisibleInTree())
+				continue;
+
+			Vector3 to = anchor.GlobalPosition - origin;
+			float distance = to.Length();
+			if (distance < 2f || distance > TalentEffects.GrappleRange)
+				continue;
+
+			float facing = forward.Dot(to / distance);
+			if (facing < 0.55f)
+				continue;
+
+			// 锚点与玩家之间不能有遮挡；细格栅没有独立层，按普通墙体处理
+			PhysicsRayQueryParameters3D sightQuery =
+				PhysicsRayQueryParameters3D.Create(origin, anchor.GlobalPosition, WorldMask);
+			sightQuery.Exclude = _rayExclude;
+			if (GetWorld3D().DirectSpaceState.IntersectRay(sightQuery).Count > 0)
+				continue;
+
+			float score = facing * 10f - distance * 0.05f;
+			if (score <= bestScore)
+				continue;
+
+			bestScore = score;
+			best = anchor;
+		}
+
+		if (best == null)
+			return false;
+
+		_grappleBuffer = 0f;
+		_grappleTarget = best.GlobalPosition + Vector3.Up * 0.4f;
+		_grappleTimer = 1.4f;
+		_grappleCooldown = TalentEffects.GrappleCooldown;
+		MobilityPerformed?.Invoke(MobilityAction.Hook);
+		return true;
+	}
+
+	private void EndGrapple()
+	{
+		_grappleTimer = 0f;
+		Velocity = Flat(Velocity) * 0.35f + Vector3.Up * 1f;
 	}
 
 	/// <summary>静步不发声；走路 / 冲刺按速度间隔广播脚步声（设计文档 §3.1、§5.4）。</summary>
@@ -267,7 +431,7 @@ public partial class PlayerController : CharacterBody3D
 		NoiseKind kind = speed >= Data.SprintSpeed * 0.9f
 			? NoiseKind.FootstepSprint
 			: NoiseKind.FootstepWalk;
-		NoiseEmitter.Emit(GlobalPosition, kind);
+		NoiseEmitter.Emit(GlobalPosition, kind, TalentEffects.FootstepRangeScale);
 		Footstepped?.Invoke();
 	}
 
@@ -286,7 +450,7 @@ public partial class PlayerController : CharacterBody3D
 		float speed = Data.WalkSpeed;
 
 		if (Input.IsActionPressed("walk_slow"))
-			speed = Data.SlowWalkSpeed;
+			speed = TalentEffects.SlowWalkSpeed > 0f ? TalentEffects.SlowWalkSpeed : Data.SlowWalkSpeed;
 		else if (Input.IsActionPressed("sprint"))
 			speed = Data.SprintSpeed;
 
@@ -395,6 +559,7 @@ public partial class PlayerController : CharacterBody3D
 		_slideFromLanding = landingSlide;
 		_state = MoveState.Slide;
 		Velocity = new Vector3(_slideDirection.X * _slideSpeed, velocity.Y, _slideDirection.Z * _slideSpeed);
+		MobilityPerformed?.Invoke(MobilityAction.Slide);
 	}
 
 	private void UpdateSlide(float dt)
@@ -427,7 +592,7 @@ public partial class PlayerController : CharacterBody3D
 		// 落地滑铲是一按到底的"救场动作"，不因松开蹲伏而提前断掉
 		bool released = Input.IsActionJustReleased("crouch") && !_slideFromLanding && _slideTimer >= 0.2f;
 		bool tooSlow = _slideSpeed <= Data.SlideEndSpeed;
-		if (released || tooSlow || _slideTimer >= Data.SlideMaxTime || !IsOnFloor())
+		if (released || tooSlow || _slideTimer >= Data.SlideMaxTime * TalentEffects.SlideDistanceScale || !IsOnFloor())
 			ExitToNormal(Velocity);
 	}
 
@@ -493,6 +658,7 @@ public partial class PlayerController : CharacterBody3D
 		Vector3 along = tangent * Mathf.Max(HorizontalSpeed(velocity), Data.WallRunMinSpeed);
 		Velocity = new Vector3(along.X, Mathf.Max(velocity.Y, 0f), along.Z);
 		_state = MoveState.WallRun;
+		MobilityPerformed?.Invoke(MobilityAction.WallRun);
 		return true;
 	}
 
@@ -523,13 +689,13 @@ public partial class PlayerController : CharacterBody3D
 			return;
 		}
 
-		float down = Mathf.Max(Velocity.Y - Data.WallRunGravity * dt, -Data.WallRunMaxFall);
+		float down = Mathf.Max(Velocity.Y - Data.WallRunGravity * TalentEffects.WallRunFallScale * dt, -Data.WallRunMaxFall);
 		float alongSpeed = Mathf.Max(HorizontalSpeed(Velocity), Data.WallRunMinSpeed);
 		Vector3 run = _wallTangent * alongSpeed - _wallNormal * Data.WallRunStickSpeed;
 		Velocity = new Vector3(run.X, down, run.Z);
 		MoveAndSlide();
 
-		if (_wallTimer >= Data.WallRunMaxTime || IsOnFloor())
+		if (_wallTimer >= Data.WallRunMaxTime + TalentEffects.WallRunMaxTimeAdd || IsOnFloor())
 			ExitToNormal(Velocity, true);
 	}
 
@@ -563,6 +729,7 @@ public partial class PlayerController : CharacterBody3D
 		Vector3 target = topPoint + forward * Data.VaultLandingOffset;
 		target.Y = topPoint.Y + 0.05f;
 		BeginAction(target, Data.VaultDuration, Flat(velocity));
+		MobilityPerformed?.Invoke(MobilityAction.Vault);
 		return true;
 	}
 
@@ -592,6 +759,7 @@ public partial class PlayerController : CharacterBody3D
 		_hangLedgeY = topPoint.Y;
 		_state = MoveState.Hang;
 		Velocity = Vector3.Zero;
+		MobilityPerformed?.Invoke(MobilityAction.Climb);
 		return true;
 	}
 
@@ -653,6 +821,10 @@ public partial class PlayerController : CharacterBody3D
 			Velocity = new Vector3(dir.X * speed, 0f, dir.Z * speed);
 			ExitToNormal(Velocity);
 			_coyoteTimer = Data.CoyoteTime;
+
+			// M5 边缘加速：翻越 / 攀爬上沿后短时间提速
+			if (TalentEffects.EdgeSpeed)
+				_edgeSpeedTimer = TalentEffects.EdgeSpeedDuration;
 		}
 	}
 

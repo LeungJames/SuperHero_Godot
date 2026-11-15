@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TalentNodeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/talents/TalentNodeData.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+Id = "A1"
+Line = 2
+DisplayName = "利刃"
+Cost = 1
+PrerequisiteId = "A0"
+Effects = PackedStringArray("blade_damage")
+Description = "近战伤害 +30%。"
+RequiredClearedChapter = ""

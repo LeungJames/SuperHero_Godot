@@ -56,7 +56,11 @@ public partial class GameManager : Node
 	private ChapterSelect _chapterSelect;
 	private CollectiblesMenu _collectiblesMenu;
 	private LoadoutMenu _loadoutMenu;
+	private TalentMenu _talentMenu;
+	private RunStatsCollector _stats;
 	private Button _difficultyButton;
+
+	private bool _talentFromPause;
 
 	private float _defeatTimer;
 	private bool _defeatPending;
@@ -79,11 +83,21 @@ public partial class GameManager : Node
 		_collectiblesMenu = _pauseMenu.GetNodeOrNull<CollectiblesMenu>("CollectiblesMenu");
 		_loadoutMenu = _pauseMenu.GetNodeOrNull<LoadoutMenu>("LoadoutMenu");
 
+		// M6 天赋页：挂到 UI 层，暂停菜单只读、结算面板可加点，两种入口共用同一实例
+		if (GD.Load<PackedScene>("res://scenes/ui/TalentMenu.tscn")?.Instantiate() is TalentMenu talent)
+		{
+			talent.Name = "TalentMenu";
+			GetNode<CanvasLayer>("../../UI").AddChild(talent);
+			_talentMenu = talent;
+			_talentMenu.Closed += OnTalentClosed;
+		}
+
 		_weapon = GetTree().GetFirstNodeInGroup("weapon") as WeaponController;
 
 		_health.Died += OnPlayerDied;
 		_registry.CountChanged += OnEnemyCountChanged;
 		_registry.AllCleared += EnterVictory;
+		_registry.EnemyDied += OnEnemyKilled;
 
 		if (_weapon != null)
 			_weapon.ShotResolved += OnShotResolved;
@@ -91,6 +105,7 @@ public partial class GameManager : Node
 		_results.NextPressed += GoToNextChapter;
 		_results.RestartPressed += Restart;
 		_results.QuitPressed += Quit;
+		_results.TalentPressed += OpenTalentFromResults;
 
 		WirePauseMenu();
 
@@ -111,6 +126,20 @@ public partial class GameManager : Node
 
 		// 旧存档迁移：按已通关章节补齐武器解锁，幂等
 		LoadoutSystem.EnsureUnlocksFromClearedChapters();
+
+		// 评级采集：随关卡销毁，不跨场景保留
+		_stats = new RunStatsCollector { Name = "RunStatsCollector" };
+		AddChild(_stats);
+		_stats.Bind(_player, _health, _weapon, _registry);
+		Callable.From(BindStealthStats).CallDeferred();
+
+		// A8 杀气感知：只在已点天赋的关卡里挂载
+		if (TalentEffects.KillSense)
+		{
+			var sense = new KillSense { Name = "KillSense" };
+			AddChild(sense);
+			sense.Bind(_player, _registry);
+		}
 
 		MaxHeight = _player.GlobalPosition.Y;
 		_hud.SetEnemyCount(_registry.AliveCount, _registry.TotalCount);
@@ -160,6 +189,12 @@ public partial class GameManager : Node
 	/// <summary>设置 / 章节选择打开时，Esc 先退子页，而不是直接继续游戏。</summary>
 	private void HandlePausePressed()
 	{
+		if (_talentMenu is { Visible: true })
+		{
+			_talentMenu.Close();
+			return;
+		}
+
 		if (_loadoutMenu is { Visible: true })
 		{
 			_loadoutMenu.Close();
@@ -231,10 +266,14 @@ public partial class GameManager : Node
 		SaveSystem.Instance?.AppendRunRecord(ChapterId, true, ElapsedTime, Kills, TotalEnemies,
 			ShotsFired, ShotsHit, Headshots, string.Empty, LoadoutSystem.DescribeFor(ChapterId));
 
+		// 通关才结算评级与点数；失败与中途退出不入账（§6.5）
+		RunStats stats = _stats != null ? _stats.Build(ElapsedTime, Kills) : default;
+		RatingOutcome rating = RatingSystem.Settle(ChapterId, stats);
+
 		string nextLabel = string.IsNullOrEmpty(NextScenePath)
 			? null
 			: $"进入{(string.IsNullOrEmpty(NextChapterLabel) ? "下一章" : NextChapterLabel)}（Enter）";
-		_results.Present(true, VictorySubtitle, BuildStats(victory: true), nextLabel, IsFinalChapter);
+		_results.Present(true, VictorySubtitle, BuildStats(victory: true), nextLabel, IsFinalChapter, rating);
 	}
 
 	private void ShowDefeatResults()
@@ -242,6 +281,15 @@ public partial class GameManager : Node
 		SaveSystem.Instance?.AppendRunRecord(ChapterId, false, ElapsedTime, Kills, TotalEnemies,
 			ShotsFired, ShotsHit, Headshots, DeathCause.ToString(), LoadoutSystem.DescribeFor(ChapterId));
 		_results.Present(false, DescribeDeathCause(), BuildStats(victory: false));
+	}
+
+	/// <summary>StealthDirector 与 GameManager 的 _Ready 先后不确定，延迟到本帧末绑定。</summary>
+	private void BindStealthStats()
+	{
+		if (_stats == null)
+			return;
+
+		_stats.BindStealth(GetTree().GetFirstNodeInGroup("stealth_director") as StealthDirector);
 	}
 
 	private string DescribeDeathCause()
@@ -307,6 +355,15 @@ public partial class GameManager : Node
 		_hud.SetEnemyCount(alive, total);
 	}
 
+	/// <summary>W6 弹药回收：击杀直接补当前枪备弹，不生成实体弹药包。</summary>
+	private void OnEnemyKilled(EnemyHealth enemy)
+	{
+		if (!TalentEffects.AmmoRecover || _weapon == null)
+			return;
+
+		_weapon.TryAddAmmo(TalentEffects.AmmoRecoverRounds);
+	}
+
 	// ------------------------------------------------------------ 暂停与重开
 
 	private void WirePauseMenu()
@@ -315,6 +372,7 @@ public partial class GameManager : Node
 		var settings = _pauseMenu.GetNodeOrNull<Button>("Panel/VBox/SettingsButton");
 		var chapters = _pauseMenu.GetNodeOrNull<Button>("Panel/VBox/ChaptersButton");
 		var collectibles = _pauseMenu.GetNodeOrNull<Button>("Panel/VBox/CollectiblesButton");
+		var talentButton = _pauseMenu.GetNodeOrNull<Button>("Panel/VBox/TalentButton");
 		_difficultyButton = _pauseMenu.GetNodeOrNull<Button>("Panel/VBox/DifficultyButton");
 		var quit = _pauseMenu.GetNodeOrNull<Button>("Panel/VBox/QuitButton");
 
@@ -326,6 +384,8 @@ public partial class GameManager : Node
 			chapters.Pressed += OpenChapterSelect;
 		if (collectibles != null)
 			collectibles.Pressed += OpenCollectibles;
+		if (talentButton != null)
+			talentButton.Pressed += OpenTalentReadOnly;
 		if (_difficultyButton != null)
 			_difficultyButton.Pressed += CycleDifficulty;
 		if (quit != null)
@@ -378,6 +438,48 @@ public partial class GameManager : Node
 	{
 		SetPauseMainPanelVisible(false);
 		_collectiblesMenu?.Open();
+	}
+
+	// ------------------------------------------------------------ 天赋入口（§5.3）
+
+	/// <summary>暂停菜单：只读查看，关卡中途不允许加点或重置。</summary>
+	private void OpenTalentReadOnly()
+	{
+		if (_talentMenu == null)
+			return;
+
+		_talentFromPause = true;
+		SetPauseMainPanelVisible(false);
+		_talentMenu.Open(editable: false);
+	}
+
+	/// <summary>胜负结算面板：可加点 / 重置，失败结算视为重试前调整。</summary>
+	private void OpenTalentFromResults()
+	{
+		if (_talentMenu == null)
+			return;
+
+		_talentFromPause = false;
+		_talentMenu.Open(editable: true);
+	}
+
+	private void OnTalentClosed()
+	{
+		if (_suppressSubmenuCallback)
+			return;
+
+		if (_talentFromPause)
+		{
+			_talentFromPause = false;
+			if (GetTree().Paused && _pauseMenu.Visible)
+			{
+				SetPauseMainPanelVisible(true);
+				_pauseMenu.GetNodeOrNull<Button>("Panel/VBox/ResumeButton")?.GrabFocus();
+			}
+			return;
+		}
+
+		_results.FocusPrimary();
 	}
 
 	/// <summary>已通关章节先选武器；未通关直接进关，保持首次通关默认配置。</summary>
@@ -441,6 +543,7 @@ public partial class GameManager : Node
 			_chapterSelect?.Close();
 			_collectiblesMenu?.Close();
 			_loadoutMenu?.Close();
+			_talentMenu?.Close();
 			_suppressSubmenuCallback = false;
 		}
 

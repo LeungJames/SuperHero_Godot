@@ -51,6 +51,12 @@ public partial class ExecutionController : Node3D
 	private EnemyHealth _promptTarget;
 	private EnemyHealth _target;
 	private float _cooldown;
+	private float _chainTimer;
+
+	/// <summary>A4 处决延伸 + A6 暗杀链的临时距离。</summary>
+	private float EffectiveRange =>
+		(Data?.Range ?? 0f) + TalentEffects.ExecutionRangeAdd +
+		(_chainTimer > 0f ? TalentEffects.ChainRangeAdd : 0f);
 	private float _timer;
 	private bool _struck;
 	private bool _inputWasEnabled;
@@ -99,6 +105,8 @@ public partial class ExecutionController : Node3D
 
 		if (_cooldown > 0f)
 			_cooldown = Mathf.Max(0f, _cooldown - dt);
+		if (_chainTimer > 0f)
+			_chainTimer = Mathf.Max(0f, _chainTimer - dt);
 
 		switch (_phase)
 		{
@@ -162,7 +170,7 @@ public partial class ExecutionController : Node3D
 			Vector3 toPlayer = Flat(feet - enemyFeet);
 			float distance = toPlayer.Length();
 
-			if (distance > Data.Range || distance < 0.05f)
+			if (distance > EffectiveRange || distance < 0.05f)
 				continue;
 			if (Mathf.Abs(feet.Y - enemyFeet.Y) > Data.MaxVerticalGap)
 				continue;
@@ -308,6 +316,12 @@ public partial class ExecutionController : Node3D
 		}
 
 		_cooldown = Data != null ? Data.Cooldown : 1.4f;
+		_chainTimer = TalentEffects.ChainAssassination ? TalentEffects.ChainWindow : 0f;
+
+		// A4：处决完成后 1s 内受击减伤 50%
+		if (TalentEffects.ExecutionExtended)
+			_health?.ApplyDamageReduction(TalentEffects.ExecutionDamageReduction, TalentEffects.ExecutionReductionTime);
+
 		_phase = Phase.Idle;
 		_target = null;
 		_promptTarget = null;

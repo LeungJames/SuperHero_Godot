@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TalentNodeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/talents/TalentNodeData.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+Id = "W2"
+Line = 1
+DisplayName = "快速换弹"
+Cost = 1
+PrerequisiteId = "W0"
+Effects = PackedStringArray("reload_fast")
+Description = "换弹时间 -20%。"
+RequiredClearedChapter = ""

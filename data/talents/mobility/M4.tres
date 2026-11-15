@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TalentNodeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/talents/TalentNodeData.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+Id = "M4"
+Line = 0
+DisplayName = "钩锁"
+Cost = 3
+PrerequisiteId = "M1"
+Effects = PackedStringArray("grapple")
+Description = "40m 钩锁，向白名单锚点拉近。"
+RequiredClearedChapter = ""

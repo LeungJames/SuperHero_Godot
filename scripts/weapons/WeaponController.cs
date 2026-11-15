@@ -36,6 +36,9 @@ public partial class WeaponController : Node3D
 	/// <summary>空仓扣扳机。</summary>
 	public event Action DryFired;
 
+	/// <summary>弹匣打空且 0.5s 内没有换弹（评级"空仓次数"，§6.2）。</summary>
+	public event Action EmptyMagFired;
+
 	/// <summary>切换武器完成（模型与数值已生效）。</summary>
 	public event Action<WeaponData> WeaponChanged;
 
@@ -67,6 +70,9 @@ public partial class WeaponController : Node3D
 	public bool IsReloading { get; private set; }
 	public bool IsAiming { get; private set; }
 
+	/// <summary>A5：刀格按住右键格挡窗口是否生效。</summary>
+	public bool IsBlocking => _blockHeld && _blockWindow > 0f;
+
 	/// <summary>当前散布角（度），准星按它张开（§7.2）。</summary>
 	public float CurrentSpreadDegrees => Data != null ? GetSpreadDegrees() : 0f;
 
@@ -75,8 +81,19 @@ public partial class WeaponController : Node3D
 
 	/// <summary>换弹进度 0~1，未换弹时为 0。</summary>
 	public float ReloadProgress => IsReloading && Data != null
-		? Mathf.Clamp(1f - _reloadTimer / Mathf.Max(Data.ReloadTime, 0.001f), 0f, 1f)
+		? Mathf.Clamp(1f - _reloadTimer / Mathf.Max(ReloadDuration, 0.001f), 0f, 1f)
 		: 0f;
+
+	/// <summary>W1 后的实际弹匣容量（向上取整）。</summary>
+	private int EffectiveMagazineSize =>
+		Data != null ? Mathf.CeilToInt(Data.MagazineSize * TalentEffects.MagazineScale) : 0;
+
+	/// <summary>W2 后的实际换弹时长。</summary>
+	private float ReloadDuration =>
+		Data != null ? Mathf.Max(Data.ReloadTime * TalentEffects.ReloadScale, 0.01f) : 0.01f;
+
+	/// <summary>W3 后的切枪时长倍率。</summary>
+	private float SwapDurationScale => TalentEffects.SwapScale;
 
 	private const float MuzzleFlashEnergy = 1.2f;
 	private const int MaxSlots = 5;
@@ -110,6 +127,13 @@ public partial class WeaponController : Node3D
 	private float _sinceLastShot;
 	private float _swayPhase;
 	private bool _fireQueued;
+	private bool _emptyMagPending;
+	private float _emptyMagTimer;
+	private float _swapSpreadTimer;
+	private float _blockWindow;
+	private float _blockCooldown;
+	private bool _blockHeld;
+	private int _hitStreak;
 
 	private SwapPhase _phase;
 	private float _swapTimer;
@@ -199,6 +223,17 @@ public partial class WeaponController : Node3D
 		if (@event.IsActionPressed("reload") && !IsKnifeActive)
 			StartReload();
 
+		// A5：只有刀格右键才是格挡；枪格右键继续走 UpdateAim 开镜
+		if (@event.IsActionPressed("aim") && IsKnifeActive)
+		{
+			_blockHeld = true;
+			TryBlock();
+		}
+		else if (@event.IsActionReleased("aim"))
+		{
+			_blockHeld = false;
+		}
+
 		if (@event.IsActionPressed("weapon_next"))
 			Equip((ActiveIndex + 1) % Mathf.Max(WeaponCount, 1));
 		else if (@event.IsActionPressed("weapon_prev"))
@@ -217,7 +252,22 @@ public partial class WeaponController : Node3D
 		float dt = (float)delta;
 
 		_cooldown = Mathf.Max(0f, _cooldown - dt);
+
+		// 空仓计时：0.5s 内换弹则取消，否则记一次空仓
+		if (_emptyMagPending)
+		{
+			_emptyMagTimer -= dt;
+			if (_emptyMagTimer <= 0f)
+			{
+				_emptyMagPending = false;
+				EmptyMagFired?.Invoke();
+			}
+		}
+
 		_sinceLastShot += dt;
+		_swapSpreadTimer = Mathf.Max(0f, _swapSpreadTimer - dt);
+		_blockWindow = Mathf.Max(0f, _blockWindow - dt);
+		_blockCooldown = Mathf.Max(0f, _blockCooldown - dt);
 		if (_sinceLastShot > Data.RecoilStackResetTime)
 			_recoilStack = 0f;
 
@@ -260,6 +310,10 @@ public partial class WeaponController : Node3D
 		if (IsKnifeActive || !CanAct || Data == null || IsReloading || _cooldown > 0f)
 			return false;
 
+		// M6：滑铲中开火需要点出"滑铲延长"
+		if (_player != null && _player.IsSliding && !TalentEffects.SlideExtended)
+			return false;
+
 		if (MagAmmo <= 0)
 		{
 			// 空仓：锁住射速并交给 AudioDirector 播"咔"
@@ -270,6 +324,13 @@ public partial class WeaponController : Node3D
 
 		_mags[ActiveIndex]--;
 		AmmoChanged?.Invoke(MagAmmo, ReserveAmmo);
+
+		if (MagAmmo == 0)
+		{
+			_emptyMagPending = true;
+			_emptyMagTimer = 0.5f;
+		}
+
 		_cooldown = 1f / Data.ShotsPerSecond;
 		_sinceLastShot = 0f;
 
@@ -282,12 +343,13 @@ public partial class WeaponController : Node3D
 		if (IsKnifeActive || !CanAct || Data == null || IsReloading)
 			return false;
 
-		if (MagAmmo >= Data.MagazineSize || ReserveAmmo <= 0)
+		if (MagAmmo >= EffectiveMagazineSize || ReserveAmmo <= 0)
 			return false;
 
 		IsReloading = true;
 		IsAiming = false;
-		_reloadTimer = Data.ReloadTime;
+		_emptyMagPending = false;
+		_reloadTimer = ReloadDuration;
 		_magOutCued = false;
 		_seatCued = false;
 		_slideCued = false;
@@ -314,6 +376,16 @@ public partial class WeaponController : Node3D
 
 	// ------------------------------------------------------------ 切枪
 
+	/// <summary>章节结算前把未到 0.5s 的空仓计入（避免最后一发刚好在胜利时被漏掉）。</summary>
+	public void FlushEmptyMag()
+	{
+		if (!_emptyMagPending)
+			return;
+
+		_emptyMagPending = false;
+		EmptyMagFired?.Invoke();
+	}
+
 	/// <summary>切换到第 index 把可用武器（收枪 → 换模型 → 抬枪）。</summary>
 	public bool Equip(int index)
 	{
@@ -327,6 +399,8 @@ public partial class WeaponController : Node3D
 		_phase = SwapPhase.Lowering;
 		IsAiming = false;
 		_fireQueued = false;
+		_blockHeld = false;
+		_blockWindow = 0f;
 		CancelReload();
 		return true;
 	}
@@ -377,7 +451,7 @@ public partial class WeaponController : Node3D
 		_reserves = new int[_weapons.Count];
 		for (int i = 0; i < _weapons.Count; i++)
 		{
-			_mags[i] = _weapons[i].MagazineSize;
+			_mags[i] = Mathf.CeilToInt(_weapons[i].MagazineSize * TalentEffects.MagazineScale);
 			_reserves[i] = _weapons[i].StartingReserve;
 		}
 	}
@@ -397,7 +471,8 @@ public partial class WeaponController : Node3D
 		if (_phase == SwapPhase.Idle)
 			return;
 
-		float duration = Mathf.Max(_phase == SwapPhase.Lowering ? Arsenal.SwapLowerTime : Arsenal.SwapRaiseTime, 0.01f);
+		float duration = Mathf.Max(
+			(_phase == SwapPhase.Lowering ? Arsenal.SwapLowerTime : Arsenal.SwapRaiseTime) * SwapDurationScale, 0.01f);
 		_swapTimer += dt;
 
 		if (_phase == SwapPhase.Lowering && _swapTimer >= duration)
@@ -412,6 +487,7 @@ public partial class WeaponController : Node3D
 			{
 				BuildModel(Data);
 				ApplyData();
+				_swapSpreadTimer = TalentEffects.SwapSpreadWindow;
 				AmmoChanged?.Invoke(MagAmmo, ReserveAmmo);
 				WeaponChanged?.Invoke(Data);
 			}
@@ -431,9 +507,11 @@ public partial class WeaponController : Node3D
 	private float SwapBlend()
 	{
 		if (_phase == SwapPhase.Lowering)
-			return Mathf.SmoothStep(0f, 1f, Mathf.Clamp(_swapTimer / Mathf.Max(Arsenal.SwapLowerTime, 0.01f), 0f, 1f));
+			return Mathf.SmoothStep(0f, 1f, Mathf.Clamp(
+				_swapTimer / Mathf.Max(Arsenal.SwapLowerTime * SwapDurationScale, 0.01f), 0f, 1f));
 		if (_phase == SwapPhase.Raising)
-			return 1f - Mathf.SmoothStep(0f, 1f, Mathf.Clamp(_swapTimer / Mathf.Max(Arsenal.SwapRaiseTime, 0.01f), 0f, 1f));
+			return 1f - Mathf.SmoothStep(0f, 1f, Mathf.Clamp(
+				_swapTimer / Mathf.Max(Arsenal.SwapRaiseTime * SwapDurationScale, 0.01f), 0f, 1f));
 		return 0f;
 	}
 
@@ -561,7 +639,8 @@ public partial class WeaponController : Node3D
 	/// <summary>把当前武器的数值同步到相机与枪口标记。</summary>
 	private void ApplyData()
 	{
-		_cameraOwner.RecoilRecovery = Data.RecoilRecovery;
+		_hitStreak = 0;
+		_cameraOwner.RecoilRecovery = Data.RecoilRecovery * TalentEffects.RecoilRecoveryScale;
 		_cameraOwner.SetAdsFov(Data.AdsFov);
 
 		// 开镜姿势按武器数据重算（狙击枪需要把枪身推远，避免枪托顶住画面中心）
@@ -576,16 +655,46 @@ public partial class WeaponController : Node3D
 
 	// ------------------------------------------------------------ 射击
 
+	/// <summary>A5：刀格右键开启 0.25s 格挡窗口，CD 6s；枪格不受影响。</summary>
+	private void TryBlock()
+	{
+		if (!IsKnifeActive || IsSwapping || !TalentEffects.CanBlock)
+			return;
+		if (_blockWindow > 0f || _blockCooldown > 0f)
+			return;
+
+		_blockWindow = TalentEffects.BlockWindow;
+		_blockCooldown = TalentEffects.BlockCooldown;
+	}
+
+	/// <summary>W8 只覆盖 P-9 与 AR-5；全自动 ST-9、霰弹枪与狙击枪不享受。</summary>
+	private bool IsBurstEligible => Data != null && (Data.Id == "p9" || Data.Id == "ar");
+
 	private void Fire()
 	{
 		Vector3 origin = _camera.GlobalPosition;
 		Vector3 muzzle = _muzzle != null ? _muzzle.GlobalPosition : origin;
 		int pellets = Mathf.Max(1, Data.PelletsPerShot);
 
+		// W8：连续命中 3 发后的下一发 +30%，按每枪一次的节奏结算
+		float burstScale = 1f;
+		if (TalentEffects.BurstFire && IsBurstEligible && _hitStreak >= TalentEffects.BurstHitCount)
+		{
+			burstScale = TalentEffects.BurstDamageScale;
+			_hitStreak = 0;
+		}
+
 		for (int i = 0; i < pellets; i++)
 		{
 			Vector3 direction = HitscanResolver.ApplySpread(-_camera.GlobalTransform.Basis.Z, GetSpreadDegrees());
-			HitscanHit hit = HitscanResolver.Resolve(_player.GetWorld3D(), origin, direction, Data, _exclude);
+
+			if (TalentEffects.ArmorPierce)
+			{
+				FirePiercing(origin, muzzle, direction, burstScale);
+				continue;
+			}
+
+			HitscanHit hit = HitscanResolver.Resolve(_player.GetWorld3D(), origin, direction, Data, _exclude, burstScale);
 
 			// 视觉弹道从枪口出发，打向相机射线的命中点（§4.4）
 			Vector3 endPoint = hit.HasHit ? hit.Point : origin + direction * Data.MaxRange;
@@ -594,6 +703,7 @@ public partial class WeaponController : Node3D
 				SpawnImpact(hit);
 
 			ShotResolved?.Invoke(hit);
+			_hitStreak = hit.HasHit && hit.Collider is Hitbox ? _hitStreak + 1 : 0;
 
 			if (hit.HasHit && hit.Collider is IBulletReceiver receiver)
 				receiver.OnBulletHit(hit);
@@ -610,6 +720,38 @@ public partial class WeaponController : Node3D
 			_muzzleLight.Visible = true;
 	}
 
+	/// <summary>
+	/// W5：穿甲弹沿射线穿过薄掩体与 1 名额外的敌人。
+	/// 统计口径只认首个敌人命中（避免一枪两杀把命中率刷过 100%），其余命中只结算伤害与表现。
+	/// </summary>
+	private void FirePiercing(Vector3 origin, Vector3 muzzle, Vector3 direction, float burstScale)
+	{
+		System.Collections.Generic.List<HitscanHit> hits = HitscanResolver.ResolvePiercing(
+			_player.GetWorld3D(), origin, direction, Data, _exclude, burstScale);
+
+		if (hits.Count == 0)
+		{
+			SpawnTracer(muzzle, origin + direction * Data.MaxRange);
+			ShotResolved?.Invoke(HitscanHit.Miss);
+			_hitStreak = 0;
+			return;
+		}
+
+		HitscanHit primary = hits[0];
+		foreach (HitscanHit hit in hits)
+		{
+			SpawnImpact(hit);
+			if (hit.Collider is IBulletReceiver receiver)
+				receiver.OnBulletHit(hit);
+			if (hit.Collider is Hitbox && primary.Collider is not Hitbox)
+				primary = hit;
+		}
+
+		SpawnTracer(muzzle, hits[^1].Point);
+		ShotResolved?.Invoke(primary);
+		_hitStreak = primary.Collider is Hitbox ? _hitStreak + 1 : 0;
+	}
+
 	private float GetSpreadDegrees()
 	{
 		float spread = IsAiming ? Data.AdsSpread : Data.HipSpread;
@@ -624,6 +766,10 @@ public partial class WeaponController : Node3D
 		if (_player.IsSliding)
 			spread += Data.SlideSpreadPenalty;
 
+		// W3：切枪后的短暂首发散布减免
+		if (_swapSpreadTimer > 0f)
+			spread *= TalentEffects.SwapSpreadScale;
+
 		return spread;
 	}
 
@@ -634,8 +780,8 @@ public partial class WeaponController : Node3D
 		if (IsAiming)
 			multiplier *= Data.AdsRecoilMultiplier;
 
-		float pitch = Data.RecoilPitch * multiplier;
-		float yaw = (float)GD.RandRange(-Data.RecoilYaw, Data.RecoilYaw) * multiplier;
+		float pitch = Data.RecoilPitch * multiplier * TalentEffects.RecoilScale;
+		float yaw = (float)GD.RandRange(-Data.RecoilYaw, Data.RecoilYaw) * multiplier * TalentEffects.RecoilScale;
 		_cameraOwner.AddRecoil(pitch, yaw);
 
 		_recoilStack = Mathf.Min(_recoilStack + Data.RecoilStackPerShot, Data.RecoilStackMax - 1f);
@@ -652,7 +798,7 @@ public partial class WeaponController : Node3D
 
 		// 换弹完成时才扣备弹（§4.6）
 		IsReloading = false;
-		int needed = Data.MagazineSize - MagAmmo;
+		int needed = EffectiveMagazineSize - MagAmmo;
 		int taken = Mathf.Min(needed, ReserveAmmo);
 		_mags[ActiveIndex] += taken;
 		_reserves[ActiveIndex] -= taken;
@@ -667,7 +813,7 @@ public partial class WeaponController : Node3D
 		bool wantAim = CanAct && !IsKnifeActive && !IsReloading && Input.IsActionPressed("aim");
 		IsAiming = wantAim;
 
-		float step = Data.AdsTime > 0f ? dt / Data.AdsTime : 1f;
+		float step = Data.AdsTime > 0f ? dt / (Data.AdsTime * TalentEffects.AdsTimeScale) : 1f;
 		_aimBlend = Mathf.MoveToward(_aimBlend, wantAim ? 1f : 0f, step);
 		_cameraOwner.SetAimBlend(_aimBlend);
 	}
@@ -692,7 +838,9 @@ public partial class WeaponController : Node3D
 		else if (IsReloading)
 			_player.MoveSpeedMultiplier = Data.ReloadMoveMultiplier;
 		else if (IsAiming)
-			_player.MoveSpeedMultiplier = Data.AdsMoveMultiplier;
+			_player.MoveSpeedMultiplier = TalentEffects.AdsMaster
+				? Mathf.Max(Data.AdsMoveMultiplier, TalentEffects.AdsMoveScale)
+				: Data.AdsMoveMultiplier;
 		else
 			_player.MoveSpeedMultiplier = 1f;
 	}
@@ -707,17 +855,17 @@ public partial class WeaponController : Node3D
 		float impactDip = 0f;
 		float impactPitch = 0f;
 		float impactRoll = 0f;
-		if (IsReloading && Data.ReloadTime > 0f)
+		if (IsReloading && ReloadDuration > 0f)
 		{
-			float progress = Mathf.Clamp(1f - _reloadTimer / Data.ReloadTime, 0f, 1f);
+			float progress = Mathf.Clamp(1f - _reloadTimer / ReloadDuration, 0f, 1f);
 			// 抬枪 + 向内滚转：把弹匣井翻到画面里；进 / 出都是斜坡，中段保持住
 			reloadPose = PoseWindow(progress);
 
 			// 换弹到位冲击：顶匣、复进各给一记短促下沉 + 回弹，重枪幅度更大
-			float weight = Mathf.Clamp(Data.ReloadTime / 2f, 0.9f, 1.4f);
-			float seat = ImpactPulse((progress - Data.ReloadMagInsertEnd) * Data.ReloadTime);
-			float slide = ImpactPulse((progress - Data.ReloadSlideEnd) * Data.ReloadTime);
-			float yank = ImpactPulse((progress - Data.ReloadMagDropEnd) * Data.ReloadTime);
+			float weight = Mathf.Clamp(ReloadDuration / 2f, 0.9f, 1.4f);
+			float seat = ImpactPulse((progress - Data.ReloadMagInsertEnd) * ReloadDuration);
+			float slide = ImpactPulse((progress - Data.ReloadSlideEnd) * ReloadDuration);
+			float yank = ImpactPulse((progress - Data.ReloadMagDropEnd) * ReloadDuration);
 			impactDip = -Data.ReloadImpactDip * (seat + slide * 0.55f + yank * 0.35f) * weight;
 			impactPitch = Data.ReloadImpactPitchDegrees * (seat + slide * 0.5f + yank * 0.3f) * weight;
 			impactRoll = Data.ReloadImpactRollDegrees * (seat - slide * 0.4f);
@@ -759,8 +907,8 @@ public partial class WeaponController : Node3D
 		if (Data == null || _slidePivot == null || _magPivot == null || _handLPivot == null || _handRPivot == null)
 			return;
 
-		float t = IsReloading && Data.ReloadTime > 0f
-			? Mathf.Clamp(1f - _reloadTimer / Data.ReloadTime, 0f, 1f)
+		float t = IsReloading && ReloadDuration > 0f
+			? Mathf.Clamp(1f - _reloadTimer / ReloadDuration, 0f, 1f)
 			: 0f;
 
 		if (IsReloading)

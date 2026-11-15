@@ -425,13 +425,13 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 			EnterAlert();
 	}
 
-	private void OnNoise(Vector3 position, NoiseKind kind)
+	private void OnNoise(Vector3 position, NoiseKind kind, float radiusScale)
 	{
 		if (Data == null || _health == null || _health.IsDead || _playerHealth == null || _playerHealth.IsDead)
 			return;
 
 		// 听觉半径按动作分级：静步 0 / 走路 8 / 冲刺 14 / 枪声 30（2.0 §3.4）
-		float radius = StealthSystem.NoiseRadius(kind);
+		float radius = StealthSystem.NoiseRadius(kind) * radiusScale;
 		if (radius <= 0f || GlobalPosition.DistanceTo(position) > radius)
 			return;
 
@@ -910,7 +910,7 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 			SpawnImpact(endPoint, result["normal"].AsVector3());
 
 			if (result["collider"].As<Node>() is PlayerController)
-				_playerHealth.TakeDamage(Data.Damage, DeathCause.Gunshot);
+				_playerHealth.TakeDamage(Data.Damage, DeathCause.Gunshot, GlobalPosition);
 		}
 
 		SpawnTracer(muzzle, endPoint);

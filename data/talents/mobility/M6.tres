@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TalentNodeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/talents/TalentNodeData.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+Id = "M6"
+Line = 0
+DisplayName = "滑铲延长"
+Cost = 1
+PrerequisiteId = "M0"
+Effects = PackedStringArray("slide_extend")
+Description = "滑铲距离 +30%，滑铲中可开火。"
+RequiredClearedChapter = ""

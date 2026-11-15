@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TalentNodeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/talents/TalentNodeData.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+Id = "W8"
+Line = 1
+DisplayName = "爆发射击"
+Cost = 3
+PrerequisiteId = "W5"
+Effects = PackedStringArray("burst_fire")
+Description = "连续命中 3 发后，第 4 发起伤害 +30%（半自动/步枪）。"
+RequiredClearedChapter = ""

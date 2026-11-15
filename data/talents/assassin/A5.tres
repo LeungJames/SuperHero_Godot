@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TalentNodeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/talents/TalentNodeData.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+Id = "A5"
+Line = 2
+DisplayName = "格挡"
+Cost = 3
+PrerequisiteId = "A2"
+Effects = PackedStringArray("block")
+Description = "刀格按住右键，0.25s 窗口格挡子弹，CD 6s。"
+RequiredClearedChapter = ""

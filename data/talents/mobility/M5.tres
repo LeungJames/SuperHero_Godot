@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TalentNodeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/talents/TalentNodeData.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+Id = "M5"
+Line = 0
+DisplayName = "边缘加速"
+Cost = 1
+PrerequisiteId = "M1"
+Effects = PackedStringArray("edge_speed")
+Description = "翻越或攀爬后 2s 移速 +15%。"
+RequiredClearedChapter = ""

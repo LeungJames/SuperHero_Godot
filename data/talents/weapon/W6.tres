@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TalentNodeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/talents/TalentNodeData.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+Id = "W6"
+Line = 1
+DisplayName = "弹药回收"
+Cost = 1
+PrerequisiteId = "W2"
+Effects = PackedStringArray("ammo_recover")
+Description = "击杀额外获得 4 发备弹。"
+RequiredClearedChapter = ""

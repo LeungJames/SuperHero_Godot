@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TalentNodeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/talents/TalentNodeData.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+Id = "W7"
+Line = 1
+DisplayName = "专家瞄准"
+Cost = 2
+PrerequisiteId = "W2"
+Effects = PackedStringArray("ads_master")
+Description = "ADS 时间 -25%，ADS 移速 0.55→0.70。"
+RequiredClearedChapter = ""

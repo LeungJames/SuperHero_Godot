@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TalentNodeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/talents/TalentNodeData.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+Id = "M8"
+Line = 0
+DisplayName = "落地缓冲"
+Cost = 2
+PrerequisiteId = "M4"
+Effects = PackedStringArray("fall_buffer")
+Description = "摔伤起算 6m→10m，伤害 -30%。"
+RequiredClearedChapter = ""

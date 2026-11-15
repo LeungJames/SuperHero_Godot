@@ -11,6 +11,9 @@ public partial class EnemyRegistry : Node
 	/// <summary>存活 / 总数变化（HUD 与 GameManager 订阅）。</summary>
 	public event Action<int, int> CountChanged;
 
+	/// <summary>任意敌人死亡（评级统计订阅；先于计数变化触发）。</summary>
+	public event Action<EnemyHealth> EnemyDied;
+
 	/// <summary>最后一名敌人死亡（胜负判定在这里触发）。</summary>
 	public event Action AllCleared;
 
@@ -62,6 +65,7 @@ public partial class EnemyRegistry : Node
 
 	private void OnEnemyDied(EnemyHealth enemy)
 	{
+		EnemyDied?.Invoke(enemy);
 		AliveCount = Mathf.Max(0, AliveCount - 1);
 		CountChanged?.Invoke(AliveCount, TotalCount);
 

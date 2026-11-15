@@ -22,6 +22,9 @@ public partial class EnemyHealth : Node
 	public float MaxHealth { get; private set; }
 	public bool IsDead { get; private set; }
 
+	/// <summary>死亡瞬间是否已进入 Combat（评级"潜行击杀"判定，§6.2）。</summary>
+	public bool DiedInCombat { get; private set; }
+
 	private EnemyData _data;
 	private EnemyAgent _agent;
 	private EnemyAnimation _animation;
@@ -98,6 +101,7 @@ public partial class EnemyHealth : Node
 	private void Die()
 	{
 		IsDead = true;
+		DiedInCombat = _agent != null && _agent.State == EnemyState.Combat;
 		GD.Print($"[EnemyHealth] {_agent.Name} 死亡。");
 
 		// 死亡立即停碰撞，剩下交给倒地与淡出

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TalentNodeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/talents/TalentNodeData.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+Id = "A4"
+Line = 2
+DisplayName = "处决延伸"
+Cost = 2
+PrerequisiteId = "A1"
+Effects = PackedStringArray("execution_extend")
+Description = "处决距离 +1.5m；处决后 1s 受击减伤 50%。"
+RequiredClearedChapter = ""

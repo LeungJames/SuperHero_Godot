@@ -1,0 +1,39 @@
+[gd_resource type="Resource" script_class="ChapterRatingConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/rating/ChapterRatingConfig.cs" id="1_rating"]
+
+[resource]
+script = ExtResource("1_rating")
+BaselineTime = 1080.0
+ChapterMultiplier = 1.5
+TimeRatioS = 0.75
+TimeRatioA = 0.9
+TimeRatioB = 1.1
+MobilityS = 8.0
+MobilityA = 6.0
+MobilityB = 4.0
+FallsS = 0
+FallsA = 1
+FallsB = 2
+AccuracyS = 0.55
+AccuracyA = 0.45
+AccuracyB = 0.35
+HeadshotS = 0.25
+HeadshotA = 0.15
+HeadshotB = 0.08
+EmptyMagsS = 0
+EmptyMagsA = 1
+EmptyMagsB = 3
+StealthRatioS = 0.6
+StealthRatioA = 0.4
+StealthRatioB = 0.2
+AlertsS = 0
+AlertsA = 1
+AlertsB = 2
+ExecutionsS = 5
+ExecutionsA = 3
+ExecutionsB = 1
+PointsC = 1
+PointsB = 2
+PointsA = 3
+PointsS = 4

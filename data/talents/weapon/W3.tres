@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TalentNodeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/talents/TalentNodeData.cs" id="1_node"]
+
+[resource]
+script = ExtResource("1_node")
+Id = "W3"
+Line = 1
+DisplayName = "快速切枪"
+Cost = 2
+PrerequisiteId = "W1"
+Effects = PackedStringArray("swap_fast")
+Description = "切枪时间 -40%；切枪后 1s 首发散布 -50%。"
+RequiredClearedChapter = ""
