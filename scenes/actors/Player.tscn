@@ -18,6 +18,7 @@
 [ext_resource type="Script" path="res://scripts/player/PlayerWeaponMount.cs" id="18_mount"]
 [ext_resource type="Script" path="res://scripts/player/ExecutionController.cs" id="19_exec"]
 [ext_resource type="Resource" path="res://data/player/Execution.tres" id="20_exec_data"]
+[ext_resource type="PackedScene" path="res://art/models/WPN_KnifeViewmodel.glb" id="21_knife"]
 
 [sub_resource type="CapsuleShape3D" id="Capsule_player"]
 radius = 0.35
@@ -69,6 +70,7 @@ script = ExtResource("5_weapon")
 Arsenal = ExtResource("6_arsenal")
 TracerScene = ExtResource("7_tracer")
 ImpactScene = ExtResource("8_impact")
+KnifeViewmodel = ExtResource("21_knife")
 
 [node name="Muzzle" type="Marker3D" parent="Head/Camera3D/ViewModel/Weapon"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.026, -0.21)

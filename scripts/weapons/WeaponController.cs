@@ -21,6 +21,12 @@ public partial class WeaponController : Node3D
 	[Export] public PackedScene TracerScene { get; set; }
 	[Export] public PackedScene ImpactScene { get; set; }
 
+	/// <summary>刀槽的第一人称模型（含手部与 Body / Hand 枢轴）。</summary>
+	[Export] public PackedScene KnifeViewmodel { get; set; }
+
+	/// <summary>刀握柄在视角模型空间的落点；刀模以这里为旋转轴心。</summary>
+	[Export] public Vector3 KnifeGripOffset { get; set; } = new(0.05f, -0.08f, 0.12f);
+
 	/// <summary>弹匣 / 备弹变化（HUD 订阅）。</summary>
 	public event Action<int, int> AmmoChanged;
 
@@ -140,6 +146,9 @@ public partial class WeaponController : Node3D
 	private int _swapTarget;
 
 	private Node3D _model;
+	private Node3D _knifeModel;
+	private float _knifeIdlePhase;
+	private float _knifeBlockPose;
 	private Node3D _slidePivot;
 	private Node3D _magPivot;
 	private Node3D _handLPivot;
@@ -276,6 +285,7 @@ public partial class WeaponController : Node3D
 		UpdateAim(dt);
 		UpdateMuzzleFlash(dt);
 		UpdateViewmodel(dt);
+		UpdateKnifeViewmodel(dt);
 		UpdateReloadBones(dt);
 		UpdateMoveSpeed();
 
@@ -456,7 +466,7 @@ public partial class WeaponController : Node3D
 		}
 	}
 
-	/// <summary>切到刀：隐藏枪模型与枪口灯，不做新的 3D 资产。</summary>
+	/// <summary>切到刀：隐藏枪模型与枪口灯，换成刀的第一人称模型（§5.2）。</summary>
 	private void HideWeaponModel()
 	{
 		if (_model != null)
@@ -464,6 +474,43 @@ public partial class WeaponController : Node3D
 		if (_muzzleLight != null)
 			_muzzleLight.Visible = false;
 		_flashTimer = 0f;
+	}
+
+	/// <summary>刀模与手部：整组绕握柄旋转，挥砍 / 格挡都只动这一层。</summary>
+	private void ShowKnifeModel()
+	{
+		if (_knifeModel == null)
+		{
+			if (KnifeViewmodel == null)
+			{
+				GD.PushWarning("WeaponController: 没有配置刀视角模型。");
+				return;
+			}
+
+			if (KnifeViewmodel.Instantiate() is not Node3D visual)
+			{
+				GD.PushWarning("WeaponController: 刀视角模型不是 Node3D。");
+				return;
+			}
+
+			var root = new Node3D { Name = "KnifeModel", Position = KnifeGripOffset };
+			visual.Name = "Visual";
+			// 模型本身按绝对握点摆放；根节点回到握柄，旋转才是绕手转而不是绕相机转
+			visual.Position = -KnifeGripOffset;
+			visual.AddChild(new ModelOutline { Overlay = ViewmodelOutline() });
+			root.AddChild(visual);
+			AddChild(root);
+			_knifeModel = root;
+			_knifeIdlePhase = 0f;
+		}
+
+		_knifeModel.Visible = true;
+	}
+
+	private void HideKnifeModel()
+	{
+		if (_knifeModel != null)
+			_knifeModel.Visible = false;
 	}
 
 	private void UpdateSwap(float dt)
@@ -482,9 +529,11 @@ public partial class WeaponController : Node3D
 			if (IsKnifeActive)
 			{
 				HideWeaponModel();
+				ShowKnifeModel();
 			}
 			else
 			{
+				HideKnifeModel();
 				BuildModel(Data);
 				ApplyData();
 				_swapSpreadTimer = TalentEffects.SwapSpreadWindow;
@@ -883,7 +932,7 @@ public partial class WeaponController : Node3D
 			0f);
 
 		Vector3 basePosition = _basePosition.Lerp(_adsPosition, _aimBlend);
-		float swing = Mathf.Clamp(MeleeSwing, 0f, 1f);
+		float swing = Mathf.Clamp(IsKnifeActive ? 0f : MeleeSwing, 0f, 1f);
 		float swap = Arsenal != null ? SwapBlend() : 0f;
 		Position = basePosition + sway
 			+ new Vector3(0f, Data.ReloadPoseLift * reloadPose + impactDip, Data.FireKickBack * _kickBack)
@@ -895,6 +944,39 @@ public partial class WeaponController : Node3D
 				16f * swing,
 				Data.ReloadPoseRollDegrees * reloadPose + impactRoll)
 			+ new Vector3(-28f * swap, 0f, 0f);
+	}
+
+	/// <summary>
+	/// 刀模动作：待机轻微呼吸摆动，挥砍沿握柄轴心向前下方抡出并回收；
+	/// 格挡时稍微抬起护住正面。只动 KnifeModel 这一层，与枪的换弹 / 后坐互不影响。
+	/// </summary>
+	private void UpdateKnifeViewmodel(float dt)
+	{
+		if (_knifeModel == null || !_knifeModel.Visible)
+			return;
+
+		_knifeIdlePhase += dt;
+		_knifeBlockPose = Mathf.MoveToward(_knifeBlockPose, IsBlocking ? 1f : 0f, dt * 12f);
+
+		float idleX = Mathf.Sin(_knifeIdlePhase * 1.7f) * 0.004f;
+		float idleY = Mathf.Cos(_knifeIdlePhase * 2.3f) * 0.005f;
+
+		// 出刀快、收刀慢，中段保留一点惯性
+		float swing = Mathf.Clamp(MeleeSwing, 0f, 1f);
+		float arc = swing * swing * (3f - 2f * swing);
+
+		Vector3 position = KnifeGripOffset
+			+ new Vector3(idleX, idleY, 0f)
+			+ new Vector3(-0.03f * arc, 0.10f * arc, -0.04f * arc)
+			+ new Vector3(0f, 0.018f * _knifeBlockPose, -0.008f * _knifeBlockPose);
+
+		Vector3 rotation = new(
+			-14f * arc - 9f * _knifeBlockPose,
+			10f * arc - 16f * _knifeBlockPose,
+			55f * arc);
+
+		_knifeModel.Position = position;
+		_knifeModel.RotationDegrees = rotation;
 	}
 
 	/// <summary>
