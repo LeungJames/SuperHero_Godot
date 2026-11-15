@@ -43,6 +43,8 @@ public partial class ComicOverlay : Control
 	private float _inkTimer;
 	private float _panelTimer;
 	private float _panelDuration = 0.55f;
+	private float _killFlashTimer;
+	private const float KillFlashTime = 0.18f;
 	private float _speedBlend;
 
 	public override void _Ready()
@@ -67,7 +69,7 @@ public partial class ComicOverlay : Control
 			if (_weapon != null)
 			{
 				_weapon.ShotResolved += OnShotResolved;
-				_weapon.ReloadStarted += () => Spawn("CLICK!", Crosshair() + new Vector2(0f, 76f), Style.PaperColor, 0.62f);
+				_weapon.ReloadStarted += () => Spawn("CLICK!", Crosshair() + new Vector2(0f, 76f), Style.PaperColor, 0.55f);
 			}
 
 			if (_melee != null)
@@ -110,6 +112,7 @@ public partial class ComicOverlay : Control
 		_halftoneTimer = Mathf.Max(0f, _halftoneTimer - dt);
 		_inkTimer = Mathf.Max(0f, _inkTimer - dt);
 		_panelTimer = Mathf.Max(0f, _panelTimer - dt);
+		_killFlashTimer = Mathf.Max(0f, _killFlashTimer - dt);
 
 		for (int i = _popups.Count - 1; i >= 0; i--)
 		{
@@ -125,6 +128,7 @@ public partial class ComicOverlay : Control
 
 	public override void _Draw()
 	{
+		DrawKillFlash();
 		DrawKillPanel();
 		DrawInkFrame();
 		DrawPopups();
@@ -149,7 +153,7 @@ public partial class ComicOverlay : Control
 		bool head = hit.Collider is Hitbox box && box.IsHead;
 		string text = head ? "HEADSHOT!" : BodyWords[_rng.RandiRange(0, BodyWords.Length - 1)];
 		Color color = head ? Style.PaperColor : Style.AccentColor;
-		Spawn(text, ToScreen(hit.Point) + RandomJitter(46f), color, head ? 1f : 0.86f);
+		Spawn(text, ToScreen(hit.Point) + RandomJitter(46f), color, head ? 0.9f : 0.78f);
 	}
 
 	private void OnMeleeResolved(Vector3 point, bool hit)
@@ -157,17 +161,18 @@ public partial class ComicOverlay : Control
 		if (!hit)
 			return;
 
-		Spawn("WHACK!", ToScreen(point) + RandomJitter(40f), Style.PaperColor, 0.9f);
+		Spawn("WHACK!", ToScreen(point) + RandomJitter(40f), Style.PaperColor, 0.8f);
 	}
 
 	private void OnEnemyDied(Node3D agent)
 	{
 		Vector3 point = agent != null ? agent.GlobalPosition + Vector3.Up * 1.1f : _player.GlobalPosition;
 		Spawn(KillWords[_rng.RandiRange(0, KillWords.Length - 1)], ToScreen(point) + RandomJitter(30f),
-			Style.KillColor, 1.25f);
+			Style.KillColor, 1.05f);
 
 		_panelDuration = Style.KillPanelTime;
 		_panelTimer = _panelDuration;
+		_killFlashTimer = KillFlashTime;
 		_halftoneTimer = Mathf.Max(_halftoneTimer, Style.HalftoneFadeTime);
 	}
 
@@ -178,13 +183,41 @@ public partial class ComicOverlay : Control
 		_popups.Add(new Popup
 		{
 			Text = text,
-			Position = position,
+			Position = KeepOutOfCenter(position),
 			Color = color,
 			Tilt = _rng.RandfRange(-Style.PopupTilt, Style.PopupTilt),
 			Size = Style.PopupFontSize * scale,
 			Age = 0f,
 			Lifetime = Style.PopupLifetime * Mathf.Lerp(1f, 1.3f, scale - 0.6f),
 		});
+	}
+
+	/// <summary>
+	/// 拟声词不落在准星附近的圆形安全区里：命中点通常就在屏幕中心，
+	/// 把字沿"中心→命中点"方向推到安全半径之外，字块再留半个字高，保证不压准星和目标。
+	/// </summary>
+	private Vector2 KeepOutOfCenter(Vector2 position)
+	{
+		Vector2 center = Size * 0.5f;
+		float safe = Mathf.Min(Size.X, Size.Y) * Style.PopupCenterSafeRadius;
+
+		Vector2 offset = position - center;
+		float distance = offset.Length();
+		if (distance >= safe)
+			return position;
+
+		if (distance < 0.001f)
+		{
+			float angle = _rng.RandfRange(0f, Mathf.Tau);
+			offset = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+		}
+		else
+		{
+			offset /= distance;
+		}
+
+		float extra = Style.PopupFontSize * 0.6f;
+		return center + offset * (safe + extra);
 	}
 
 	private void DrawPopups()
@@ -206,11 +239,11 @@ public partial class ComicOverlay : Control
 			Vector2 origin = new(-metrics.X * 0.5f, metrics.Y * 0.3f);
 
 			Color halo = Style.PaperColor;
-			halo.A = alpha * 0.9f;
+			halo.A = alpha * 0.9f * Style.PopupAlpha;
 			Color ink = Style.InkColor;
-			ink.A = alpha;
+			ink.A = alpha * Style.PopupAlpha;
 			Color fill = popup.Color;
-			fill.A = alpha;
+			fill.A = alpha * Style.PopupAlpha;
 
 			DrawStringOutline(_font, origin, popup.Text, HorizontalAlignment.Left, -1, fontSize, 16, halo);
 			DrawStringOutline(_font, origin, popup.Text, HorizontalAlignment.Left, -1, fontSize, 9, ink);
@@ -218,6 +251,17 @@ public partial class ComicOverlay : Control
 		}
 
 		DrawSetTransform(Vector2.Zero, 0f, Vector2.One);
+	}
+
+	private void DrawKillFlash()
+	{
+		if (_killFlashTimer <= 0f)
+			return;
+
+		float alpha = _killFlashTimer / KillFlashTime * 0.22f;
+		Color flash = Style.PaperColor;
+		flash.A = alpha;
+		DrawRect(new Rect2(Vector2.Zero, Size), flash);
 	}
 
 	private void DrawKillPanel()

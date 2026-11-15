@@ -8,6 +8,9 @@ public enum SfxKind
 	Gunshot,
 	DryFire,
 	Reload,
+	ReloadMagOut,
+	ReloadSeat,
+	ReloadSlide,
 	Hit,
 	Headshot,
 	Hurt,
@@ -15,6 +18,7 @@ public enum SfxKind
 	Land,
 	Alert,
 	Death,
+	Kill,
 	Melee,
 }
 
@@ -39,6 +43,9 @@ public static class ProceduralAudio
 			SfxKind.Gunshot => Build(GunshotSamples(), false),
 			SfxKind.DryFire => Build(DryFireSamples(), false),
 			SfxKind.Reload => Build(ReloadSamples(), false),
+			SfxKind.ReloadMagOut => Build(ReloadMagOutSamples(), false),
+			SfxKind.ReloadSeat => Build(ReloadSeatSamples(), false),
+			SfxKind.ReloadSlide => Build(ReloadSlideSamples(), false),
 			SfxKind.Hit => Build(HitSamples(), false),
 			SfxKind.Headshot => Build(HeadshotSamples(), false),
 			SfxKind.Hurt => Build(HurtSamples(), false),
@@ -46,6 +53,7 @@ public static class ProceduralAudio
 			SfxKind.Land => Build(LandSamples(), false),
 			SfxKind.Alert => Build(AlertSamples(), false),
 			SfxKind.Death => Build(DeathSamples(), false),
+			SfxKind.Kill => Build(KillSamples(), false),
 			SfxKind.Melee => Build(MeleeSamples(), false),
 			_ => Build(FootstepSamples(), false),
 		};
@@ -129,18 +137,55 @@ public static class ProceduralAudio
 		return Normalize(b, 0.72f);
 	}
 
+	/// <summary>撤匣：金属卡榫松开 + 弹匣拖出，短促。</summary>
+	private static float[] ReloadMagOutSamples()
+	{
+		var rng = new Random(83);
+		float[] b = new float[Frames(0.16f)];
+		AddClick(b, 0.0f, 720f, 0.02f, 0.5f);
+		AddBurst(b, rng, 0.005f, 0.05f, 0.35f);
+		AddClick(b, 0.055f, 1650f, 0.012f, 0.65f);
+		return Normalize(b, 0.65f);
+	}
+
+	/// <summary>顶匣到位：低频闷响 + 金属咬合，比撤匣更重。</summary>
+	private static float[] ReloadSeatSamples()
+	{
+		var rng = new Random(89);
+		float[] b = new float[Frames(0.24f)];
+		AddClick(b, 0.0f, 190f, 0.035f, 0.85f);
+		AddBurst(b, rng, 0.0f, 0.045f, 0.5f);
+		AddClick(b, 0.012f, 1450f, 0.014f, 0.75f);
+		AddClick(b, 0.06f, 980f, 0.03f, 0.35f);
+		return Normalize(b, 0.85f);
+	}
+
+	/// <summary>拉套筒：滑动摩擦 + 复进撞击。</summary>
+	private static float[] ReloadSlideSamples()
+	{
+		var rng = new Random(97);
+		float[] b = new float[Frames(0.18f)];
+		AddClick(b, 0.0f, 1250f, 0.012f, 0.5f);
+		AddBurst(b, rng, 0.01f, 0.04f, 0.35f);
+		AddClick(b, 0.062f, 2100f, 0.01f, 0.8f);
+		AddClick(b, 0.07f, 620f, 0.025f, 0.5f);
+		return Normalize(b, 0.8f);
+	}
+
 	private static float[] HitSamples()
 	{
 		var rng = new Random(31);
-		float[] b = new float[Frames(0.12f)];
+		float[] b = new float[Frames(0.14f)];
 		for (int i = 0; i < b.Length; i++)
 		{
 			float t = i / (float)SampleRate;
-			float thud = Mathf.Sin(Mathf.Tau * 130f * t) * Mathf.Exp(-t * 38f);
-			float noise = Noise(rng) * Mathf.Exp(-t * 70f) * 0.5f;
-			b[i] = thud + noise;
+			float thud = Mathf.Sin(Mathf.Tau * 150f * t) * Mathf.Exp(-t * 34f);
+			// 高频脆响让命中从枪声里分辨得出来
+			float tick = Mathf.Sin(Mathf.Tau * 1650f * t) * Mathf.Exp(-t * 90f) * 0.55f;
+			float noise = Noise(rng) * Mathf.Exp(-t * 60f) * 0.45f;
+			b[i] = thud + tick + noise;
 		}
-		return Normalize(b, 0.8f);
+		return Normalize(b, 0.9f);
 	}
 
 	private static float[] HeadshotSamples()
@@ -228,6 +273,23 @@ public static class ProceduralAudio
 			b[i] = thud + noise;
 		}
 		return Normalize(b, 0.8f);
+	}
+
+	/// <summary>击杀确认：低频闷响 + 金属脆响 + 短噪声，比命中更厚、更长尾巴。</summary>
+	private static float[] KillSamples()
+	{
+		var rng = new Random(59);
+		float[] b = new float[Frames(0.45f)];
+		for (int i = 0; i < b.Length; i++)
+		{
+			float t = i / (float)SampleRate;
+			float boom = Mathf.Sin(Mathf.Tau * 62f * t) * Mathf.Exp(-t * 9f) * 1.0f;
+			float ping = Mathf.Sin(Mathf.Tau * 1320f * t) * Mathf.Exp(-t * 11f) * 0.45f;
+			float ring = Mathf.Sin(Mathf.Tau * 1980f * t) * Mathf.Exp(-t * 15f) * 0.28f;
+			float crack = Noise(rng) * Mathf.Exp(-t * 40f) * 0.5f;
+			b[i] = boom + ping + ring + crack;
+		}
+		return Normalize(b, 0.95f);
 	}
 
 	private static float[] WindSamples()

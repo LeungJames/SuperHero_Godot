@@ -9,9 +9,12 @@ public partial class HudController : Control
 	private static readonly Color Cream = new(0.96f, 0.92f, 0.86f);
 	private static readonly Color Danger = new(0.69f, 0.16f, 0.16f);
 	private static readonly Color Warning = new(0.85f, 0.68f, 0.25f);
+	private static readonly Color Ink = new(0.09f, 0.07f, 0.06f);
 
 	private const float CrosshairLength = 8f;
-	private const float HitMarkerTime = 0.12f;
+	private const float HitMarkerTime = 0.2f;
+	private const float HitMarkerPopTime = 0.16f;
+	private const float CrosshairFlashTime = 0.1f;
 	private const float MessageTime = 0.8f;
 	private const float FlashRecoverTime = 0.5f;
 
@@ -44,6 +47,9 @@ public partial class HudController : Control
 	private float _messageTimer;
 	private float _flashAlpha;
 	private float _hitMarkerTimer;
+	private float _hitMarkerPop;
+	private float _crosshairFlashTimer;
+	private Color _crosshairFlashColor = Warning;
 	private float _enemyPulse;
 	private bool _combatVisible = true;
 	private int _lastAlive = -1;
@@ -79,6 +85,10 @@ public partial class HudController : Control
 		_reloadBar.Visible = false;
 		_messageLabel.Modulate = new Color(1f, 1f, 1f, 0f);
 		_hitMarker.Modulate = new Color(1f, 1f, 1f, 0f);
+		_hitMarker.PivotOffset = _hitMarker.Size * 0.5f;
+		_hitMarker.AddThemeFontSizeOverride("font_size", 46);
+		_hitMarker.AddThemeConstantOverride("outline_size", 8);
+		_hitMarker.AddThemeColorOverride("font_outline_color", Ink);
 		_damageFlash.Color = new Color(Danger.R, Danger.G, Danger.B, 0f);
 		_fade.Color = new Color(0.96f, 0.90f, 0.80f, 0f);
 		SetCrosshairGap(6f);
@@ -239,10 +249,22 @@ public partial class HudController : Control
 		if (!hit.HasHit || hit.Collider is not Hitbox hitbox)
 			return;
 
+		bool head = hitbox.IsHead;
 		_hitMarkerTimer = HitMarkerTime;
-		_hitMarker.Text = "×";
-		_hitMarker.AddThemeColorOverride("font_color", hitbox.IsHead ? Danger : Cream);
-		_hitMarker.Scale = hitbox.IsHead ? new Vector2(1.4f, 1.4f) : Vector2.One;
+		_hitMarkerPop = 1f;
+		_hitMarker.Text = head ? "✕" : "×";
+		_hitMarker.AddThemeColorOverride("font_color", head ? Danger : Warning);
+		_hitMarker.AddThemeFontSizeOverride("font_size", head ? 58 : 46);
+
+		// 准星本体也闪一下命中色，跟随视线就能确认打中
+		_crosshairFlashTimer = CrosshairFlashTime;
+		_crosshairFlashColor = head ? Danger : Warning;
+	}
+
+	private void SetCrosshairColor(Color color)
+	{
+		foreach (ColorRect bar in new[] { _crossTop, _crossBottom, _crossLeft, _crossRight })
+			bar.Color = new Color(color.R, color.G, color.B, 0.9f);
 	}
 
 	// ------------------------------------------------------------ 刷新
@@ -269,6 +291,19 @@ public partial class HudController : Control
 		else if (_hitMarker.Modulate.A > 0f)
 		{
 			_hitMarker.Modulate = new Color(1f, 1f, 1f, 0f);
+		}
+
+		if (_hitMarkerPop > 0f)
+		{
+			_hitMarkerPop = Mathf.Max(0f, _hitMarkerPop - dt / HitMarkerPopTime);
+			float scale = 1f + 0.9f * _hitMarkerPop;
+			_hitMarker.Scale = new Vector2(scale, scale);
+		}
+
+		if (_crosshairFlashTimer > 0f)
+		{
+			_crosshairFlashTimer -= dt;
+			SetCrosshairColor(_crosshairFlashTimer > 0f ? _crosshairFlashColor : Cream);
 		}
 
 		if (_flashAlpha > 0f)

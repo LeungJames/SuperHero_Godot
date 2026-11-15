@@ -9,6 +9,8 @@ public partial class EnemyHealth : Node
 {
 	public event Action Died;
 	public event Action<float> Staggered;
+	/// <summary>每一次实际掉血都广播（含未达到硬直阈值的轻击），用于受击姿势反馈。</summary>
+	public event Action Hit;
 
 	/// <summary>敌人进入场景（含增援）时广播，供注册表与表现层订阅。</summary>
 	public static event Action<EnemyHealth> Spawned;
@@ -49,6 +51,8 @@ public partial class EnemyHealth : Node
 
 		Health = Mathf.Max(0f, Health - info.Damage);
 		GD.Print($"[EnemyHealth] {_agent.Name} 受到 {info.Damage:F0} 伤害，剩余 {Health:F0}");
+
+		Hit?.Invoke();
 
 		if (_data != null && info.Damage >= _data.StaggerThreshold)
 			Staggered?.Invoke(_data.StaggerDuration);

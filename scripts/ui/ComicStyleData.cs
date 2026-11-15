@@ -42,6 +42,10 @@ public partial class ComicStyleData : Resource
 	[Export] public float PopupRise { get; set; } = 34f;
 	/// <summary>随机旋转幅度（度），让拟声词像手贴上去的。</summary>
 	[Export] public float PopupTilt { get; set; } = 12f;
+	/// <summary>准星附近不落字的半径（屏幕短边的比例，0.3 = 中心 30%）。</summary>
+	[Export] public float PopupCenterSafeRadius { get; set; } = 0.3f;
+	/// <summary>拟声词整体不透明度（0~1），压低避免遮挡目标。</summary>
+	[Export] public float PopupAlpha { get; set; } = 0.8f;
 
 	[ExportGroup("分镜框 / 墨线")]
 	/// <summary>击杀分镜框持续时间（秒）。</summary>

@@ -1030,23 +1030,24 @@ StreetRunner (CharacterBody3D) [EnemyAgent.cs]
 
 | 项 | 值 |
 | --- | --- |
-| 远程仓库 | `https://github.com/LeungJames/SuperHero_Godot.git` |
-| 当前状态 | **空仓库**（无 README、无初始提交、无任何分支内容） |
+| 远程仓库（推送地址） | `git@github.com:LeungJames/SuperHero_Godot.git`（SSH） |
+| 当前状态 | **首次推送已完成**：远程 `main` 已有初始提交，仓库不再为空 |
 | 主分支 | `main` |
 | 协作方式 | 单人开发，直接在 `main` 提交；实验性改动可开临时分支，合回后删除 |
-| 认证 | HTTPS 推送使用 GitHub PAT 或 Git Credential Manager；token 不得写入仓库文件 |
+| 认证 | SSH 密钥认证，本机公钥需已添加到 GitHub 账号；不使用 HTTPS token |
 
-**首次提交与推送（在 M0 执行）**：
+**首次提交与推送（已完成，保留作记录）**：
 
 1. 若本地尚未初始化：`git init`。
 2. 先写 `.gitignore`，忽略 `.godot/`、`bin/`、`obj/`、`.mono/`、`export/`、`*.user`、`.vs/`。
 3. 按文件添加，不用 `git add -A`：`git add project.godot mainScene.tscn MainScene.cs SuperHero.csproj SuperHero.sln .editorconfig .gitignore icon.svg doc/`。
 4. 首次提交：`git commit -m "chore: 初始化工程骨架、目录结构与输入映射"`。
 5. 统一分支名：`git branch -M main`。
-6. 关联远程：`git remote add origin https://github.com/LeungJames/SuperHero_Godot.git`。
-7. 首次推送：`git push -u origin main`。
+6. 关联远程（SSH 推送地址）：`git remote add origin git@github.com:LeungJames/SuperHero_Godot.git`。
+7. 首次推送：`git push -u origin main`（**已完成**）。
 
-> 若远程仓库在网页端创建时勾选了 README / LICENSE，会先产生一个初始提交，此时先 `git pull --rebase origin main` 再推送。
+> 重新搭建开发环境时，直接 `git clone git@github.com:LeungJames/SuperHero_Godot.git` 即可，不需要再执行上面的初始化步骤。
+> 若远程存在 README / LICENSE 造成的初始提交，先 `git pull --rebase origin main` 再推送。
 > **不允许强推**（`--force` / `--force-with-lease`）覆盖远程历史；远程与本地冲突时以合并或变基解决。
 
 **后续每个里程碑**：
@@ -1078,7 +1079,7 @@ StreetRunner (CharacterBody3D) [EnemyAgent.cs]
 
 | 阶段 | 名称 | 交付物 | 验收标准 | 提交信息示例 |
 | --- | --- | --- | --- | --- |
-| **M0** | 工程骨架与版本管理 | `git init`、`.gitignore`（`.godot/`、`bin/`、`obj/`、`.mono/`、`export/`）、目录骨架、输入映射、物理层命名、`mainScene.tscn` 空装配、`GameManager` 空壳、关联远程 `origin` 并完成首次推送 | 打开工程无报错，F5 进入空场景；远程 `main` 分支能看到首次提交 | `chore: 初始化工程骨架、目录结构与输入映射` |
+| **M0** | 工程骨架与版本管理 | `git init`、`.gitignore`（`.godot/`、`bin/`、`obj/`、`.mono/`、`export/`）、目录骨架、输入映射、物理层命名、`mainScene.tscn` 空装配、`GameManager` 空壳、`origin` 指向 SSH 地址并确认与远程同步（首次推送已完成） | 打开工程无报错，F5 进入空场景；`git status` 显示本地与 `origin/main` 无差异 | `chore: 初始化工程骨架、目录结构与输入映射` |
 | **M1** | 玩家移动、跳跃与摔伤 | `Player.tscn`、`PlayerController`（土狼时间/缓冲）、`PlayerCamera`、`PlayerHealth`（含摔伤）、`PlayerData.tres`、跳跃测试场景 | 高低平台可跳（1.8/2.4/2.8/3.2m）；失败会落到下层并扣血；落水即死；相机跟手 | `feat(player): 实现移动、跳跃、坠落摔伤与第一人称相机` |
 | **M2** | 手枪射击 | `PistolController`、`PistolData`、`P9.tres`、`HitscanResolver`、弹道/闪光/命中特效、后坐、ADS、换弹、弹药拾取、静态靶 | 打靶命中；爆头 100 一枪毙靶；12 发弹匣与 2.0s 换弹正确；无副武器逻辑 | `feat(weapon): 实现手枪射击、ADS、换弹与弹药拾取` |
 | **M3** | 两种持枪敌人 | `EnemyData`、`EnemyAgent`（含垂直视野）、多层导航、`StreetRunner.tscn`、`Holder.tscn`、`Hitbox`、掩体/探头、`AmmoPickup` | 两种敌人巡逻/发现/开枪；高处敌人能发现下方玩家，低处敌人视野受限；爆头一枪毙敌 | `feat(enemy): 实现两种持枪敌人的状态机、垂直感知与掩体行为` |

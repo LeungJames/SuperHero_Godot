@@ -58,6 +58,10 @@ public partial class PlayerCamera : Node3D
 	private bool _deathActive;
 	private float _roll;
 	private float _rollTarget;
+	private float _slideBlend;
+	private float _shakeAmplitude;
+	private float _shakeTime;
+	private float _shakeDuration;
 	private float _adsFovOverride = -1f;
 
 	private CameraMode _mode = CameraMode.FirstPerson;
@@ -220,6 +224,23 @@ public partial class PlayerCamera : Node3D
 		_rollTarget = degrees;
 	}
 
+	/// <summary>滑铲姿态权重 0~1：叠加前倾、侧倾与轻微广角，配合低视点做出压低感。</summary>
+	public void SetSlideBlend(float blend)
+	{
+		_slideBlend = Mathf.Clamp(blend, 0f, 1f);
+	}
+
+	/// <summary>短促镜头抖动（度），用于换弹到位、重落地等冲击帧。</summary>
+	public void AddShake(float degrees, float duration)
+	{
+		if (degrees <= 0f)
+			return;
+
+		_shakeAmplitude = degrees;
+		_shakeDuration = Mathf.Max(duration, 0.01f);
+		_shakeTime = _shakeDuration;
+	}
+
 	/// <summary>开镜 FOV 由武器覆盖（狙击枪做瞄准镜效果）；传 0 或负数恢复 PlayerData 的默认值。</summary>
 	public void SetAdsFov(float fov)
 	{
@@ -242,7 +263,8 @@ public partial class PlayerCamera : Node3D
 	private void ApplyRotation()
 	{
 		float limit = Mathf.DegToRad(PitchLimitDegrees);
-		float pitch = Mathf.Clamp(_pitch + Mathf.DegToRad(_recoilPitch), -limit, limit);
+		float slidePitch = _data != null ? Mathf.DegToRad(_data.SlideCameraPitch * _slideBlend) : 0f;
+		float pitch = Mathf.Clamp(_pitch + Mathf.DegToRad(_recoilPitch) + slidePitch, -limit, limit);
 		Rotation = new Vector3(pitch, Mathf.DegToRad(_recoilYaw), 0f);
 	}
 
@@ -251,7 +273,10 @@ public partial class PlayerCamera : Node3D
 		if (_data == null)
 			return;
 
-		_camera.Fov = Mathf.Lerp(_data.DefaultFov, _adsFovOverride > 0f ? _adsFovOverride : _data.AdsFov, _aimBlend);
+		float aimFov = _adsFovOverride > 0f ? _adsFovOverride : _data.AdsFov;
+		// 滑铲时略放宽 FOV 强化速度感；开镜时退回瞄准视野，不干扰精度判断
+		float slideFov = _data.SlideFovBoost * _slideBlend * (1f - _aimBlend);
+		_camera.Fov = Mathf.Lerp(_data.DefaultFov, aimFov, _aimBlend) + slideFov;
 	}
 
 	private void UpdateCameraOffset(float dt)
@@ -285,7 +310,20 @@ public partial class PlayerCamera : Node3D
 			local = PullInFromObstacles(local);
 
 		_camera.Position = local;
-		_camera.Rotation = new Vector3(0f, 0f, Mathf.DegToRad(-DeathRollDegrees * _deathBlend + _roll));
+		float slideRoll = _data != null ? _data.SlideCameraRoll * _slideBlend : 0f;
+
+		float shake = 0f;
+		if (_shakeTime > 0f)
+		{
+			_shakeTime = Mathf.Max(0f, _shakeTime - dt);
+			float decay = _shakeTime / _shakeDuration;
+			shake = _shakeAmplitude * decay * decay * Mathf.Sin(_shakeTime * 80f);
+		}
+
+		_camera.Rotation = new Vector3(
+			Mathf.DegToRad(shake * 0.6f),
+			Mathf.DegToRad(shake),
+			Mathf.DegToRad(-DeathRollDegrees * _deathBlend + _roll + slideRoll + shake * 0.3f));
 
 		UpdateTakeOver(dt);
 	}

@@ -103,6 +103,8 @@ ObjectiveHigh = "穿过仓库巷道，夺取吊机高地"
 ObjectiveLow = "清空铁锚据点"
 ObjectiveClear = "区域清空"
 ObjectiveHeightThreshold = 2.0
+IsFinalChapter = true
+VictorySubtitle = "铁锚据点失守 · 全章节完成"
 
 [node name="EnemyRegistry" type="Node" parent="Managers"]
 script = ExtResource("6_registry")

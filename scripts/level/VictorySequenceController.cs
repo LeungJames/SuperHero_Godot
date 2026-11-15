@@ -2,7 +2,8 @@ using Godot;
 using System;
 
 /// <summary>
-/// 全歼后的胜利演出：横幅 → 无线电 → 直升机进场降落 → 侧向机位自动登机 → 淡出。
+/// 全歼后的撤离演出（A 方案）：交还控制权 → 直升机按时间轴进场降落 → 玩家自行走进机舱 → 淡出结算。
+/// 演出本身不可跳过，但降落阶段不锁镜头、不锁移动与射击；只有真正入舱的瞬间才接演出机位。
 /// 不做胜负判定、不做 UI 绘制（设计文档 §2.3、§9.3）。
 /// </summary>
 public partial class VictorySequenceController : Node
@@ -14,6 +15,17 @@ public partial class VictorySequenceController : Node
 
 	public bool IsPlaying { get; private set; }
 
+	/// <summary>直升机是否已经降落在停机坪（HUD 指引与外部验证用）。</summary>
+	public bool HasLanded => _landed;
+
+	/// <summary>玩家是否已经进入登机演出。</summary>
+	public bool IsBoarding => _boarding;
+
+	/// <summary>机舱口的世界坐标（登机判定中心）。</summary>
+	public Vector3 CabinPoint => _helicopter != null && Config != null
+		? _helicopter.GlobalPosition + Config.BoardTargetOffset
+		: Vector3.Zero;
+
 	private Node3D _helicopter;
 	private Node3D _rotor;
 	private Node3D _tailRotor;
@@ -24,10 +36,11 @@ public partial class VictorySequenceController : Node
 	private GameManager _gameManager;
 
 	private float _time;
-	private float _boardBlend;
-	private bool _boardStarted;
+	private float _boardTimer;
 	private bool _landed;
+	private bool _boarding;
 	private bool _finished;
+	private bool _radioShown;
 
 	public override void _Ready()
 	{
@@ -46,6 +59,7 @@ public partial class VictorySequenceController : Node
 		_helicopter.Visible = false;
 	}
 
+	/// <summary>全歼当帧调用：不接管玩家，只让直升机开始进场并给出撤离指引。</summary>
 	public void Play()
 	{
 		if (IsPlaying || _finished || Config == null)
@@ -53,21 +67,31 @@ public partial class VictorySequenceController : Node
 
 		IsPlaying = true;
 		_time = 0f;
-		_boardBlend = 0f;
-		_boardStarted = false;
+		_boardTimer = 0f;
 		_landed = false;
+		_boarding = false;
+		_radioShown = false;
 
 		_helicopter.Visible = true;
 		_helicopter.GlobalPosition = Config.HelicopterApproachFrom;
 
-		_player.InputEnabled = false;
-		_playerCamera.LookEnabled = false;
-		Input.MouseMode = Input.MouseModeEnum.Visible;
-
-		_hud.SetCombatVisible(false);
 		_hud.ShowBanner(Config.BannerText);
+		_hud.SetPrompt(Config.WaitText);
 
 		Started?.Invoke();
+	}
+
+	/// <summary>结算面板出现前玩家阵亡：立刻中止撤离流程，交由 GameManager 按失败处理。</summary>
+	public void Cancel()
+	{
+		if (_finished)
+			return;
+
+		IsPlaying = false;
+		_boarding = false;
+		_hud.HideBanner();
+		_hud.SetPrompt(string.Empty);
+		_hud.SetFade(0f);
 	}
 
 	public override void _Process(double delta)
@@ -82,15 +106,6 @@ public partial class VictorySequenceController : Node
 		UpdateRadio();
 		UpdateApproach();
 		UpdateBoarding(dt);
-		UpdateFade();
-
-		if (_time >= Config.ResultsTime && !_finished)
-		{
-			_finished = true;
-			IsPlaying = false;
-			_hud.HideBanner();
-			_gameManager.ShowVictoryResults();
-		}
 	}
 
 	private void SpinRotors(float dt)
@@ -102,18 +117,13 @@ public partial class VictorySequenceController : Node
 
 	private void UpdateRadio()
 	{
-		if (_time < Config.RadioStart || _time > Config.RadioEnd)
+		if (_time < Config.RadioStart || _time > Config.RadioEnd || _radioShown)
 			return;
 
-		if (!_radioShown)
-		{
-			_radioShown = true;
-			_hud.ShowMessage(Config.RadioText, new Color(0.96f, 0.92f, 0.86f));
-			RadioCue?.Invoke();
-		}
+		_radioShown = true;
+		_hud.ShowMessage(Config.RadioText, new Color(0.96f, 0.92f, 0.86f));
+		RadioCue?.Invoke();
 	}
-
-	private bool _radioShown;
 
 	private void UpdateApproach()
 	{
@@ -127,6 +137,9 @@ public partial class VictorySequenceController : Node
 				_landed = true;
 				_helicopter.GlobalPosition = Config.HelicopterLandingPosition;
 				_helicopter.Rotation = new Vector3(0f, Mathf.Pi, 0f);
+				_hud.ShowBanner(Config.BannerText);
+				_hud.SetPrompt(Config.BoardHint);
+				_hud.ShowMessage(Config.BoardHint, new Color(0.96f, 0.92f, 0.86f));
 			}
 
 			return;
@@ -144,15 +157,30 @@ public partial class VictorySequenceController : Node
 		_helicopter.Rotation = new Vector3(0f, Mathf.Pi + (1f - eased) * 0.6f, 0f);
 	}
 
-	/// <summary>9.4~11.4s：切侧向机位，玩家自动走向舱门并隐藏。</summary>
+	/// <summary>
+	/// 降落后等待玩家自行走进机舱：距离舱口 2m 内才开始登机演出。
+	/// 没走过去就一直等待，不结算。
+	/// </summary>
 	private void UpdateBoarding(float dt)
 	{
-		if (_time < Config.BoardStart)
-			return;
-
-		if (!_boardStarted)
+		if (!_boarding)
 		{
-			_boardStarted = true;
+			if (!_landed)
+				return;
+
+			Vector3 cabin = CabinPoint;
+			Vector3 player = _player.GlobalPosition;
+			float distance = new Vector2(player.X - cabin.X, player.Z - cabin.Z).Length();
+			if (distance > Config.BoardDistance)
+				return;
+
+			_boarding = true;
+			_boardTimer = 0f;
+			_player.InputEnabled = false;
+			_playerCamera.LookEnabled = false;
+			_hud.HideBanner();
+			_hud.SetPrompt(string.Empty);
+
 			if (_cinematicCamera != null)
 			{
 				_cinematicCamera.GlobalPosition = Config.CinematicCameraPosition;
@@ -161,25 +189,30 @@ public partial class VictorySequenceController : Node
 			}
 		}
 
-		float span = Mathf.Max(Config.BoardEnd - Config.BoardStart, 0.01f);
-		_boardBlend = Mathf.Clamp((_time - Config.BoardStart) / span, 0f, 1f);
+		_boardTimer += dt;
 
-		Vector3 target = _helicopter.GlobalPosition + Config.BoardTargetOffset;
-		_player.GlobalPosition = _player.GlobalPosition.Lerp(target, Mathf.Min(dt * 3f, 1f));
+		float boardSpan = Mathf.Max(Config.BoardEnd - Config.BoardStart, 0.01f);
+		float boardBlend = Mathf.Clamp(_boardTimer / boardSpan, 0f, 1f);
+
+		Vector3 target = CabinPoint;
+		_player.GlobalPosition = _player.GlobalPosition.Lerp(target, Mathf.Min(dt * 4f, 1f));
 		_player.Rotation = new Vector3(0f, Mathf.Atan2(
 			_helicopter.GlobalPosition.X - _player.GlobalPosition.X,
 			_helicopter.GlobalPosition.Z - _player.GlobalPosition.Z), 0f);
 
-		if (_boardBlend >= 1f)
+		if (boardBlend >= 1f)
 			_player.Visible = false;
-	}
 
-	private void UpdateFade()
-	{
-		if (_time < Config.FadeStart)
-			return;
+		float fadeStart = Mathf.Max(Config.FadeStart - Config.BoardStart, boardSpan);
+		float fadeEnd = Mathf.Max(Config.FadeEnd - Config.BoardStart, fadeStart + 0.01f);
+		_hud.SetFade(Mathf.Clamp((_boardTimer - fadeStart) / (fadeEnd - fadeStart), 0f, 1f));
 
-		float span = Mathf.Max(Config.FadeEnd - Config.FadeStart, 0.01f);
-		_hud.SetFade(Mathf.Clamp((_time - Config.FadeStart) / span, 0f, 1f));
+		if (_boardTimer >= fadeEnd && !_finished)
+		{
+			_finished = true;
+			IsPlaying = false;
+			_hud.SetFade(1f);
+			_gameManager.ShowVictoryResults();
+		}
 	}
 }

@@ -46,10 +46,13 @@ public partial class PlayerData : Resource
 	[Export] public float CameraModeBlendTime { get; set; } = 0.2f;
 
 	/// <summary>落差超过该值才计算摔伤（米）。</summary>
-	[Export] public float FallSafeHeight { get; set; } = 4f;
+	[Export] public float FallSafeHeight { get; set; } = 6f;
 
 	/// <summary>超出安全落差后每米伤害。</summary>
 	[Export] public float FallDamagePerMeter { get; set; } = 14f;
+
+	/// <summary>蹬墙跑落地 / 滑铲落地时摔伤的倍率（直坠不受影响）。</summary>
+	[Export] public float FallDamageMobilityScale { get; set; } = 0.5f;
 
 	/// <summary>落地垂直速度低于该值时触发相机下沉（m/s）。</summary>
 	[Export] public float LandingImpactSpeed { get; set; } = 6f;
@@ -61,21 +64,33 @@ public partial class PlayerData : Resource
 	/// <summary>触发滑铲所需的水平速度（m/s），必须处于冲刺状态。</summary>
 	[Export] public float SlideMinSpeed { get; set; } = 5f;
 	/// <summary>滑铲初速 = max(当前速度, SprintSpeed) × 该倍率。</summary>
-	[Export] public float SlideBoost { get; set; } = 1.12f;
-	/// <summary>滑铲速度衰减（m/s²）。</summary>
-	[Export] public float SlideFriction { get; set; } = 7f;
+	[Export] public float SlideBoost { get; set; } = 1.22f;
+	/// <summary>滑铲速度衰减（m/s²）。越小滑得越远。</summary>
+	[Export] public float SlideFriction { get; set; } = 2.8f;
 	/// <summary>速度低于该值自动结束滑铲（m/s）。</summary>
-	[Export] public float SlideEndSpeed { get; set; } = 3f;
+	[Export] public float SlideEndSpeed { get; set; } = 1.2f;
 	/// <summary>滑铲最长时间（秒）。</summary>
-	[Export] public float SlideMaxTime { get; set; } = 1.1f;
+	[Export] public float SlideMaxTime { get; set; } = 1.6f;
 	/// <summary>滑铲时的转向速率（度/秒），用于贴着方向键微调。</summary>
-	[Export] public float SlideSteerDegrees { get; set; } = 90f;
+	[Export] public float SlideSteerDegrees { get; set; } = 110f;
 	/// <summary>滑铲时的碰撞胶囊高度（米）。</summary>
-	[Export] public float SlideCapsuleHeight { get; set; } = 1.2f;
+	[Export] public float SlideCapsuleHeight { get; set; } = 0.9f;
 	/// <summary>滑铲时的视点高度（米）。</summary>
-	[Export] public float SlideEyeHeight { get; set; } = 1.02f;
+	[Export] public float SlideEyeHeight { get; set; } = 0.72f;
+	/// <summary>滑铲时相机额外前倾角（度），与低视点一起做出压低的姿态。</summary>
+	[Export] public float SlideCameraPitch { get; set; } = 6f;
+	/// <summary>滑铲时相机侧倾角（度）。</summary>
+	[Export] public float SlideCameraRoll { get; set; } = 4.5f;
+	/// <summary>滑铲时相机 FOV 增量（度），强化速度感。</summary>
+	[Export] public float SlideFovBoost { get; set; } = 5f;
+	/// <summary>落地后可直接接滑铲的时间窗口（秒）。</summary>
+	[Export] public float SlideLandingWindow { get; set; } = 0.35f;
+	/// <summary>落地滑铲所需的最小落差（米），低于它仍按普通冲刺滑铲判定。</summary>
+	[Export] public float SlideLandingMinFallHeight { get; set; } = 1.5f;
+	/// <summary>蹬墙跑落地接滑铲的额外初速倍率，滑得比平地更远。</summary>
+	[Export] public float SlideLandingBoost { get; set; } = 1.18f;
 	/// <summary>蹲伏 / 起身的过渡时间（秒）。</summary>
-	[Export] public float CrouchBlendTime { get; set; } = 0.12f;
+	[Export] public float CrouchBlendTime { get; set; } = 0.1f;
 
 	[ExportGroup("机动 · 蹬墙跑")]
 	/// <summary>贴墙所需的最低水平速度（m/s）。</summary>

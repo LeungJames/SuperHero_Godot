@@ -92,8 +92,11 @@ public partial class EnemyAnimation : Node
 			PrepareLayer(layer);
 		}
 
+		UnifyAnimations();
+
 		_ready = true;
-		SetActiveLayer(_layers.Count == 1 ? 0 : -1);
+		// 立刻按距离选中一档并显示：不能留 _activeLayer = -1，否则生成当帧会有一帧全档隐藏
+		UpdateLod();
 		Play(IdleClip, 0f, true);
 	}
 
@@ -162,6 +165,10 @@ public partial class EnemyAnimation : Node
 
 	public void PlayHit()
 	{
+		// 连发命中时不反复把同一段受击动作拉回第 0 帧，否则姿势会抖成痉挛
+		if (_hitTimer > _hitLength * 0.4f)
+			return;
+
 		_hitTimer = Mathf.Max(_hitLength * 0.8f, 0.1f);
 		_restartRequested = true;
 	}
@@ -235,7 +242,26 @@ public partial class EnemyAnimation : Node
 		float distance = camera != null ? camera.GlobalPosition.DistanceTo(GetParent<Node3D>().GlobalPosition) : 0f;
 		float lod0 = Data.Lod0Distance * Data.ModelScale;
 		float lod1 = Data.Lod1Distance * Data.ModelScale;
-		int index = distance < lod0 ? 0 : distance < lod1 ? 1 : 2;
+
+		// 迟滞：已经升到远档后要靠近 h 米才降回近档，避免站在阈值上反复换档闪模型
+		float h = Data.LodHysteresis;
+		int index;
+		switch (_activeLayer)
+		{
+			case 0:
+				index = distance < lod0 + h ? 0 : distance < lod1 + h ? 1 : 2;
+				break;
+			case 1:
+				index = distance < lod0 - h ? 0 : distance < lod1 + h ? 1 : 2;
+				break;
+			case 2:
+				index = distance < lod0 - h ? 0 : distance < lod1 - h ? 1 : 2;
+				break;
+			default:
+				index = distance < lod0 ? 0 : distance < lod1 ? 1 : 2;
+				break;
+		}
+
 		SetActiveLayer(index);
 	}
 
@@ -279,6 +305,38 @@ public partial class EnemyAnimation : Node
 
 		if (_layers.Count == 0 && Find<Skeleton3D>(Model) != null && Model is Node3D modelRoot)
 			_layers.Add(new Layer { Root = modelRoot, Skeleton = Find<Skeleton3D>(Model), Player = Find<AnimationPlayer>(Model) });
+	}
+
+	/// <summary>
+	/// 三档 LOD 来自三份 glb：骨骼名、rest 姿态、轨道数完全一致，但同一剪辑的关键帧数值不同
+	/// （近档 run 与中远档同一时刻最多差 1.08m，death 差 1.44m），跨 10m 阈值时姿态会瞬跳。
+	/// 这里统一换成 LOD0 的剪辑资源，任意一档在同一播放时间得到完全相同的姿态。
+	/// </summary>
+	private void UnifyAnimations()
+	{
+		if (_layers.Count < 2 || _layers[0].Player == null)
+			return;
+
+		AnimationLibrary reference = _layers[0].Player.GetAnimationLibrary("");
+		if (reference == null)
+			return;
+
+		foreach (Layer layer in _layers)
+		{
+			if (layer.Player == null || layer.Player == _layers[0].Player)
+				continue;
+
+			AnimationLibrary library = layer.Player.GetAnimationLibrary("");
+			if (library == null)
+				continue;
+
+			foreach (StringName clip in reference.GetAnimationList())
+			{
+				if (library.HasAnimation(clip))
+					library.RemoveAnimation(clip);
+				library.AddAnimation(clip, reference.GetAnimation(clip));
+			}
+		}
 	}
 
 	private void PrepareLayer(Layer layer)

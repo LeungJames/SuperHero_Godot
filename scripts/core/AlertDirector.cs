@@ -117,9 +117,11 @@ public partial class AlertDirector : Node
 		GetParent().GetParent().AddChild(spawn); // Managers -> MainScene
 		if (spawn is Node3D node)
 			node.GlobalPosition = position;
+		var agent = spawn as EnemyAgent;
+		agent?.SyncPost();
 
 		// 增援一落地就朝玩家方向压上，避免刷在被遮挡处后原地不动
-		if (spawn is EnemyAgent agent && _player != null)
+		if (agent != null && _player != null)
 			agent.JoinAlert(_player.GlobalPosition);
 
 		_hud?.ShowMessage(Data.ArriveMessage, new Color(0.89f, 0.34f, 0.18f));

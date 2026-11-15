@@ -37,6 +37,9 @@ public partial class PlayerController : CharacterBody3D
 	/// <summary>仅探测关卡几何（World 层），不把敌人和可交互物算成墙。</summary>
 	private const uint WorldMask = 1;
 
+	/// <summary>蹬墙跑中断后仍算"蹬墙落地"的宽限时间（秒）。</summary>
+	private const float WallRunLandingGrace = 1f;
+
 	private PlayerCamera _camera;
 	private CollisionShape3D _bodyShape;
 	private CapsuleShape3D _capsule;
@@ -53,7 +56,18 @@ public partial class PlayerController : CharacterBody3D
 	private Vector3 _slideDirection;
 	private float _slideSpeed;
 	private float _slideTimer;
+	private bool _slideFromLanding;
 	private float _crouchBlend;
+
+	// 落地滑铲窗口 / 摔伤判定
+	private float _slideWindow;
+	private bool _slideWindowBoosted;
+	private float _fallPeakY;
+	private bool _wasGrounded = true;
+	private float _wallRunGrace;
+
+	/// <summary>本帧是否在蹬墙跑或滑铲状态下落地（供 PlayerHealth 减免摔伤）。</summary>
+	public bool LandedWithMobility { get; private set; }
 
 	// 蹬墙跑
 	private Vector3 _wallNormal;
@@ -74,6 +88,7 @@ public partial class PlayerController : CharacterBody3D
 
 	private float _standCapsuleHeight;
 	private float _standEyeHeight;
+	private HudController _hud;
 
 	public override void _Ready()
 	{
@@ -103,9 +118,14 @@ public partial class PlayerController : CharacterBody3D
 
 		_jumpBufferTimer = Mathf.Max(0f, _jumpBufferTimer - dt);
 		_mobilityCooldown = Mathf.Max(0f, _mobilityCooldown - dt);
+		_slideWindow = Mathf.Max(0f, _slideWindow - dt);
+		_wallRunGrace = Mathf.Max(0f, _wallRunGrace - dt);
+		LandedWithMobility = false;
 
 		if (!InputEnabled && _state != MoveState.Normal)
 			ExitToNormal(Velocity);
+
+		MoveState stateAtFrameStart = _state;
 
 		switch (_state)
 		{
@@ -126,9 +146,50 @@ public partial class PlayerController : CharacterBody3D
 				break;
 		}
 
+		UpdateLandingState(stateAtFrameStart);
+
 		UpdateCrouchPose(dt);
 		_camera?.SetRoll(_state == MoveState.WallRun ? _wallRoll : 0f);
 		UpdateFootstepNoise(_state == MoveState.Normal && IsOnFloor(), dt);
+	}
+
+	/// <summary>
+	/// 记录落地时机：蹬墙跑 / 滑铲落地算身法落地（摔伤减半），
+	/// 并从高处落地或身法落地后开出一小段可接滑铲的窗口。
+	/// </summary>
+	private void UpdateLandingState(MoveState stateAtFrameStart)
+	{
+		bool grounded = IsOnFloor();
+		float y = GlobalPosition.Y;
+
+		if (!grounded)
+		{
+			_fallPeakY = Mathf.Max(_fallPeakY, y);
+			if (stateAtFrameStart == MoveState.WallRun)
+				_wallRunGrace = WallRunLandingGrace;
+		}
+		else if (!_wasGrounded)
+		{
+			float fall = Mathf.Max(0f, _fallPeakY - y);
+			// 身法落地：蹬墙跑 / 滑铲中落地，或落地瞬间按住蹲伏直接接滑铲
+			bool mobility = stateAtFrameStart == MoveState.WallRun
+				|| stateAtFrameStart == MoveState.Slide
+				|| Input.IsActionPressed("crouch");
+			LandedWithMobility = mobility;
+
+			if (mobility || fall >= Data.SlideLandingMinFallHeight)
+			{
+				_slideWindow = Data.SlideLandingWindow;
+				_slideWindowBoosted = _wallRunGrace > 0f;
+			}
+
+			_wallRunGrace = 0f;
+		}
+
+		if (grounded)
+			_fallPeakY = y;
+
+		_wasGrounded = grounded;
 	}
 
 	// ---------------------------------------------------------------- 普通移动
@@ -273,11 +334,15 @@ public partial class PlayerController : CharacterBody3D
 	{
 		if (grounded)
 		{
-			bool wantsSlide = Input.IsActionPressed("sprint") && Input.IsActionPressed("crouch")
+			bool sprintSlide = Input.IsActionPressed("sprint") && Input.IsActionPressed("crouch")
 				&& HorizontalSpeed(velocity) >= Data.SlideMinSpeed;
-			if (wantsSlide)
+
+			// 落地滑铲窗口：从高处 / 蹬墙跑落地后短时间内按 C 直接接滑铲
+			bool landingSlide = _slideWindow > 0f && Input.IsActionPressed("crouch");
+
+			if (sprintSlide || landingSlide)
 			{
-				EnterSlide(velocity);
+				EnterSlide(velocity, landingSlide && _slideWindowBoosted, landingSlide);
 				return true;
 			}
 
@@ -298,20 +363,37 @@ public partial class PlayerController : CharacterBody3D
 
 	// ---------------------------------------------------------------- 滑铲
 
-	private void EnterSlide(Vector3 velocity)
+	/// <summary>
+	/// 进入滑铲。落地滑铲会用冲刺速度兜底，保证从静止落地也能滑出去；
+	/// <paramref name="wallRunBoost"/> 为真时再叠加蹬墙落地的额外初速。
+	/// </summary>
+	private void EnterSlide(Vector3 velocity, bool wallRunBoost = false, bool landingSlide = false)
 	{
 		Vector3 horizontal = Flat(velocity);
 		_slideDirection = horizontal.LengthSquared() > 0.01f
 			? horizontal.Normalized()
 			: Flat(-GlobalTransform.Basis.Z).Normalized();
-		_slideSpeed = Mathf.Max(horizontal.Length(), Data.SprintSpeed) * Data.SlideBoost;
+
+		float baseSpeed = Mathf.Max(horizontal.Length(), Data.SprintSpeed);
+		float boost = Data.SlideBoost * (wallRunBoost ? Data.SlideLandingBoost : 1f);
+		_slideSpeed = baseSpeed * boost;
+
 		_slideTimer = 0f;
+		_slideWindow = 0f;
+		_slideFromLanding = landingSlide;
 		_state = MoveState.Slide;
 		Velocity = new Vector3(_slideDirection.X * _slideSpeed, velocity.Y, _slideDirection.Z * _slideSpeed);
 	}
 
 	private void UpdateSlide(float dt)
 	{
+		// 滑铲可以被跳跃取消：立刻起身起跳，保留水平动量（不超过正常起跳）
+		if (TrySlideJump())
+		{
+			MoveAndSlide();
+			return;
+		}
+
 		_slideTimer += dt;
 		_slideSpeed = Mathf.MoveToward(_slideSpeed, 0f, Data.SlideFriction * dt);
 
@@ -330,13 +412,48 @@ public partial class PlayerController : CharacterBody3D
 		Velocity = new Vector3(_slideDirection.X * _slideSpeed, y, _slideDirection.Z * _slideSpeed);
 		MoveAndSlide();
 
-		bool released = Input.IsActionJustReleased("crouch");
+		// 落地滑铲是一按到底的"救场动作"，不因松开蹲伏而提前断掉
+		bool released = Input.IsActionJustReleased("crouch") && !_slideFromLanding && _slideTimer >= 0.2f;
 		bool tooSlow = _slideSpeed <= Data.SlideEndSpeed;
 		if (released || tooSlow || _slideTimer >= Data.SlideMaxTime || !IsOnFloor())
 			ExitToNormal(Velocity);
 	}
 
 	// ---------------------------------------------------------------- 蹬墙跑
+
+	/// <summary>
+	/// 滑铲中按下跳跃：立即恢复站立胶囊并起跳，水平动量按滑铲当前速度保留，
+	/// 但不超过正常起跳的水平速度；头顶净空不足时取消这次起跳并提示，滑铲继续。
+	/// </summary>
+	private bool TrySlideJump()
+	{
+		if (_jumpBufferTimer <= 0f || _coyoteTimer <= 0f)
+			return false;
+
+		if (HasCeilingAbove())
+		{
+			_jumpBufferTimer = 0f;
+			_hud ??= GetTree().GetFirstNodeInGroup("hud") as HudController;
+			_hud?.ShowMessage("头顶空间不足，无法起跳", new Color(0.96f, 0.76f, 0.28f));
+			return false;
+		}
+
+		Vector3 horizontal = Flat(Velocity);
+		Vector3 direction = horizontal.LengthSquared() > 0.0001f
+			? horizontal.Normalized()
+			: _slideDirection;
+		float speed = Mathf.Min(
+			HorizontalSpeed(Velocity),
+			Data.SprintSpeed * MoveSpeedMultiplier);
+
+		// 消耗跳跃：起跳后只有一次空中跳跃机会（本项目没有二段跳，coyote 归零即锁死）
+		_jumpBufferTimer = 0f;
+		_coyoteTimer = 0f;
+		_crouchBlend = 0f;
+		ExitToNormal(new Vector3(direction.X * speed, Data.JumpVelocity, direction.Z * speed));
+		_camera?.SetSlideBlend(0f);
+		return true;
+	}
 
 	private bool TryEnterWallRun(Vector3 velocity)
 	{
@@ -548,6 +665,7 @@ public partial class PlayerController : CharacterBody3D
 			target = _crouchBlend;
 
 		_crouchBlend = Mathf.MoveToward(_crouchBlend, target, step);
+		_camera?.SetSlideBlend(_crouchBlend);
 
 		if (_capsule == null)
 			return;

@@ -75,7 +75,12 @@ public partial class PlayerHealth : Node
 		if (damage <= 0f)
 			return;
 
-		GD.Print($"[PlayerHealth] 坠落 {drop:F2}m，摔伤 {damage:F0}");
+		// 蹬墙跑 / 滑铲落地按配置减半，高处直坠保持原样
+		bool mobility = _player.LandedWithMobility;
+		if (mobility)
+			damage *= _data.FallDamageMobilityScale;
+
+		GD.Print($"[PlayerHealth] 坠落 {drop:F2}m，摔伤 {damage:F0}{(mobility ? "（身法落地减半）" : string.Empty)}");
 		TakeDamage(damage, DeathCause.Fall);
 	}
 

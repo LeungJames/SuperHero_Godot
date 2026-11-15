@@ -22,6 +22,12 @@ public partial class GameManager : Node
 	[Export] public string ObjectiveClear { get; set; } = "区域清空";
 	[Export] public float ObjectiveHeightThreshold { get; set; } = 1.0f;
 
+	// 章节串联：留空表示本关是终局，没有下一关。
+	[Export] public string NextScenePath { get; set; } = string.Empty;
+	[Export] public string NextChapterLabel { get; set; } = string.Empty;
+	[Export] public bool IsFinalChapter { get; set; }
+	[Export] public string VictorySubtitle { get; set; } = "直升机离开黄昏港口";
+
 	public GameState State { get; private set; } = GameState.Playing;
 	public float ElapsedTime { get; private set; }
 	public float MaxHeight { get; private set; }
@@ -46,6 +52,7 @@ public partial class GameManager : Node
 
 	private float _defeatTimer;
 	private bool _defeatPending;
+	private bool _switching;
 	private string _objective = string.Empty;
 
 	public override void _Ready()
@@ -68,6 +75,7 @@ public partial class GameManager : Node
 		if (_weapon != null)
 			_weapon.ShotResolved += OnShotResolved;
 
+		_results.NextPressed += GoToNextChapter;
 		_results.RestartPressed += Restart;
 		_results.QuitPressed += Quit;
 
@@ -122,16 +130,24 @@ public partial class GameManager : Node
 		if (State != GameState.Playing)
 			return;
 
+		// A 方案：全歼当帧交还控制权，只给撤离指引，玩家自己走到停机坪登机才算胜利
 		State = GameState.Victory;
-		_player.InputEnabled = false;
-		_hud.SetObjective("区域清空 · 撤离直升机抵达中");
+		_hud.SetObjective("区域清空 · 前往停机坪登机");
 		_victory.Play();
 	}
 
 	private void OnPlayerDied(DeathCause cause)
 	{
-		if (State != GameState.Playing)
+		if (State == GameState.Defeat)
 			return;
+
+		// 结算面板出现前仍可能被打死或摔死：中止撤离演出，按失败处理
+		if (State == GameState.Victory)
+		{
+			_victory.Cancel();
+			_hud.HideBanner();
+			_hud.SetPrompt(string.Empty);
+		}
 
 		State = GameState.Defeat;
 		DeathCause = cause;
@@ -146,9 +162,10 @@ public partial class GameManager : Node
 
 	public void ShowVictoryResults()
 	{
-		string subtitle = "直升机离开黄昏港口";
-		string stats = BuildStats(victory: true);
-		_results.Present(true, subtitle, stats);
+		string nextLabel = string.IsNullOrEmpty(NextScenePath)
+			? null
+			: $"进入{(string.IsNullOrEmpty(NextChapterLabel) ? "下一章" : NextChapterLabel)}（Enter）";
+		_results.Present(true, VictorySubtitle, BuildStats(victory: true), nextLabel, IsFinalChapter);
 	}
 
 	private void ShowDefeatResults()
@@ -246,8 +263,23 @@ public partial class GameManager : Node
 			_pauseMenu.GetNodeOrNull<Button>("Panel/VBox/ResumeButton")?.GrabFocus();
 	}
 
+	/// <summary>结算面板的“进入下一章”：换场景后新关的 GameManager 会重新计时、重新统计。</summary>
+	public void GoToNextChapter()
+	{
+		if (_switching || string.IsNullOrEmpty(NextScenePath))
+			return;
+
+		_switching = true;
+		GetTree().Paused = false;
+		GetTree().ChangeSceneToFile(NextScenePath);
+	}
+
 	public void Restart()
 	{
+		if (_switching)
+			return;
+
+		_switching = true;
 		GetTree().Paused = false;
 		GetTree().ReloadCurrentScene();
 	}

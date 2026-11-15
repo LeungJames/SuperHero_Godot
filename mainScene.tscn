@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://MainScene.cs" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/levels/PortLevel.tscn" id="2_level"]
@@ -17,6 +17,8 @@
 [ext_resource type="Resource" path="res://data/ui/ComicStyle.tres" id="15_comic_style"]
 [ext_resource type="Script" path="res://scripts/core/AlertDirector.cs" id="16_alert"]
 [ext_resource type="Resource" path="res://data/level/Alert.tres" id="17_alert_data"]
+[ext_resource type="Resource" path="res://data/weapons/Arsenal.tres" id="18_arsenal"]
+[ext_resource type="Script" path="res://scripts/level/ChapterSetup.cs" id="19_chapter"]
 
 [sub_resource type="ProceduralSkyMaterial" id="Sky_Dusk"]
 sky_top_color = Color(0.78, 0.45, 0.17, 1)
@@ -76,22 +78,28 @@ light_specular = 0.0
 [node name="ReinforcementPoints" type="Node3D" parent="World" groups=["reinforce_points"]]
 
 [node name="Point_A" type="Marker3D" parent="World/ReinforcementPoints"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 42.1, 69.6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.5, 42.1, 80.5)
 
 [node name="Point_B" type="Marker3D" parent="World/ReinforcementPoints"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 42.1, 80)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 42.1, 69)
 
 [node name="Point_C" type="Marker3D" parent="World/ReinforcementPoints"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.4, 42.1, 81)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 42.1, 81)
 
 [node name="Point_Ground_W" type="Marker3D" parent="World/ReinforcementPoints"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 0.2, -14)
 
 [node name="Point_Ground_WH" type="Marker3D" parent="World/ReinforcementPoints"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27, 0.2, -17)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30, 0.2, -12)
 
 [node name="Point_Ground_Pier" type="Marker3D" parent="World/ReinforcementPoints"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28, 0.2, -52)
+
+[node name="Point_Ground_E" type="Marker3D" parent="World/ReinforcementPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 38, 0.2, -38)
+
+[node name="Point_Ground_Quay" type="Marker3D" parent="World/ReinforcementPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0.2, 35)
 
 [node name="Actors" type="Node3D" parent="."]
 
@@ -111,6 +119,8 @@ process_mode = 3
 
 [node name="GameManager" type="Node" parent="Managers"]
 script = ExtResource("5_game")
+NextScenePath = "res://scenes/FactoryScene.tscn"
+NextChapterLabel = "第二章 · 赤蛇工厂"
 
 [node name="EnemyRegistry" type="Node" parent="Managers"]
 script = ExtResource("6_registry")
@@ -118,6 +128,11 @@ script = ExtResource("6_registry")
 [node name="AlertDirector" type="Node" parent="Managers"]
 script = ExtResource("16_alert")
 Data = ExtResource("17_alert_data")
+
+[node name="ChapterSetup" type="Node" parent="Managers"]
+script = ExtResource("19_chapter")
+Arsenal = ExtResource("18_arsenal")
+Chapter = 0
 
 [node name="VictorySequenceController" type="Node" parent="Managers"]
 script = ExtResource("7_victory")

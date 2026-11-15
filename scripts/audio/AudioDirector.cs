@@ -65,7 +65,23 @@ public partial class AudioDirector : Node
 		if (_weapon != null)
 		{
 			_weapon.ShotResolved += OnShotResolved;
-			_weapon.ReloadStarted += () => PlayAt(SfxKind.Reload, _player.GlobalPosition, -6f);
+			_weapon.ReloadCuePlayed += cue =>
+			{
+				// 只在动作真正到位的帧响：撤匣 / 顶匣 / 套筒复进
+				SfxKind kind = cue switch
+				{
+					ReloadCue.MagOut => SfxKind.ReloadMagOut,
+					ReloadCue.Seat => SfxKind.ReloadSeat,
+					_ => SfxKind.ReloadSlide,
+				};
+				float volume = cue switch
+				{
+					ReloadCue.Seat => -3f,
+					ReloadCue.Slide => -5f,
+					_ => -8f,
+				};
+				PlayAt(kind, _player.GlobalPosition, volume);
+			};
 			_weapon.DryFired += () => PlayAt(SfxKind.DryFire, _player.GlobalPosition, -5f);
 		}
 
@@ -106,7 +122,11 @@ public partial class AudioDirector : Node
 			PlayAt(SfxKind.Gunshot, position, -3f, 0.94f + (float)GD.RandRange(0f, 0.12f));
 		agent.Alerted += () => PlayAt(SfxKind.Alert, agent.GlobalPosition, -7f);
 		health.Died += () =>
+		{
 			PlayAt(SfxKind.Death, agent.GlobalPosition, -4f, 0.9f + (float)GD.RandRange(0f, 0.2f));
+			// 击杀确认必须比命中更响、更厚，单独一层低频 + 金属脆响
+			PlayAt(SfxKind.Kill, agent.GlobalPosition, 1f, 0.98f + (float)GD.RandRange(0f, 0.04f));
+		};
 	}
 
 	public override void _ExitTree()
@@ -162,7 +182,8 @@ public partial class AudioDirector : Node
 			return;
 
 		bool headshot = hit.Collider is Hitbox { IsHead: true };
-		PlayAt(headshot ? SfxKind.Headshot : SfxKind.Hit, hit.Point, -3f);
+		PlayAt(headshot ? SfxKind.Headshot : SfxKind.Hit, hit.Point,
+			headshot ? 2f : 1f, 0.96f + (float)GD.RandRange(0f, 0.08f));
 	}
 
 	private void PlayAt(SfxKind kind, Vector3 position, float volumeDb = 0f, float pitch = 1f)

@@ -90,6 +90,8 @@ public partial class EnemyData : Resource
 	/// <summary>三档 LOD 的距离阈值（米）。</summary>
 	[Export] public float Lod0Distance { get; set; } = 10f;
 	[Export] public float Lod1Distance { get; set; } = 25f;
+	/// <summary>档位迟滞带宽（米）：跨过阈值后要再回退这么远才换回上一档，防止站在阈值上反复换档闪模型。</summary>
+	[Export] public float LodHysteresis { get; set; } = 1.5f;
 
 	[ExportGroup("武器挂点")]
 	/// <summary>敌人手持的枪模型（沿用 WPN_*.glb）；不填则只播动作不显示枪。</summary>

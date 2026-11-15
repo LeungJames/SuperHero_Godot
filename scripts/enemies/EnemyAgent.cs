@@ -105,6 +105,7 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 
 		_health.Died += OnDied;
 		_health.Staggered += OnStaggered;
+		_health.Hit += OnHit;
 		NoiseEmitter.Emitted += OnNoise;
 
 		_patrolWaitTarget = RandomWait();
@@ -118,6 +119,7 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 		{
 			_health.Died -= OnDied;
 			_health.Staggered -= OnStaggered;
+			_health.Hit -= OnHit;
 		}
 	}
 
@@ -308,6 +310,17 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 	}
 
 	/// <summary>增援落地时由 AlertDirector 告知玩家大致方向：直接进入警戒并赶过去。</summary>
+	/// <summary>
+	/// 增援是在 AddChild 之后才被摆位的，_Ready 里记下的岗位会变成世界原点；
+	/// 摆好位置后调用本方法重建岗位与感知基准。
+	/// </summary>
+	public void SyncPost()
+	{
+		_post = GlobalPosition;
+		if (_lastKnownPosition.LengthSquared() < 0.0001f)
+			_lastKnownPosition = GlobalPosition;
+	}
+
 	public void JoinAlert(Vector3 lastKnownPosition)
 	{
 		if (Data == null || _health == null || _health.IsDead || _playerHealth == null || _playerHealth.IsDead)
@@ -836,6 +849,12 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 	{
 		_staggerTimer = duration;
 		_burstShotsLeft = 0;
+		_animation?.PlayHit();
+	}
+
+	/// <summary>每次掉血都抽一下：轻武器（未达硬直阈值）也有可见的受击姿势。</summary>
+	private void OnHit()
+	{
 		_animation?.PlayHit();
 	}
 
