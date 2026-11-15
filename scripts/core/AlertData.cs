@@ -16,6 +16,10 @@ public partial class AlertData : Resource
 	[Export] public int WaveSize { get; set; } = 2;
 	/// <summary>同一波里每个敌人的出场间隔（秒）。</summary>
 	[Export] public float SpawnStagger { get; set; } = 0.45f;
+	/// <summary>刷新点与玩家的最小水平距离（米），避免贴脸或刷在背后。</summary>
+	[Export] public float MinSpawnDistance { get; set; } = 15f;
+	/// <summary>刷新点与玩家允许的最大高度差（米），只按玩家当前所在层刷新。</summary>
+	[Export] public float HeightTolerance { get; set; } = 1.5f;
 	/// <summary>增援模板。</summary>
 	[Export] public PackedScene ReinforceScene { get; set; }
 	/// <summary>呼叫增援时的提示。</summary>

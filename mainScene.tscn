@@ -84,6 +84,15 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 42.1, 80)
 [node name="Point_C" type="Marker3D" parent="World/ReinforcementPoints"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.4, 42.1, 81)
 
+[node name="Point_Ground_W" type="Marker3D" parent="World/ReinforcementPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 0.2, -14)
+
+[node name="Point_Ground_WH" type="Marker3D" parent="World/ReinforcementPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27, 0.2, -17)
+
+[node name="Point_Ground_Pier" type="Marker3D" parent="World/ReinforcementPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28, 0.2, -52)
+
 [node name="Actors" type="Node3D" parent="."]
 
 [node name="Player" parent="Actors" instance=ExtResource("3_player")]

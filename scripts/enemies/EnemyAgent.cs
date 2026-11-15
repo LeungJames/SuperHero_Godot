@@ -307,6 +307,18 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 		return GlobalPosition.Y - _player.GlobalPosition.Y;
 	}
 
+	/// <summary>增援落地时由 AlertDirector 告知玩家大致方向：直接进入警戒并赶过去。</summary>
+	public void JoinAlert(Vector3 lastKnownPosition)
+	{
+		if (Data == null || _health == null || _health.IsDead || _playerHealth == null || _playerHealth.IsDead)
+			return;
+
+		_lastKnownPosition = lastKnownPosition;
+
+		if (State == EnemyState.Patrol || State == EnemyState.Search)
+			EnterAlert();
+	}
+
 	private void OnNoise(Vector3 position, NoiseKind kind)
 	{
 		if (Data == null || _health == null || _health.IsDead || _playerHealth == null || _playerHealth.IsDead)
