@@ -142,6 +142,9 @@ public partial class GameManager : Node
 		}
 
 		MaxHeight = _player.GlobalPosition.Y;
+		if (!RunCheckpoint.Pending)
+			RunCheckpoint.Clear();
+		Callable.From(ApplyCheckpointSpawn).CallDeferred();
 		_hud.SetEnemyCount(_registry.AliveCount, _registry.TotalCount);
 		_hud.SetObjective(ObjectiveHigh);
 		_pauseMenu.Visible = false;
@@ -157,7 +160,11 @@ public partial class GameManager : Node
 		if (State == GameState.Playing)
 		{
 			ElapsedTime += dt;
-			MaxHeight = Mathf.Max(MaxHeight, _player.GlobalPosition.Y);
+
+			// Boss 战只计入击杀/命中/时间，不计入高度类地形指标（§12.2）
+			if (!IsBossFightActive())
+				MaxHeight = Mathf.Max(MaxHeight, _player.GlobalPosition.Y);
+
 			_hud.SetHeight(_player.GlobalPosition.Y);
 			UpdateObjective();
 		}
@@ -322,7 +329,9 @@ public partial class GameManager : Node
 	private void UpdateObjective()
 	{
 		string target;
-		if (_registry.AliveCount <= 0)
+		if (IsBossFightActive())
+			target = "击败霍克";
+		else if (_registry.AliveCount <= 0)
 			target = ObjectiveClear;
 		else if (_player.GlobalPosition.Y <= ObjectiveHeightThreshold)
 			target = $"{ObjectiveLow} · 剩余 {_registry.AliveCount}";
@@ -334,6 +343,27 @@ public partial class GameManager : Node
 
 		_objective = target;
 		_hud.SetObjective(target);
+	}
+
+	private bool IsBossFightActive()
+	{
+		return GetTree().GetFirstNodeInGroup("boss_arena") is BossArena arena
+			&& arena.BossEngaged
+			&& arena.Boss != null
+			&& !arena.Boss.IsDefeated;
+	}
+
+	/// <summary>单局检查点：Boss 场内死亡重试时，从闸门重开而不是从关卡起点。</summary>
+	private void ApplyCheckpointSpawn()
+	{
+		if (!RunCheckpoint.TryConsume(out Vector3 position, out float yaw))
+			return;
+
+		_player.GlobalPosition = position;
+		_player.Rotation = new Vector3(0f, yaw, 0f);
+		_player.Velocity = Vector3.Zero;
+		MaxHeight = position.Y;
+		_hud.SetHeight(position.Y);
 	}
 
 	// ------------------------------------------------------------ 统计
@@ -579,6 +609,7 @@ public partial class GameManager : Node
 
 		_switching = true;
 		GetTree().Paused = false;
+		RunCheckpoint.Clear();
 		GetTree().ChangeSceneToFile(scene);
 	}
 
@@ -588,6 +619,7 @@ public partial class GameManager : Node
 			return;
 
 		_switching = true;
+		RunCheckpoint.RequestRetry(GetTree().CurrentScene?.SceneFilePath ?? string.Empty);
 		GetTree().Paused = false;
 		GetTree().ReloadCurrentScene();
 	}

@@ -128,4 +128,25 @@ public partial class NarrativeDirector : Node
 		Cutscenes.Play(GD.Load<CutsceneData>(path), markSeen: false);
 		return Cutscenes.IsPlaying;
 	}
+
+	/// <summary>正式播放 Boss 登场过场（M7）。看过一次后由 CutsceneComicPlayer 允许跳过。</summary>
+	public bool PlayBossIntro() => PlayBossCutscene(BossIntroPath);
+
+	/// <summary>正式播放 Boss 击败过场（M7）。</summary>
+	public bool PlayBossDeath() => PlayBossCutscene(BossDeathPath);
+
+	public bool BossCutscenePlaying => Cutscenes != null && Cutscenes.IsPlaying;
+
+	private bool PlayBossCutscene(string path)
+	{
+		if (Cutscenes == null || Cutscenes.IsPlaying || !ResourceLoader.Exists(path))
+			return false;
+
+		CutsceneData data = GD.Load<CutsceneData>(path);
+		if (data == null || data.Panels == null || data.Panels.Count == 0)
+			return false;
+
+		Cutscenes.Play(data);
+		return Cutscenes.IsPlaying;
+	}
 }

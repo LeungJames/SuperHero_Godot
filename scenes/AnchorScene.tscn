@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=3]
+[gd_scene load_steps=27 format=3]
 
 [ext_resource type="Script" path="res://MainScene.cs" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/levels/AnchorLevel.tscn" id="2_level"]
@@ -25,6 +25,10 @@
 [ext_resource type="Resource" path="res://data/stealth/anchor_route.tres" id="23_stealth_route"]
 [ext_resource type="Resource" path="res://data/stealth/anchor_posts.tres" id="24_stealth_posts"]
 [ext_resource type="Script" path="res://scripts/narrative/NarrativeDirector.cs" id="25_narrative"]
+[ext_resource type="PackedScene" path="res://scenes/actors/boss/AnchorBoss.tscn" id="26_boss"]
+[ext_resource type="Script" path="res://scripts/boss/BossArena.cs" id="27_arena"]
+[ext_resource type="Resource" path="res://data/boss/anchor_boss.tres" id="28_boss_cfg"]
+[ext_resource type="PackedScene" path="res://scenes/fx/Impact.tscn" id="30_impact"]
 
 [sub_resource type="ProceduralSkyMaterial" id="Sky_Anchor"]
 sky_top_color = Color(0.06, 0.1, 0.16, 1)
@@ -101,6 +105,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 26)
 visible = false
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.35, -46)
 
+[node name="AnchorBoss" parent="Actors" instance=ExtResource("26_boss")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0.05, -27)
+
 [node name="CinematicCamera" type="Camera3D" parent="Actors"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 4.5, -40)
 fov = 60.0
@@ -149,6 +156,12 @@ script = ExtResource("25_narrative")
 ChapterId = "anchor"
 GangId = "anchor"
 DebugCutscenePreview = true
+
+[node name="BossArena" type="Node3D" parent="Managers"]
+script = ExtResource("27_arena")
+Config = ExtResource("28_boss_cfg")
+BossPath = NodePath("../../Actors/AnchorBoss")
+BreakScene = ExtResource("30_impact")
 
 [node name="UI" type="CanvasLayer" parent="."]
 process_mode = 3

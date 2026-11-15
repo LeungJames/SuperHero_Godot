@@ -7,6 +7,9 @@ using System;
 /// </summary>
 public partial class AudioDirector : Node
 {
+	/// <summary>当前关卡的音效调度；Boss 等不在同一父链上的系统通过它播一次性音效。</summary>
+	public static AudioDirector Instance { get; private set; }
+
 	private const int PoolSize = 14;
 
 	private AudioStreamPlayer3D[] _pool;
@@ -26,6 +29,7 @@ public partial class AudioDirector : Node
 
 	public override void _Ready()
 	{
+		Instance = this;
 		_player = GetNode<PlayerController>("../../Actors/Player");
 		_health = _player.GetNode<PlayerHealth>("Health");
 		_weapon = GetTree().GetFirstNodeInGroup("weapon") as WeaponController;
@@ -148,6 +152,8 @@ public partial class AudioDirector : Node
 		_waves = null;
 		_radio = null;
 		_heliLoop = null;
+		if (Instance == this)
+			Instance = null;
 		ProceduralAudio.ClearCache();
 	}
 

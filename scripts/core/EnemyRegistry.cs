@@ -23,6 +23,7 @@ public partial class EnemyRegistry : Node
 
 	private bool _cleared;
 	private readonly HashSet<EnemyHealth> _registered = new();
+	private readonly HashSet<BossController> _registeredBosses = new();
 
 	public override void _Ready()
 	{
@@ -33,6 +34,8 @@ public partial class EnemyRegistry : Node
 
 			Register(health);
 		}
+
+		RegisterBosses();
 
 		if (AliveCount == 0 && TotalCount > 0)
 		{
@@ -69,10 +72,42 @@ public partial class EnemyRegistry : Node
 		AliveCount = Mathf.Max(0, AliveCount - 1);
 		CountChanged?.Invoke(AliveCount, TotalCount);
 
-		if (AliveCount <= 0 && !_cleared)
+		CheckCleared();
+	}
+
+	/// <summary>Boss 也计入全歼：只有 Boss 与召唤物都死亡，直升机流程才会被触发。</summary>
+	private void RegisterBosses()
+	{
+		foreach (Node node in GetTree().GetNodesInGroup("boss"))
 		{
-			_cleared = true;
-			AllCleared?.Invoke();
+			if (node is not BossController boss || !_registeredBosses.Add(boss))
+				continue;
+
+			TotalCount++;
+			if (!boss.IsDefeated)
+				AliveCount++;
+
+			boss.Defeated += () => OnBossDefeated(boss);
+			CountChanged?.Invoke(AliveCount, TotalCount);
 		}
+	}
+
+	private void OnBossDefeated(BossController boss)
+	{
+		if (!_registeredBosses.Contains(boss))
+			return;
+
+		AliveCount = Mathf.Max(0, AliveCount - 1);
+		CountChanged?.Invoke(AliveCount, TotalCount);
+		CheckCleared();
+	}
+
+	private void CheckCleared()
+	{
+		if (AliveCount > 0 || _cleared)
+			return;
+
+		_cleared = true;
+		AllCleared?.Invoke();
 	}
 }

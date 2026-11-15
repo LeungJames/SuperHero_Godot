@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="BossConfig" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/boss/BossConfig.cs" id="1_cfg"]
+[ext_resource type="PackedScene" path="res://scenes/actors/enemies/AnchorRunner.tscn" id="2_summon"]
+
+[resource]
+script = ExtResource("1_cfg")
+DisplayName = "霍克"
+MaxHealth = 3000.0
+Phase2Threshold = 0.7
+Phase3Threshold = 0.35
+WeakPointMultiplier = 2.0
+WeakPointExposure = 2.5
+ChaseSpeed = 3.2
+EnrageSpeed = 4.0
+TurnSpeedDegrees = 220.0
+RecoverTime = 0.65
+TurnTime = 0.45
+PhaseShiftTime = 0.8
+AttackInterval = 0.6
+SummonScene = ExtResource("2_summon")
+SummonCount = 2
+SummonLeft = Vector3(-12, 0.1, -14)
+SummonRight = Vector3(12, 0.1, -14)
+DeathSlowMotionScale = 0.35
+DeathSlowMotionRealTime = 1.2
+DeathBlackoutTime = 0.8
+ArenaCenter = Vector3(0, 0, -17)
+ArenaSize = Vector2(30, 30)
+CheckpointPosition = Vector3(0, 0.2, -4)
+CheckpointYaw = 0.0
+AnchorLeft = Vector3(-12, 7, -17)
+AnchorRight = Vector3(12, 7, -17)
+WinchPosition = Vector3(0, 0, -29)
+WinchHealth = 300.0
+BuildArenaGeometry = true

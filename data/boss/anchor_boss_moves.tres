@@ -1,0 +1,91 @@
+[gd_resource type="Resource" script_class="BossMoveSet" load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scripts/boss/BossMoveSet.cs" id="1_set"]
+[ext_resource type="Script" path="res://scripts/boss/BossMoveData.cs" id="2_move"]
+
+[sub_resource type="Resource" id="Move_Sweep"]
+script = ExtResource("2_move")
+Id = "anchor_sweep"
+Kind = 0
+PhaseMask = 5
+Windup = 0.6
+Damage = 60.0
+Range = 4.0
+AngleDegrees = 120.0
+Cooldown = 3.0
+Telegraph = "CLANG!"
+Sfx = "melee"
+
+[sub_resource type="Resource" id="Move_Charge"]
+script = ExtResource("2_move")
+Id = "charge"
+Kind = 1
+PhaseMask = 1
+Windup = 0.8
+Damage = 50.0
+Range = 12.0
+AngleDegrees = 0.0
+Cooldown = 5.0
+ChargeDistance = 12.0
+Telegraph = "HNNNG!"
+Sfx = "alert"
+
+[sub_resource type="Resource" id="Move_Pull"]
+script = ExtResource("2_move")
+Id = "chain_pull"
+Kind = 2
+PhaseMask = 2
+Windup = 0.7
+Damage = 25.0
+Range = 20.0
+AngleDegrees = 30.0
+Cooldown = 6.0
+PullDistance = 8.0
+Telegraph = "SHUNK!"
+Sfx = "alert"
+
+[sub_resource type="Resource" id="Move_Summon"]
+script = ExtResource("2_move")
+Id = "summon"
+Kind = 3
+PhaseMask = 2
+Windup = 1.2
+Damage = 0.0
+Range = 0.0
+AngleDegrees = 0.0
+Cooldown = 999.0
+Telegraph = "GET UP HERE!"
+Sfx = "alert"
+
+[sub_resource type="Resource" id="Move_Rain"]
+script = ExtResource("2_move")
+Id = "anchor_rain"
+Kind = 4
+PhaseMask = 4
+Windup = 1.0
+Damage = 40.0
+Range = 4.0
+AngleDegrees = 0.0
+Cooldown = 8.0
+Radius = 4.0
+Telegraph = "THOOM!"
+Sfx = "land"
+
+[sub_resource type="Resource" id="Move_Double"]
+script = ExtResource("2_move")
+Id = "double_hook"
+Kind = 5
+PhaseMask = 4
+Windup = 0.5
+Damage = 45.0
+Range = 5.0
+AngleDegrees = 90.0
+Cooldown = 5.5
+SecondWindup = 0.4
+SecondDamage = 60.0
+Telegraph = "CLANG-CLANG!"
+Sfx = "melee"
+
+[resource]
+script = ExtResource("1_set")
+Moves = Array[Resource]([SubResource("Move_Sweep"), SubResource("Move_Charge"), SubResource("Move_Pull"), SubResource("Move_Summon"), SubResource("Move_Rain"), SubResource("Move_Double")])
