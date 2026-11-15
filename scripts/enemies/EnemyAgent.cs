@@ -264,13 +264,13 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 		// 共享情报（§2.5）：同队有人看见就等于本队进入警戒；跨队不共享，保持 1.0 的独立性
 		if (Squad != null)
 		{
-			if (State == EnemyState.Patrol && Squad.HasSharedContact)
+			if (State == EnemyState.Patrol && Squad.AlertLevel > 0)
 				EnterAlert();
 
-			// 自己看不见时朝队友喊话的位置压过去（低置信度只借方向，不隔墙锁人）
-			if (!_canSee && State != EnemyState.Combat && Squad.HasSharedContact &&
-				!Squad.SharedIsDirectionOnly)
-				_lastKnownPosition = Squad.SharedPosition;
+			// 自己看不见时改用队友情报：置信度低时只借方向，不隔墙锁人
+			if (!_canSee && State != EnemyState.Combat &&
+				Squad.TryGetIntelTarget(this, out Vector3 intel, out _))
+				_lastKnownPosition = intel;
 		}
 
 		switch (State)
@@ -436,6 +436,8 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 			return;
 
 		_lastKnownPosition = position;
+		// 听觉只提升本小队警戒，不跨队（§2.5）
+		Squad?.ReportNoise(position);
 
 		if (State == EnemyState.Patrol || State == EnemyState.Search)
 			EnterAlert();
@@ -747,17 +749,13 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 		}
 
 		// Suppress：看得见就守住压制距离；看不见就朝共享情报摸过去
-		if (!_canSee && Squad != null && Squad.TryGetSearchPosition(this, out Vector3 shared))
+		if (!_canSee && Squad != null && Squad.TryGetIntelTarget(this, out Vector3 shared, out _))
 		{
-			// 置信度低时只保留大致方向，不要精确"隔墙锁人"
-			Vector3 target = Squad.SharedIsDirectionOnly
-				? GlobalPosition + (shared - GlobalPosition).Normalized() * 3f
-				: shared;
-
-			if (FlatDistance(GlobalPosition, target) > 1.5f)
+			// 置信度低时情报点已经换算成"沿最后方向的 6m 前出点"，不再隔墙锁人
+			if (FlatDistance(GlobalPosition, shared) > 1.5f)
 			{
-				MoveTo(target, Data.CombatSpeed);
-				FaceTowards(target, dt);
+				MoveTo(shared, Data.CombatSpeed);
+				FaceTowards(shared, dt);
 			}
 			else
 			{
@@ -933,6 +931,10 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 			spread += Data.PlayerMovingSpreadBonus;
 		if (!_player.IsOnFloor())
 			spread += Data.PlayerMovingSpreadBonus;
+
+		// 开场试探期：敌人还在校准射界，散布放大（§2.6 压力曲线）
+		if (Combat is { EngageRampActive: true } director)
+			spread *= director.Config.EngageRampSpreadScale;
 
 		return spread;
 	}

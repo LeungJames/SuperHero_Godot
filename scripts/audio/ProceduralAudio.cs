@@ -20,6 +20,7 @@ public enum SfxKind
 	Death,
 	Kill,
 	Melee,
+	Whiz,
 }
 
 /// <summary>
@@ -55,6 +56,7 @@ public static class ProceduralAudio
 			SfxKind.Death => Build(DeathSamples(), false),
 			SfxKind.Kill => Build(KillSamples(), false),
 			SfxKind.Melee => Build(MeleeSamples(), false),
+			SfxKind.Whiz => Build(WhizSamples(), false),
 			_ => Build(FootstepSamples(), false),
 		};
 
@@ -202,6 +204,21 @@ public static class ProceduralAudio
 			b[i] = ding + ring + thud + noise;
 		}
 		return Normalize(b, 0.85f);
+	}
+
+	/// <summary>子弹掠过：高频噪声快速扫过，短促，只用于"被压制"提示（§2.7）。</summary>
+	private static float[] WhizSamples()
+	{
+		var rng = new Random(131);
+		float[] b = new float[Frames(0.20f)];
+		for (int i = 0; i < b.Length; i++)
+		{
+			float t = i / (float)SampleRate;
+			float env = Mathf.Sin(Mathf.Pi * Mathf.Clamp(t / 0.20f, 0f, 1f));
+			float sweep = Mathf.Sin(Mathf.Tau * (2600f - 1500f * t) * t) * 0.3f;
+			b[i] = Noise(rng) * env * 0.75f + sweep * env;
+		}
+		return Normalize(b, 0.55f);
 	}
 
 	private static float[] HurtSamples()

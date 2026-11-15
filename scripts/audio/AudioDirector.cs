@@ -186,8 +186,11 @@ public partial class AudioDirector : Node
 			headshot ? 2f : 1f, 0.96f + (float)GD.RandRange(0f, 0.08f));
 	}
 
-	private void PlayAt(SfxKind kind, Vector3 position, float volumeDb = 0f, float pitch = 1f)
-	{
+	/// <summary>关卡脚本（小队协同提示等）用的一次性世界音效。</summary>
+	public void PlayWorld(SfxKind kind, Vector3 position, float volumeDb = 0f, float pitch = 1f) =>
+		PlayAt(kind, position, volumeDb, pitch);
+
+	private void PlayAt(SfxKind kind, Vector3 position, float volumeDb = 0f, float pitch = 1f)	{
 		AudioStreamPlayer3D source = _pool[_next];
 		_next = (_next + 1) % _pool.Length;
 

@@ -17,6 +17,7 @@ public partial class HudController : Control
 	private const float CrosshairFlashTime = 0.1f;
 	private const float MessageTime = 0.8f;
 	private const float FlashRecoverTime = 0.5f;
+	private const float SuppressionTime = 1.2f;
 
 	private PlayerController _player;
 	private PlayerHealth _health;
@@ -55,6 +56,12 @@ public partial class HudController : Control
 	private int _lastAlive = -1;
 	private string _promptText = string.Empty;
 
+	private VignetteOverlay _vignetteOverlay;
+	private WarningArrow _warningArrow;
+	private float _vignetteTimer;
+	private float _arrowTimer;
+	private float _arrowDuration = 0.6f;
+
 	public override void _Ready()
 	{
 		AddToGroup("hud");
@@ -92,6 +99,16 @@ public partial class HudController : Control
 		_damageFlash.Color = new Color(Danger.R, Danger.G, Danger.B, 0f);
 		_fade.Color = new Color(0.96f, 0.90f, 0.80f, 0f);
 		SetCrosshairGap(6f);
+
+		// 暗角垫在最底层，方向箭头盖在最上层；都只做提示，不拦输入
+		_vignetteOverlay = new VignetteOverlay { Name = "SuppressionVignette", MouseFilter = MouseFilterEnum.Ignore };
+		AddChild(_vignetteOverlay);
+		_vignetteOverlay.SetAnchorsPreset(LayoutPreset.FullRect);
+		MoveChild(_vignetteOverlay, 0);
+
+		_warningArrow = new WarningArrow { Name = "DirectionalWarning", MouseFilter = MouseFilterEnum.Ignore };
+		AddChild(_warningArrow);
+		_warningArrow.SetAnchorsPreset(LayoutPreset.FullRect);
 
 		_player = GetTree().GetFirstNodeInGroup("player") as PlayerController;
 		_weapon = GetTree().GetFirstNodeInGroup("weapon") as WeaponController;
@@ -200,6 +217,33 @@ public partial class HudController : Control
 	public void SetFade(float alpha)
 	{
 		_fade.Color = new Color(0.96f, 0.90f, 0.80f, Mathf.Clamp(alpha, 0f, 1f));
+	}
+
+	/// <summary>被压制：屏幕边缘轻微暗角（§2.7）。</summary>
+	public void ShowSuppression()
+	{
+		_vignetteTimer = SuppressionTime;
+	}
+
+	/// <summary>
+	/// 方向提示：从屏幕中心指向该世界位置，在屏幕边缘画 0.6s 的箭头（§2.7 包抄提示）。
+	/// 只给方向，不给精确位置。
+	/// </summary>
+	public void ShowDirectionalWarning(Vector3 worldPosition, Color color, float duration = 0.6f)
+	{
+		Camera3D camera = GetViewport()?.GetCamera3D();
+		if (camera == null || _warningArrow == null)
+			return;
+
+		Vector2 screen = camera.UnprojectPosition(worldPosition + Vector3.Up * 1.5f);
+		Vector2 direction = screen - GetViewportRect().Size * 0.5f;
+		if (direction.LengthSquared() < 1f)
+			return;
+
+		_warningArrow.Direction = direction.Normalized();
+		_warningArrow.Tint = color;
+		_arrowTimer = duration;
+		_arrowDuration = Mathf.Max(0.01f, duration);
 	}
 
 	// ------------------------------------------------------------ 事件
@@ -318,6 +362,30 @@ public partial class HudController : Control
 			float scale = Mathf.Lerp(1f, 1.15f, _enemyPulse);
 			_enemiesLabel.Scale = new Vector2(scale, scale);
 		}
+
+		if (_vignetteTimer > 0f)
+		{
+			_vignetteTimer = Mathf.Max(0f, _vignetteTimer - dt);
+			_vignetteOverlay.Strength = Mathf.Clamp(_vignetteTimer / SuppressionTime, 0f, 1f);
+			_vignetteOverlay.QueueRedraw();
+		}
+		else if (_vignetteOverlay.Strength > 0f)
+		{
+			_vignetteOverlay.Strength = 0f;
+			_vignetteOverlay.QueueRedraw();
+		}
+
+		if (_arrowTimer > 0f)
+		{
+			_arrowTimer = Mathf.Max(0f, _arrowTimer - dt);
+			_warningArrow.Alpha = Mathf.Clamp(_arrowTimer / _arrowDuration, 0f, 1f);
+			_warningArrow.QueueRedraw();
+		}
+		else if (_warningArrow.Alpha > 0f)
+		{
+			_warningArrow.Alpha = 0f;
+			_warningArrow.QueueRedraw();
+		}
 	}
 
 	private void UpdateCrosshair()
@@ -348,5 +416,60 @@ public partial class HudController : Control
 
 		if (reloading)
 			_reloadBar.Value = _weapon.ReloadProgress;
+	}
+
+	/// <summary>屏幕四边向内的暗角，避免受击时糊住画面中心。</summary>
+	private sealed partial class VignetteOverlay : Control
+	{
+		public float Strength { get; set; }
+
+		public override void _Draw()
+		{
+			if (Strength <= 0.001f)
+				return;
+
+			Vector2 size = Size;
+			float band = Mathf.Min(size.X, size.Y) * 0.16f;
+			Color edge = new(0.04f, 0.02f, 0.02f, 0.34f * Strength);
+			Color clear = new(0.04f, 0.02f, 0.02f, 0f);
+			Color[] colors = { edge, edge, clear, clear };
+
+			DrawPolygon(new[] { new Vector2(0f, 0f), new Vector2(size.X, 0f), new Vector2(size.X, band), new Vector2(0f, band) }, colors);
+			DrawPolygon(new[] { new Vector2(0f, size.Y - band), new Vector2(size.X, size.Y - band), new Vector2(size.X, size.Y), new Vector2(0f, size.Y) }, colors);
+			DrawPolygon(new[] { new Vector2(0f, 0f), new Vector2(band, 0f), new Vector2(band, size.Y), new Vector2(0f, size.Y) }, colors);
+			DrawPolygon(new[] { new Vector2(size.X - band, 0f), new Vector2(size.X, 0f), new Vector2(size.X, size.Y), new Vector2(size.X - band, size.Y) }, colors);
+		}
+	}
+
+	/// <summary>屏幕边缘的方向箭头：指向威胁所在的屏幕方向（不暴露具体位置）。</summary>
+	private sealed partial class WarningArrow : Control
+	{
+		public Vector2 Direction { get; set; } = Vector2.Down;
+		public Color Tint { get; set; } = new(0.95f, 0.40f, 0.22f);
+		public float Alpha { get; set; }
+
+		public override void _Draw()
+		{
+			if (Alpha <= 0.001f)
+				return;
+
+			Vector2 size = Size;
+			Vector2 center = size * 0.5f;
+			Vector2 dir = Direction.LengthSquared() > 0.001f ? Direction.Normalized() : Vector2.Down;
+
+			// 沿方向投到屏幕内框上，箭头贴在边缘留 28px
+			float halfX = Mathf.Max(1f, center.X - 28f);
+			float halfY = Mathf.Max(1f, center.Y - 28f);
+			float t = Mathf.Min(
+				Mathf.Abs(dir.X) > 0.0001f ? halfX / Mathf.Abs(dir.X) : 9999f,
+				Mathf.Abs(dir.Y) > 0.0001f ? halfY / Mathf.Abs(dir.Y) : 9999f);
+
+			Vector2 tip = center + dir * t;
+			Vector2 tangent = new(-dir.Y, dir.X);
+			Vector2 baseCenter = tip - dir * 22f;
+			Color color = new(Tint.R, Tint.G, Tint.B, Alpha);
+			Color[] colors = { color, color, color };
+			DrawPolygon(new[] { tip, baseCenter + tangent * 12f, baseCenter - tangent * 12f }, colors);
+		}
 	}
 }

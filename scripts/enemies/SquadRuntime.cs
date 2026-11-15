@@ -20,10 +20,16 @@ public sealed class SquadRuntime
 	/// <summary>共享的最后已知位置与置信度（§2.5）。</summary>
 	public Vector3 SharedPosition { get; private set; }
 	public float SharedConfidence { get; private set; }
+	/// <summary>共享位置相对小队的水平方向；置信度不足时队友只沿这个方向摸。</summary>
+	public Vector3 SharedDirection { get; private set; }
 	public bool HasSharedContact => SharedConfidence > 0.01f;
+
+	/// <summary>小队警戒等级（§2.5 共享警戒）：0 平静 / 1 警戒 / 2 交战，取成员最高值。</summary>
+	public int AlertLevel { get; private set; }
 
 	private float _shareDelayLeft;
 	private Vector3 _pendingPosition;
+	private float _pendingConfidence;
 	private bool _pending;
 	private float _reviewTimer;
 
@@ -62,13 +68,21 @@ public sealed class SquadRuntime
 			{
 				_pending = false;
 				SharedPosition = _pendingPosition;
-				SharedConfidence = 1f;
+				SharedConfidence = _pendingConfidence;
+
+				Vector3 from = Leader != null ? Leader.GlobalPosition : SharedPosition;
+				Vector3 delta = SharedPosition - from;
+				delta.Y = 0f;
+				if (delta.LengthSquared() > 0.01f)
+					SharedDirection = delta.Normalized();
 			}
 		}
 		else if (SharedConfidence > 0f)
 		{
 			SharedConfidence = Mathf.Max(0f, SharedConfidence - Config.ShareConfidenceDecay * dt);
 		}
+
+		AlertLevel = ComputeAlertLevel();
 
 		_reviewTimer -= dt;
 		if (_reviewTimer <= 0f)
@@ -89,25 +103,54 @@ public sealed class SquadRuntime
 		}
 
 		_pendingPosition = position;
+		_pendingConfidence = 1f;
 	}
 
-	/// <summary>队友从哪个位置开始找：自己看得见就用实时位置，否则用共享情报。</summary>
-	public bool TryGetSearchPosition(EnemyAgent asker, out Vector3 position)
+	/// <summary>
+	/// 听见枪声 / 脚步：只提升本小队警戒（§2.5 听觉共享），初始置信度低于目视；
+	/// 已有目视情报时不让听觉覆盖。
+	/// </summary>
+	public void ReportNoise(Vector3 position)
 	{
+		if (_pending || SharedConfidence >= 1f)
+			return;
+
+		_pending = true;
+		_shareDelayLeft = Config.ShareDelay;
+		_pendingPosition = position;
+		_pendingConfidence = Config.ShareNoiseConfidence;
+	}
+
+	/// <summary>
+	/// 取当前可用的情报点：自己看得见用实时位置；只剩方向时给一个沿方向的前出点，
+	/// 而不是精确位置（避免"隔墙锁人"）。
+	/// </summary>
+	public bool TryGetIntelTarget(EnemyAgent asker, out Vector3 target, out bool directionOnly)
+	{
+		directionOnly = false;
+
 		if (asker.HasSight)
 		{
-			position = asker.PlayerPosition;
+			target = asker.PlayerPosition;
 			return true;
 		}
 
-		if (HasSharedContact)
+		if (!HasSharedContact)
 		{
-			position = SharedPosition;
+			target = Vector3.Zero;
+			return false;
+		}
+
+		if (SharedIsDirectionOnly && SharedDirection.LengthSquared() > 0.01f)
+		{
+			target = asker.GlobalPosition + SharedDirection * Config.ShareDirectionProbeDistance;
+			target.Y = asker.GlobalPosition.Y;
+			directionOnly = true;
 			return true;
 		}
 
-		position = Vector3.Zero;
-		return false;
+		target = SharedPosition;
+		return true;
 	}
 
 	/// <summary>共享情报是否已经衰减到只能保方向（§2.5）。</summary>
@@ -120,5 +163,19 @@ public sealed class SquadRuntime
 			if (m.HasSight)
 				return true;
 		return false;
+	}
+
+	private int ComputeAlertLevel()
+	{
+		int level = 0;
+		foreach (EnemyAgent m in Alive)
+		{
+			if (m.State == EnemyState.Combat)
+				return 2;
+			if (m.State == EnemyState.Alert)
+				level = 1;
+		}
+
+		return level;
 	}
 }

@@ -16,17 +16,27 @@ public partial class CombatDirector : Node
 	private float _waveTimer;
 	private float _waveLeft;
 	private float _playerCalmTimer;
+	private float _rampLeft;
+	private bool _engaged;
 	private PlayerHealth _playerHealth;
 
-	/// <summary>当前实际可用的令牌数（含压力波临时 +1）。</summary>
+	/// <summary>当前实际可用的令牌数（含压力波临时 +1；接敌试探期内受限）。</summary>
 	public int TokenBudget
 	{
 		get
 		{
 			int baseTokens = Config != null ? Config.FireTokens : 2;
+
+			// 接敌试探期：先只放一人开火，玩家看清火力来源并能找掩体后再恢复满额
+			if (EngageRampActive)
+				return Mathf.Clamp(Config.EngageRampTokens, 1, baseTokens);
+
 			return baseTokens + (_waveLeft > 0f ? 1 : 0);
 		}
 	}
+
+	/// <summary>首次交火后的试探阶段（§2.6 压力曲线）。</summary>
+	public bool EngageRampActive => _engaged && _rampLeft > 0f;
 
 	public IReadOnlyList<EnemyAgent> Holders => _holders;
 	public bool PressureWaveActive => _waveLeft > 0f;
@@ -62,6 +72,13 @@ public partial class CombatDirector : Node
 
 		_holders.Add(agent);
 		_holdTimers[agent] = Config != null ? Config.TokenHoldTime : 2.5f;
+
+		if (!_engaged)
+		{
+			_engaged = true;
+			_rampLeft = Config != null ? Config.EngageRampDuration : 0f;
+		}
+
 		return true;
 	}
 
@@ -71,7 +88,11 @@ public partial class CombatDirector : Node
 			return;
 
 		_holdTimers.Remove(agent);
-		_gapTimer = Config != null ? Config.TokenHandoverGap : 0.35f;
+
+		// 开场试探期用更长的交接间隔：轮换也不能把"喘息窗口"填满
+		_gapTimer = EngageRampActive
+			? (Config != null ? Config.EngageRampHandoverGap : 1.5f)
+			: (Config != null ? Config.TokenHandoverGap : 0.35f);
 	}
 
 	public void Tick(float dt)
@@ -80,6 +101,7 @@ public partial class CombatDirector : Node
 		_waveTimer += dt;
 		_waveLeft = Mathf.Max(0f, _waveLeft - dt);
 		_playerCalmTimer += dt;
+		_rampLeft = Mathf.Max(0f, _rampLeft - dt);
 
 		float interval = Config != null ? Config.PressureWaveInterval : 9f;
 		float calm = Config != null ? Config.PressureWavePlayerCalmTime : 3.5f;
@@ -115,5 +137,7 @@ public partial class CombatDirector : Node
 		_holders.Clear();
 		_holdTimers.Clear();
 		_gapTimer = 0f;
+		_rampLeft = 0f;
+		_engaged = false;
 	}
 }

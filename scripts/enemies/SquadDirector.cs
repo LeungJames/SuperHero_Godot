@@ -25,6 +25,7 @@ public partial class SquadDirector : Node
 	private HudController _hud;
 	private ComicOverlay _comic;
 	private AIDebugOverlay _overlay;
+	private AudioDirector _audio;
 	private bool _built;
 	private int _buildAttempts;
 
@@ -33,7 +34,7 @@ public partial class SquadDirector : Node
 	private float _flankCalloutCd;
 	private float _retreatCalloutCd;
 	private float _helpCalloutCd;
-	private float _lastPlayerDamageTimer;
+	private float _suppressCalloutCd;
 
 	public override void _Ready()
 	{
@@ -85,6 +86,7 @@ public partial class SquadDirector : Node
 		_flankCalloutCd = Mathf.Max(0f, _flankCalloutCd - dt);
 		_retreatCalloutCd = Mathf.Max(0f, _retreatCalloutCd - dt);
 		_helpCalloutCd = Mathf.Max(0f, _helpCalloutCd - dt);
+		_suppressCalloutCd = Mathf.Max(0f, _suppressCalloutCd - dt);
 
 		UpdateLookPressure(dt);
 
@@ -93,6 +95,26 @@ public partial class SquadDirector : Node
 
 		UpdateRetreats(dt);
 		Combat.Tick(dt);
+		UpdateSuppression();
+	}
+
+	/// <summary>
+	/// 玩家被压制：两人以上持令牌且真能看见玩家时给暗角 + 掠弹音（§2.7，3s 冷却）。
+	/// 只提示"正在被压"，不暴露射手位置。
+	/// </summary>
+	private void UpdateSuppression()
+	{
+		if (_suppressCalloutCd > 0f || _player == null || Combat == null)
+			return;
+		if (Combat.Holders.Count < 2 || !Combat.Holders.Any(h => h.HasSight))
+			return;
+
+		_suppressCalloutCd = Config.SuppressCalloutCooldown;
+		_hud?.ShowSuppression();
+
+		_audio ??= GetTree().CurrentScene?.FindChild("AudioDirector", true, false) as AudioDirector;
+		_audio?.PlayWorld(SfxKind.Whiz, _player.GlobalPosition + Vector3.Up * 1.2f, -7f,
+			0.94f + (float)GD.RandRange(0f, 0.12f));
 	}
 
 	/// <summary>F3 开关可视化（设计 §2.9）；探针 / 演示也可直接调用。</summary>
@@ -503,6 +525,8 @@ public partial class SquadDirector : Node
 			return;
 		_flankCalloutCd = Config.FlankCalloutCooldown;
 		_hud?.ShowMessage("无线电：有人绕后。", new Color(0.92f, 0.55f, 0.25f));
+		// 屏幕边缘红色箭头 0.6s：只给方向（§2.7）
+		_hud?.ShowDirectionalWarning(flanker.GlobalPosition, new Color(0.92f, 0.28f, 0.22f), 0.6f);
 		_comic?.ShowWorld("TCH!", flanker.GlobalPosition, new Color(0.95f, 0.72f, 0.30f), 0.7f);
 	}
 
@@ -512,6 +536,9 @@ public partial class SquadDirector : Node
 			return;
 		_retreatCalloutCd = Config.RetreatCalloutCooldown;
 		_comic?.ShowWorld("TCH!", agent.GlobalPosition, new Color(0.72f, 0.75f, 0.80f), 0.7f);
+		// 脚步方向音：让玩家听出"有人退下去了"
+		_audio ??= GetTree().CurrentScene?.FindChild("AudioDirector", true, false) as AudioDirector;
+		_audio?.PlayWorld(SfxKind.Footstep, agent.GlobalPosition, -8f, 0.82f);
 	}
 
 	/// <summary>小队求援：成员重伤或队长阵亡时由 HUD 播报。</summary>
