@@ -153,26 +153,58 @@ public partial class AudioDirector : Node
 		if (_player != null) _player.Footstepped -= PlayFootstep;
 		if (_health != null) _health.Damaged -= OnPlayerDamaged;
 		if (_weapon != null) _weapon.ShotResolved -= OnShotResolved;
-		_wind?.Stop();
-		_waves?.Stop();
-		_radio?.Stop();
-		_industry?.Stop();
-		_heliLoop?.Stop();
+		ReleasePlayer(_wind);
+		ReleasePlayer(_waves);
+		ReleasePlayer(_radio);
+		ReleasePlayer(_industry);
+		if (_heliLoop != null)
+		{
+			_heliLoop.StreamPaused = false;
+			_heliLoop.Stop();
+			_heliLoop.Stream = null;
+		}
 		foreach (AudioStreamPlayer3D source in _pool ?? Array.Empty<AudioStreamPlayer3D>())
 		{
-			source?.Stop();
-			if (source != null)
-				source.Stream = null;
+			if (source == null) continue;
+			source.StreamPaused = false;
+			source.Stop();
+			source.Stream = null;
 		}
 
 		_wind = null;
 		_waves = null;
 		_radio = null;
+		_industry = null;
 		_heliLoop = null;
 		if (Instance == this)
 			Instance = null;
 		ProceduralAudio.ClearCache();
 		AudioPalette.Clear();
+		FinishPendingAudioMix();
+	}
+
+	internal static void ReleasePlayer(AudioStreamPlayer source)
+	{
+		if (source == null) return;
+		source.StreamPaused = false;
+		source.Stop();
+		source.Stream = null;
+	}
+
+	private static void FinishPendingAudioMix()
+	{
+		// Stop queues playback removal on the audio thread. Direct application exit
+		// during a paused cutscene otherwise shuts the driver down before that mix.
+		// Wait for its actual clock to advance, with a bound for unavailable devices.
+		double previous = AudioServer.GetTimeSinceLastMix();
+		ulong deadline = Time.GetTicksUsec() + 100_000;
+		do
+		{
+			OS.DelayUsec(1_000);
+			double current = AudioServer.GetTimeSinceLastMix();
+			if (current < previous) break;
+			previous = current;
+		} while (Time.GetTicksUsec() < deadline);
 	}
 
 	public override void _Process(double delta)

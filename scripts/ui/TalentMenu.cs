@@ -168,8 +168,10 @@ public partial class TalentMenu : Control
 
 		string prefix = owned ? "✓ " : !chapter || !prereq ? "[锁] " : "";
 		var button = ComicCards.Create($"{prefix}{node.DisplayName}", $"{state}\n{node.Description}", null, 144);
+		button.Disabled = !canBuy;
 		button.TooltipText = node.Description;
 		button.AddThemeStyleboxOverride("normal", ComicTheme.Box(owned ? new Color("f1c47d") : canBuy ? ComicTheme.PaperLight : new Color("ddd2bd"), owned ? 3 : 1));
+		button.AddThemeStyleboxOverride("disabled", ComicTheme.Box(owned ? new Color("f1c47d") : new Color("ddd2bd"), owned ? 3 : 1));
 
 		if (!owned && (!prereq || !chapter))
 			button.AddThemeColorOverride("font_disabled_color", new Color(0.55f, 0.52f, 0.48f));

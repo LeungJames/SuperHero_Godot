@@ -52,8 +52,8 @@ public partial class MusicDirector : Node
 	public override void _ExitTree()
 	{
 		if (GodotObject.IsInstanceValid(_health)) _health.Died -= OnPlayerDied;
-		foreach (AudioStreamPlayer voice in _voices) voice?.Stop();
-		_heartbeat?.Stop();
+		foreach (AudioStreamPlayer voice in _voices) AudioDirector.ReleasePlayer(voice);
+		AudioDirector.ReleasePlayer(_heartbeat);
 	}
 	private void RefreshActors()
 	{

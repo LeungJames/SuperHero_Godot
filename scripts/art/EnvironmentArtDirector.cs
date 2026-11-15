@@ -434,6 +434,19 @@ public partial class EnvironmentArtDirector : Node3D
 
 	private void BuildFactory()
 	{
+		// Tie the existing overhead pipes and short trusses into the wall structure.
+		// All additions are above the encounter space and have no physics shape.
+		foreach (float z in new[] { 0f, 2f, 6f })
+		{
+			Box(Transform3D.Identity, new Vector3(0, 12.4f, z), new Vector3(48, 0.26f, 0.22f), _steel);
+			foreach (float x in new[] { -23.8f, 23.8f })
+				Beam(new Vector3(x, 9, z), new Vector3(x, 12.4f, z), 0.22f, _steel);
+		}
+		foreach (float x in new[] { -5.7f, 5.7f })
+		{
+			Beam(new Vector3(x, 10.4f, 0), new Vector3(x, 12.4f, 0), 0.065f, _ink);
+			Beam(new Vector3(x, 10.9f, 6), new Vector3(x, 12.4f, 6), 0.065f, _ink);
+		}
 		Sign("RED SERPENT  /  WORKS", new Vector3(0, 8.7f, 23.74f), Mathf.Pi, 6.7f, new Color("8c3e32"));
 		Sign("AUTHORIZED PERSONNEL", new Vector3(0, 7.4f, -23.74f), 0, 6.3f, new Color("8c3e32"));
 		// Twin high-level conduits, brackets and suspended task lighting.
