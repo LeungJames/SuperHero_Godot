@@ -54,6 +54,7 @@ public partial class GameManager : Node
 	private Control _pauseMenu;
 	private SettingsMenu _settings;
 	private ChapterSelect _chapterSelect;
+	private Button _difficultyButton;
 
 	private float _defeatTimer;
 	private bool _defeatPending;
@@ -279,6 +280,7 @@ public partial class GameManager : Node
 		var resume = _pauseMenu.GetNodeOrNull<Button>("Panel/VBox/ResumeButton");
 		var settings = _pauseMenu.GetNodeOrNull<Button>("Panel/VBox/SettingsButton");
 		var chapters = _pauseMenu.GetNodeOrNull<Button>("Panel/VBox/ChaptersButton");
+		_difficultyButton = _pauseMenu.GetNodeOrNull<Button>("Panel/VBox/DifficultyButton");
 		var quit = _pauseMenu.GetNodeOrNull<Button>("Panel/VBox/QuitButton");
 
 		if (resume != null)
@@ -287,8 +289,40 @@ public partial class GameManager : Node
 			settings.Pressed += OpenSettings;
 		if (chapters != null)
 			chapters.Pressed += OpenChapterSelect;
+		if (_difficultyButton != null)
+			_difficultyButton.Pressed += CycleDifficulty;
 		if (quit != null)
 			quit.Pressed += Quit;
+
+		RefreshDifficultyLabel();
+	}
+
+	/// <summary>暂停面板直接循环切换难度；只影响敌人侧参数，立即生效并落盘。</summary>
+	private void CycleDifficulty()
+	{
+		string next = SaveSystem.Instance?.DifficultyId switch
+		{
+			"easy" => "normal",
+			"normal" => "hard",
+			_ => "easy",
+		};
+
+		SaveSystem.Instance?.SetDifficulty(next);
+		RefreshDifficultyLabel();
+	}
+
+	private void RefreshDifficultyLabel()
+	{
+		if (_difficultyButton == null)
+			return;
+
+		string name = SaveSystem.Instance?.DifficultyId switch
+		{
+			"easy" => "简单",
+			"hard" => "困难",
+			_ => "普通",
+		};
+		_difficultyButton.Text = $"难度：{name}";
 	}
 
 	private void OpenSettings()
@@ -330,7 +364,10 @@ public partial class GameManager : Node
 		GetTree().Paused = paused;
 		_pauseMenu.Visible = paused;
 		if (paused)
+		{
 			SetPauseMainPanelVisible(true);
+			RefreshDifficultyLabel();
+		}
 		Input.MouseMode = paused ? Input.MouseModeEnum.Visible : Input.MouseModeEnum.Captured;
 
 		if (paused)

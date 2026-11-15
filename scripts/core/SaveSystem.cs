@@ -196,6 +196,9 @@ public partial class SaveSystem : Node
 		string path = $"res://data/difficulty/{DifficultyId}.tres";
 		DifficultyConfig config = ResourceLoader.Exists(path) ? GD.Load<DifficultyConfig>(path) : null;
 		DifficultySystem.Set(config);
+		GD.Print($"[Difficulty] id={DifficultyId} reactionDelta={DifficultySystem.Current.ReactionTimeDelta} " +
+			$"spreadBonus={DifficultySystem.Current.SpreadBonusDegrees} tokens={DifficultySystem.Current.FireTokens} " +
+			$"ammoX={DifficultySystem.Current.AmmoMultiplier}");
 	}
 
 	// ------------------------------------------------------------ 设置应用

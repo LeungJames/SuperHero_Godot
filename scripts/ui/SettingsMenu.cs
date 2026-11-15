@@ -83,6 +83,8 @@ public partial class SettingsMenu : Control
 			return;
 
 		CancelCapture();
+		// 点击滑条轨道只触发 ValueChanged、不触发 DragEnded，关闭时统一落盘
+		SaveSystem.Instance?.SaveSettings();
 		Visible = false;
 		Closed?.Invoke();
 	}
