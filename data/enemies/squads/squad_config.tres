@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="SquadConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemies/SquadConfig.cs" id="1_squadconfig"]
+
+[resource]
+script = ExtResource("1_squadconfig")
+MaxSize = 3
+FlankMax = 1
+SuppressMinRange = 10.0
+SuppressMaxRange = 18.0
+FlankMinRange = 4.0
+FlankMaxRange = 12.0
+SupportMinRange = 3.0
+SupportMaxRange = 8.0
+RetreatHealthRatio = 0.35
+RetreatDuration = 4.0
+RetreatCooldown = 20.0
+RetreatCoverRadius = 8.0
+ShareDelay = 0.8
+ShareConfidenceDecay = 0.5
+ShareDirectionOnlyConfidence = 0.3
+SlotReviewInterval = 3.0
+SlotSwitchPause = 0.5
+FlankAbortLookTime = 1.5
+SlotStuckTimeout = 12.0
+FireTokens = 2
+TokenHoldTime = 2.5
+TokenHandoverGap = 0.35
+PressureWaveInterval = 9.0
+PressureWaveDuration = 2.5
+PressureWavePlayerCalmTime = 3.5
+FlankCalloutCooldown = 8.0
+RetreatCalloutCooldown = 5.0
+HelpCalloutCooldown = 15.0

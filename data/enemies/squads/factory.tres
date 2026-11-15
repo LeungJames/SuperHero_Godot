@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="SquadRoster" load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemies/SquadRoster.cs" id="1_roster"]
+[ext_resource type="Script" path="res://scripts/enemies/SquadEntry.cs" id="2_entry"]
+[ext_resource type="Resource" path="res://data/enemies/squads/squad_config.tres" id="3_config"]
+
+[sub_resource type="Resource" id="Squad_F1"]
+script = ExtResource("2_entry")
+Id = "F1"
+Leader = "Enemy_01_Runner"
+Members = PackedStringArray("Enemy_02_Runner")
+
+[sub_resource type="Resource" id="Squad_F2"]
+script = ExtResource("2_entry")
+Id = "F2"
+Leader = "Enemy_03_Runner"
+Members = PackedStringArray("Enemy_04_Runner")
+
+[sub_resource type="Resource" id="Squad_F3"]
+script = ExtResource("2_entry")
+Id = "F3"
+Leader = "Enemy_05_Holder"
+Members = PackedStringArray("Enemy_06_Runner")
+
+[sub_resource type="Resource" id="Squad_F4"]
+script = ExtResource("2_entry")
+Id = "F4"
+Leader = "Enemy_07_Holder"
+Members = PackedStringArray("Enemy_08_Holder")
+
+[sub_resource type="Resource" id="Squad_F5"]
+script = ExtResource("2_entry")
+Id = "F5"
+Leader = "Enemy_09_Runner"
+Members = PackedStringArray("Enemy_10_Runner")
+
+[resource]
+script = ExtResource("1_roster")
+Config = ExtResource("3_config")
+Squads = Array[Resource]([SubResource("Squad_F1"), SubResource("Squad_F2"), SubResource("Squad_F3"), SubResource("Squad_F4"), SubResource("Squad_F5")])

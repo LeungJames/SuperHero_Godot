@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="SquadRoster" load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemies/SquadRoster.cs" id="1_roster"]
+[ext_resource type="Script" path="res://scripts/enemies/SquadEntry.cs" id="2_entry"]
+[ext_resource type="Resource" path="res://data/enemies/squads/squad_config.tres" id="3_config"]
+
+[sub_resource type="Resource" id="Squad_A1"]
+script = ExtResource("2_entry")
+Id = "A1"
+Leader = "Enemy_01_Post_Gate"
+Members = PackedStringArray("Enemy_02_Post_Pocket", "Enemy_06_Post_Lane")
+
+[sub_resource type="Resource" id="Squad_A2"]
+script = ExtResource("2_entry")
+Id = "A2"
+Leader = "Enemy_05_Sentry_Catwalk"
+Members = PackedStringArray("Enemy_03_Sentry_WestRoof", "Enemy_04_Sentry_EastRoof")
+
+[sub_resource type="Resource" id="Squad_A3"]
+script = ExtResource("2_entry")
+Id = "A3"
+Leader = "Enemy_07_Post_WestAlley"
+Members = PackedStringArray("Enemy_08_Runner_WestYard")
+
+[sub_resource type="Resource" id="Squad_A4"]
+script = ExtResource("2_entry")
+Id = "A4"
+Leader = "Enemy_09_Runner_EastYard"
+Members = PackedStringArray("Enemy_10_Post_Pier")
+
+[sub_resource type="Resource" id="Squad_A5"]
+script = ExtResource("2_entry")
+Id = "A5"
+Leader = "Enemy_11_Sentry_Gantry"
+Members = PackedStringArray("Enemy_12_Sentry_Gantry")
+
+[resource]
+script = ExtResource("1_roster")
+Config = ExtResource("3_config")
+Squads = Array[Resource]([SubResource("Squad_A1"), SubResource("Squad_A2"), SubResource("Squad_A3"), SubResource("Squad_A4"), SubResource("Squad_A5")])

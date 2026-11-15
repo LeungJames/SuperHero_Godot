@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://MainScene.cs" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/levels/PortLevel.tscn" id="2_level"]
@@ -19,6 +19,8 @@
 [ext_resource type="Resource" path="res://data/level/Alert.tres" id="17_alert_data"]
 [ext_resource type="Resource" path="res://data/weapons/Arsenal.tres" id="18_arsenal"]
 [ext_resource type="Script" path="res://scripts/level/ChapterSetup.cs" id="19_chapter"]
+[ext_resource type="Script" path="res://scripts/enemies/SquadDirector.cs" id="20_squad"]
+[ext_resource type="Resource" path="res://data/enemies/squads/port.tres" id="21_roster"]
 
 [sub_resource type="ProceduralSkyMaterial" id="Sky_Dusk"]
 sky_top_color = Color(0.78, 0.45, 0.17, 1)
@@ -74,6 +76,10 @@ light_energy = 0.15
 light_specular = 0.0
 
 [node name="Level" parent="World" instance=ExtResource("2_level")]
+
+[node name="SquadDirector" type="Node" parent="World"]
+script = ExtResource("20_squad")
+Roster = ExtResource("21_roster")
 
 [node name="ReinforcementPoints" type="Node3D" parent="World" groups=["reinforce_points"]]
 

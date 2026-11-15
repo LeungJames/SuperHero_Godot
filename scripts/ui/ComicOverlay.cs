@@ -52,6 +52,7 @@ public partial class ComicOverlay : Control
 		Style ??= new ComicStyleData();
 		MouseFilter = MouseFilterEnum.Ignore;
 		ZIndex = 5;
+		AddToGroup("comic_overlay");
 		_rng.Randomize();
 		_font = ThemeDB.FallbackFont;
 
@@ -162,6 +163,15 @@ public partial class ComicOverlay : Control
 			return;
 
 		Spawn("WHACK!", ToScreen(point) + RandomJitter(40f), Style.PaperColor, 0.8f);
+	}
+
+	/// <summary>
+	/// 世界坐标处的拟声词：AI 协同提示（包抄 / 后撤）用，2.0 设计 §2.7。
+	/// 只给类别与大概位置，不给精确坐标。
+	/// </summary>
+	public void ShowWorld(string text, Vector3 world, Color color, float scale = 0.8f)
+	{
+		Spawn(text, ToScreen(world + Vector3.Up * 1.9f), color, scale);
 	}
 
 	private void OnEnemyDied(Node3D agent)

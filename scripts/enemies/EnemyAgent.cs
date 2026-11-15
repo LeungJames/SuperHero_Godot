@@ -29,6 +29,77 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 	public EnemyState State { get; private set; } = EnemyState.Patrol;
 	public bool HasSight => _canSee;
 
+	// ---------------------------------------------------------------- 小队协同（2.0 §2.3–§2.6）
+
+	/// <summary>所属小队；为空表示独立敌人（如增援），行为退回 1.0 逻辑。</summary>
+	public SquadRuntime Squad { get; set; }
+	/// <summary>Combat 下的槽位任务，不是新的顶层状态。</summary>
+	public SquadSlot Slot { get; private set; } = SquadSlot.Suppress;
+	/// <summary>槽位给的目标点（压制距离点 / 侧翼点 / 后撤点）。</summary>
+	public Vector3 SlotTarget { get; set; }
+	/// <summary>队长阵亡后降级为原地防守。</summary>
+	public bool HoldPost { get; set; }
+	/// <summary>被玩家直视的累计时长，用于放弃包抄（§2.3 规则 4）。</summary>
+	public float LookedAtTime { get; set; }
+	/// <summary>当前不适合包抄（被盯太久且没有掩体）。</summary>
+	public bool FlankBlocked { get; set; }
+	public bool IsRetreating { get; private set; }
+	public float RetreatTimeLeft { get; set; }
+	public float RetreatCooldownLeft { get; set; }
+
+	public bool IsDead => _health == null || _health.IsDead;
+	public float HealthRatio => _health != null && _health.MaxHealth > 0f ? _health.Health / _health.MaxHealth : 1f;
+	public Vector3 PlayerPosition => _player != null ? _player.GlobalPosition : GlobalPosition;
+	public float DistanceToPlayer => _player != null ? FlatDistance(GlobalPosition, _player.GlobalPosition) : 999f;
+
+	private Vector3 _retreatPoint;
+	private CombatDirector _combat;
+
+	public void SetSlot(SquadSlot slot) => Slot = slot;
+
+	public void BeginRetreat(Vector3 point, float duration, float cooldown)
+	{
+		IsRetreating = true;
+		_retreatPoint = point;
+		RetreatTimeLeft = duration;
+		RetreatCooldownLeft = cooldown;
+		_burstShotsLeft = 0;
+		ReleaseToken();
+	}
+
+	public void EndRetreat()
+	{
+		IsRetreating = false;
+		RetreatTimeLeft = 0f;
+		Slot = SquadSlot.Support;
+	}
+
+	/// <summary>小队令牌；独立敌人也走全局令牌，保证"同屏开火人数"这条线对增援同样生效。</summary>
+	private CombatDirector Combat
+	{
+		get
+		{
+			if (Squad?.Director?.Combat != null)
+				return Squad.Director.Combat;
+
+			if (_combat != null && IsInstanceValid(_combat))
+				return _combat;
+
+			foreach (Node node in GetTree().GetNodesInGroup("squad_director"))
+			{
+				if (node is SquadDirector director && director.Combat != null)
+				{
+					_combat = director.Combat;
+					return _combat;
+				}
+			}
+
+			return null;
+		}
+	}
+
+	private void ReleaseToken() => Combat?.Release(this);
+
 	private const float Gravity = 18f;
 	private const float PerceptionInterval = 0.1f;
 	private const float MuzzleFlashTime = 0.05f;
@@ -141,6 +212,7 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 		_seized = true;
 		_burstShotsLeft = 0;
 		_fireTimer = 0f;
+		ReleaseToken();
 		_velocity = Vector3.Zero;
 		Velocity = Vector3.Zero;
 		_nav.TargetPosition = GlobalPosition;
@@ -189,6 +261,18 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 			return;
 		}
 
+		// 共享情报（§2.5）：同队有人看见就等于本队进入警戒；跨队不共享，保持 1.0 的独立性
+		if (Squad != null)
+		{
+			if (State == EnemyState.Patrol && Squad.HasSharedContact)
+				EnterAlert();
+
+			// 自己看不见时朝队友喊话的位置压过去（低置信度只借方向，不隔墙锁人）
+			if (!_canSee && State != EnemyState.Combat && Squad.HasSharedContact &&
+				!Squad.SharedIsDirectionOnly)
+				_lastKnownPosition = Squad.SharedPosition;
+		}
+
 		switch (State)
 		{
 			case EnemyState.Patrol:
@@ -209,6 +293,10 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 		Velocity = _velocity;
 		MoveAndSlide();
 		UpdateAnimator();
+
+		// 离开交火就交还令牌，避免"隔着掩体占着开火权"
+		if (State != EnemyState.Combat)
+			ReleaseToken();
 	}
 
 	/// <summary>把真实水平位移速度交给骨架动画：播放速率按速度 / 剪辑原速缩放，脚不滑。</summary>
@@ -288,6 +376,9 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 			return;
 
 		_lastKnownPosition = _player.GlobalPosition;
+
+		// 发现即喊话：延迟后同步给同队，跨队不共享（§2.5）
+		Squad?.ReportSighting(_lastKnownPosition);
 
 		if (State == EnemyState.Patrol || State == EnemyState.Search)
 			EnterAlert();
@@ -397,8 +488,11 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 		}
 
 		// 看不到人时朝声源 / 最后位置压过去，超过 20m 也停在这一状态；
-		// 铁锚帮只在自己的岗位半径内移动，不会离开要道。
-		Vector3 target = ClampToPost(_lastKnownPosition);
+		// 小队成员在共享情报有效期内优先走向自己的槽位点（包抄从警戒阶段就开始绕侧翼）。
+		Vector3 seek = _lastKnownPosition;
+		if (Squad != null && Squad.HasSharedContact && SlotTarget != Vector3.Zero)
+			seek = SlotTarget;
+		Vector3 target = ClampToPost(seek);
 		if (FlatDistance(GlobalPosition, target) > 1f)
 		{
 			MoveTo(target, Data.PatrolSpeed);
@@ -448,7 +542,8 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 			return;
 		}
 
-		bool holdingCover = UsesCover && _coverValid;
+		// 小队成员的位置由槽位决定，不再走 1.0 的掩体探头节奏
+		bool holdingCover = Squad == null && UsesCover && _coverValid;
 
 		// 守卫 / 铁锚帮躲在掩体后本来就看不见玩家，不能因此判丢视线
 		if (!_canSee && !(holdingCover && !_coverPeeking))
@@ -464,6 +559,14 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 
 		if (State != EnemyState.Combat)
 			return;
+
+		// 小队成员走槽位分工；独立敌人（增援等）保持 1.0 的行为
+		if (Squad != null)
+		{
+			UpdateSquadCombat(dt);
+			UpdateFiring(dt);
+			return;
+		}
 
 		switch (Data.Behavior)
 		{
@@ -576,6 +679,118 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 	// 没有可用掩体时原地开火，不会像赤蛇会那样压上。
 	private void UpdateAnclaCombat(float dt) => UpdateHolderCombat(dt);
 
+	/// <summary>
+	/// 小队槽位行为（2.0 §2.3）：压制守距离、包抄走侧翼点、支援跟队长、后撤进掩体。
+	/// 开火权不在这里，统一由 <see cref="CombatDirector"/> 的令牌决定。
+	/// </summary>
+	private void UpdateSquadCombat(float dt)
+	{
+		Vector3 playerPosition = _player.GlobalPosition;
+
+		if (IsRetreating)
+		{
+			if (FlatDistance(GlobalPosition, _retreatPoint) > 0.8f)
+			{
+				MoveTo(_retreatPoint, Data.CombatSpeed);
+				FaceTowards(playerPosition, dt);
+			}
+			else
+			{
+				StopHorizontal(dt);
+				FaceTowards(playerPosition, dt);
+			}
+			return;
+		}
+
+		switch (Slot)
+		{
+			case SquadSlot.Flank:
+				// 走侧翼导航点；到点后原地压制
+				if (FlatDistance(GlobalPosition, SlotTarget) > 1.0f)
+				{
+					MoveTo(SlotTarget, Data.CombatSpeed);
+					FaceTowards(SlotTarget, dt);
+				}
+				else
+				{
+					StopHorizontal(dt);
+					FaceTowards(playerPosition, dt);
+				}
+				return;
+
+			case SquadSlot.Support:
+			{
+				EnemyAgent leader = Squad?.Leader;
+				bool leaderAlive = leader != null && IsInstanceValid(leader) && !leader.IsDead;
+				Vector3 anchor = leaderAlive ? leader.GlobalPosition : SlotTarget;
+				float distance = FlatDistance(GlobalPosition, anchor);
+
+				if (distance > Squad.Config.SupportMaxRange)
+				{
+					MoveTo(anchor, Data.CombatSpeed);
+					FaceTowards(anchor, dt);
+				}
+				else if (distance < Squad.Config.SupportMinRange * 0.7f)
+				{
+					Vector3 away = GlobalPosition + (GlobalPosition - anchor).Normalized() * 2.5f;
+					MoveTo(away, Data.CombatSpeed * 0.8f);
+					FaceTowards(playerPosition, dt);
+				}
+				else
+				{
+					StopHorizontal(dt);
+					FaceTowards(playerPosition, dt);
+				}
+
+				return;
+			}
+		}
+
+		// Suppress：看得见就守住压制距离；看不见就朝共享情报摸过去
+		if (!_canSee && Squad != null && Squad.TryGetSearchPosition(this, out Vector3 shared))
+		{
+			// 置信度低时只保留大致方向，不要精确"隔墙锁人"
+			Vector3 target = Squad.SharedIsDirectionOnly
+				? GlobalPosition + (shared - GlobalPosition).Normalized() * 3f
+				: shared;
+
+			if (FlatDistance(GlobalPosition, target) > 1.5f)
+			{
+				MoveTo(target, Data.CombatSpeed);
+				FaceTowards(target, dt);
+			}
+			else
+			{
+				StopHorizontal(dt);
+				FaceTowards(shared, dt);
+			}
+
+			return;
+		}
+
+		if (HoldPost)
+		{
+			if (FlatDistance(GlobalPosition, _post) > 2f)
+				MoveTo(_post, Data.CombatSpeed);
+			else
+				StopHorizontal(dt);
+
+			FaceTowards(playerPosition, dt);
+			return;
+		}
+
+		if (FlatDistance(GlobalPosition, SlotTarget) > 1.5f)
+		{
+			MoveTo(SlotTarget, Data.CombatSpeed);
+			FaceTowards(playerPosition, dt);
+		}
+		else
+		{
+			StopHorizontal(dt);
+			FaceTowards(playerPosition, dt);
+		}
+	}
+
 	private void EnterPatrol()
 	{
 		State = EnemyState.Patrol;
@@ -650,9 +865,25 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 	private bool CanShoot()
 	{
 		if (_staggerTimer > 0f || !_canSee)
+		{
+			// 失去视线立即交还令牌，让别人接替（§2.6）
+			ReleaseToken();
+			return false;
+		}
+
+		if (IsRetreating)
+		{
+			ReleaseToken();
+			return false;
+		}
+
+		// 小队成员不用探头状态机（槽位移动自带掩护），掩体闸门只对独立敌人生效
+		if (Squad == null && UsesCover && _coverValid && !_coverPeeking)
 			return false;
 
-		if (UsesCover && _coverValid && !_coverPeeking)
+		// 同屏开火令牌（2.0 §2.6）：拿不到就只做移动 / 掩护，不扣扳机
+		CombatDirector combat = Combat;
+		if (combat != null && !combat.Request(this))
 			return false;
 
 		return true;
@@ -861,6 +1092,7 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 	private void OnDied()
 	{
 		_burstShotsLeft = 0;
+		ReleaseToken();
 		_nav.TargetPosition = GlobalPosition;
 		SetPhysicsProcess(false);
 		_animation?.SetDead();

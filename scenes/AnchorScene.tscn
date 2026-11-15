@@ -18,6 +18,8 @@
 [ext_resource type="Resource" path="res://data/level/Alert_Anchor.tres" id="16_alert_data"]
 [ext_resource type="Script" path="res://scripts/level/ChapterSetup.cs" id="17_chapter"]
 [ext_resource type="Resource" path="res://data/weapons/Arsenal.tres" id="18_arsenal"]
+[ext_resource type="Script" path="res://scripts/enemies/SquadDirector.cs" id="19_squad"]
+[ext_resource type="Resource" path="res://data/enemies/squads/anchor.tres" id="20_roster"]
 
 [sub_resource type="ProceduralSkyMaterial" id="Sky_Anchor"]
 sky_top_color = Color(0.06, 0.1, 0.16, 1)
@@ -72,6 +74,10 @@ light_energy = 0.32
 light_specular = 0.0
 
 [node name="Level" parent="World" instance=ExtResource("2_level")]
+
+[node name="SquadDirector" type="Node" parent="World"]
+script = ExtResource("19_squad")
+Roster = ExtResource("20_roster")
 
 [node name="ReinforcementPoints" type="Node3D" parent="World" groups=["reinforce_points"]]
 
