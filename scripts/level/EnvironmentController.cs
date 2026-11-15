@@ -20,6 +20,8 @@ public partial class EnvironmentController : WorldEnvironment
 		_environment = Environment;
 		_player = GetNodeOrNull<PlayerController>("../../Actors/Player");
 		Apply();
+		// 阴影开关存在存档里，关卡进树时套用一次（autoload 加载时场景还没有灯光）
+		SaveSystem.Instance?.ApplyShadows();
 	}
 
 	public override void _Process(double delta) => Apply();

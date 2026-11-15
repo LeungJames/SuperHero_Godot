@@ -9,6 +9,8 @@ public partial class AmmoPickup : Area3D
 
 	public override void _Ready()
 	{
+		// 难度只改补给量（§10.5），不改玩家生命 / 回血
+		Rounds = DifficultySystem.ApplyAmmo(Rounds);
 		BodyEntered += OnBodyEntered;
 	}
 

@@ -113,8 +113,11 @@ public partial class PlayerCamera : Node3D
 		if (!LookEnabled || _data == null || Input.MouseMode != Input.MouseModeEnum.Captured)
 			return;
 
-		float sensitivity = Mathf.DegToRad(_data.MouseSensitivity) *
-			Mathf.Lerp(1f, _data.AdsSensitivityScale, _aimBlend);
+		float mouseSensitivity = SaveSystem.HasInstance
+			? SaveSystem.MouseSensitivitySetting
+			: _data.MouseSensitivity;
+		float adsScale = SaveSystem.HasInstance ? SaveSystem.AdsSensitivitySetting : _data.AdsSensitivityScale;
+		float sensitivity = Mathf.DegToRad(mouseSensitivity) * Mathf.Lerp(1f, adsScale, _aimBlend);
 		_player.RotateY(-motion.Relative.X * sensitivity);
 
 		float limit = Mathf.DegToRad(PitchLimitDegrees);
@@ -125,10 +128,34 @@ public partial class PlayerCamera : Node3D
 	{
 		float dt = (float)delta;
 
+		UpdateGamepadLook(dt);
 		UpdateRecoil(dt);
 		ApplyRotation();
 		UpdateAim();
 		UpdateCameraOffset(dt);
+	}
+
+	/// <summary>
+	/// 手柄右摇杆视角：独立于鼠标灵敏度，走 look_* 动作（§10.3）。
+	/// 开镜时同样乘 ADS 系数，但不沿用鼠标灵敏度。
+	/// </summary>
+	private void UpdateGamepadLook(float dt)
+	{
+		if (!LookEnabled || _player == null || !_player.InputEnabled)
+			return;
+
+		Vector2 look = Input.GetVector("look_left", "look_right", "look_up", "look_down");
+		if (look.LengthSquared() < 0.0001f)
+			return;
+
+		float adsScale = SaveSystem.HasInstance ? SaveSystem.AdsSensitivitySetting : 0.7f;
+		float speed = 150f * SaveSystem.GamepadSensitivitySetting * Mathf.Lerp(1f, adsScale, _aimBlend);
+		float step = Mathf.DegToRad(speed) * dt;
+
+		_player.RotateY(-look.X * step);
+
+		float limit = Mathf.DegToRad(PitchLimitDegrees);
+		_pitch = Mathf.Clamp(_pitch - look.Y * step, -limit, limit);
 	}
 
 	// ---------------------------------------------------------------- 视角模式

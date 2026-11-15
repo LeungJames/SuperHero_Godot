@@ -35,14 +35,14 @@ public partial class AudioDirector : Node
 		_pool = new AudioStreamPlayer3D[PoolSize];
 		for (int i = 0; i < PoolSize; i++)
 		{
-			var source = new AudioStreamPlayer3D { MaxDistance = 90f, UnitSize = 8f };
+			var source = new AudioStreamPlayer3D { MaxDistance = 90f, UnitSize = 8f, Bus = "SFX" };
 			AddChild(source);
 			_pool[i] = source;
 		}
 
-		_wind = new AudioStreamPlayer { Stream = ProceduralAudio.Wind(), VolumeDb = -26f };
-		_waves = new AudioStreamPlayer { Stream = ProceduralAudio.Waves(), VolumeDb = -24f };
-		_radio = new AudioStreamPlayer { Stream = ProceduralAudio.Radio(), VolumeDb = -3f };
+		_wind = new AudioStreamPlayer { Stream = ProceduralAudio.Wind(), VolumeDb = -26f, Bus = "Ambient" };
+		_waves = new AudioStreamPlayer { Stream = ProceduralAudio.Waves(), VolumeDb = -24f, Bus = "Ambient" };
+		_radio = new AudioStreamPlayer { Stream = ProceduralAudio.Radio(), VolumeDb = -3f, Bus = "Radio" };
 		AddChild(_wind);
 		AddChild(_waves);
 		AddChild(_radio);
@@ -55,6 +55,7 @@ public partial class AudioDirector : Node
 			MaxDistance = 180f,
 			UnitSize = 18f,
 			VolumeDb = -10f,
+			Bus = "Ambient",
 		};
 		AddChild(_heliLoop);
 

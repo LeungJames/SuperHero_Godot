@@ -28,6 +28,9 @@ public partial class GameManager : Node
 	[Export] public bool IsFinalChapter { get; set; }
 	[Export] public string VictorySubtitle { get; set; } = "直升机离开黄昏港口";
 
+	/// <summary>存档里的章节 ID（port / factory / anchor），通关时写入。</summary>
+	[Export] public string ChapterId { get; set; } = "port";
+
 	public GameState State { get; private set; } = GameState.Playing;
 	public float ElapsedTime { get; private set; }
 	public float MaxHeight { get; private set; }
@@ -49,6 +52,8 @@ public partial class GameManager : Node
 	private HudController _hud;
 	private ResultsPanel _results;
 	private Control _pauseMenu;
+	private SettingsMenu _settings;
+	private ChapterSelect _chapterSelect;
 
 	private float _defeatTimer;
 	private bool _defeatPending;
@@ -65,6 +70,8 @@ public partial class GameManager : Node
 		_hud = GetNode<HudController>("../../UI/Hud");
 		_results = GetNode<ResultsPanel>("../../UI/ResultsPanel");
 		_pauseMenu = GetNode<Control>("../../UI/PauseMenu");
+		_settings = _pauseMenu.GetNodeOrNull<SettingsMenu>("SettingsMenu");
+		_chapterSelect = _pauseMenu.GetNodeOrNull<ChapterSelect>("ChapterSelect");
 
 		_weapon = GetTree().GetFirstNodeInGroup("weapon") as WeaponController;
 
@@ -80,6 +87,11 @@ public partial class GameManager : Node
 		_results.QuitPressed += Quit;
 
 		WirePauseMenu();
+
+		if (_settings != null)
+			_settings.Closed += OnSubmenuClosed;
+		if (_chapterSelect != null)
+			_chapterSelect.Closed += OnSubmenuClosed;
 
 		MaxHeight = _player.GlobalPosition.Y;
 		_hud.SetEnemyCount(_registry.AliveCount, _registry.TotalCount);
@@ -119,8 +131,26 @@ public partial class GameManager : Node
 		if (!@event.IsActionPressed("pause") || State != GameState.Playing)
 			return;
 
-		TogglePause();
+		HandlePausePressed();
 		GetViewport().SetInputAsHandled();
+	}
+
+	/// <summary>设置 / 章节选择打开时，Esc 先退子页，而不是直接继续游戏。</summary>
+	private void HandlePausePressed()
+	{
+		if (_settings is { Visible: true })
+		{
+			_settings.Close();
+			return;
+		}
+
+		if (_chapterSelect is { Visible: true })
+		{
+			_chapterSelect.Close();
+			return;
+		}
+
+		TogglePause();
 	}
 
 	// ------------------------------------------------------------ 状态迁移
@@ -132,6 +162,7 @@ public partial class GameManager : Node
 
 		// A 方案：全歼当帧交还控制权，只给撤离指引，玩家自己走到停机坪登机才算胜利
 		State = GameState.Victory;
+		SaveSystem.Instance?.MarkChapterCleared(ChapterId, ElapsedTime);
 		_hud.SetObjective("区域清空 · 前往停机坪登机");
 		_victory.Play();
 	}
@@ -162,6 +193,9 @@ public partial class GameManager : Node
 
 	public void ShowVictoryResults()
 	{
+		SaveSystem.Instance?.AppendRunRecord(ChapterId, true, ElapsedTime, Kills, TotalEnemies,
+			ShotsFired, ShotsHit, Headshots, string.Empty);
+
 		string nextLabel = string.IsNullOrEmpty(NextScenePath)
 			? null
 			: $"进入{(string.IsNullOrEmpty(NextChapterLabel) ? "下一章" : NextChapterLabel)}（Enter）";
@@ -170,6 +204,8 @@ public partial class GameManager : Node
 
 	private void ShowDefeatResults()
 	{
+		SaveSystem.Instance?.AppendRunRecord(ChapterId, false, ElapsedTime, Kills, TotalEnemies,
+			ShotsFired, ShotsHit, Headshots, DeathCause.ToString());
 		_results.Present(false, DescribeDeathCause(), BuildStats(victory: false));
 	}
 
@@ -241,12 +277,41 @@ public partial class GameManager : Node
 	private void WirePauseMenu()
 	{
 		var resume = _pauseMenu.GetNodeOrNull<Button>("Panel/VBox/ResumeButton");
+		var settings = _pauseMenu.GetNodeOrNull<Button>("Panel/VBox/SettingsButton");
+		var chapters = _pauseMenu.GetNodeOrNull<Button>("Panel/VBox/ChaptersButton");
 		var quit = _pauseMenu.GetNodeOrNull<Button>("Panel/VBox/QuitButton");
 
 		if (resume != null)
 			resume.Pressed += TogglePause;
+		if (settings != null)
+			settings.Pressed += OpenSettings;
+		if (chapters != null)
+			chapters.Pressed += OpenChapterSelect;
 		if (quit != null)
 			quit.Pressed += Quit;
+	}
+
+	private void OpenSettings()
+	{
+		SetPauseMainPanelVisible(false);
+		_settings?.Open();
+	}
+
+	private void OpenChapterSelect()
+	{
+		SetPauseMainPanelVisible(false);
+		_chapterSelect?.Open();
+	}
+
+	private void OnSubmenuClosed()
+	{
+		SetPauseMainPanelVisible(true);
+		_pauseMenu.GetNodeOrNull<Button>("Panel/VBox/ResumeButton")?.GrabFocus();
+	}
+
+	private void SetPauseMainPanelVisible(bool visible)
+	{
+		_pauseMenu.GetNodeOrNull<Control>("Panel")?.SetVisible(visible);
 	}
 
 	private void TogglePause()
@@ -255,8 +320,17 @@ public partial class GameManager : Node
 			return;
 
 		bool paused = !GetTree().Paused;
+
+		if (!paused)
+		{
+			_settings?.Close();
+			_chapterSelect?.Close();
+		}
+
 		GetTree().Paused = paused;
 		_pauseMenu.Visible = paused;
+		if (paused)
+			SetPauseMainPanelVisible(true);
 		Input.MouseMode = paused ? Input.MouseModeEnum.Visible : Input.MouseModeEnum.Captured;
 
 		if (paused)

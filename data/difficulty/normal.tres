@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="DifficultyConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/DifficultyConfig.cs" id="1_diff"]
+
+[resource]
+script = ExtResource("1_diff")
+Id = "normal"
+DisplayName = "普通"
+ReactionTimeDelta = 0.0
+SpreadBonusDegrees = 0.0
+FireTokens = 2
+AmmoMultiplier = 1.0

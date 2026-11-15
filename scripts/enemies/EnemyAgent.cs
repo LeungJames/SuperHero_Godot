@@ -476,7 +476,7 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 	{
 		_stateTimer += dt;
 
-		if (_stateTimer < Data.ReactionTime)
+		if (_stateTimer < DifficultySystem.ReactionTime(Data.ReactionTime))
 		{
 			StopHorizontal(dt);
 			FaceTowards(_lastKnownPosition, dt);
@@ -812,7 +812,7 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 	{
 		State = EnemyState.Combat;
 		_stateTimer = 0f;
-		_fireTimer = Data.ReactionTime;
+		_fireTimer = DifficultySystem.ReactionTime(Data.ReactionTime);
 		_burstShotsLeft = 0;
 
 		if (UsesCover)
@@ -931,6 +931,9 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 			spread += Data.PlayerMovingSpreadBonus;
 		if (!_player.IsOnFloor())
 			spread += Data.PlayerMovingSpreadBonus;
+
+		// 难度只改敌人侧散布（§10.5），不做任何玩家减伤 / 回血
+		spread = DifficultySystem.ApplySpread(spread);
 
 		// 开场试探期：敌人还在校准射界，散布放大（§2.6 压力曲线）
 		if (Combat is { EngageRampActive: true } director)

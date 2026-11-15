@@ -111,6 +111,7 @@ ObjectiveClear = "区域清空"
 ObjectiveHeightThreshold = 2.0
 IsFinalChapter = true
 VictorySubtitle = "铁锚据点失守 · 全章节完成"
+ChapterId = "anchor"
 
 [node name="EnemyRegistry" type="Node" parent="Managers"]
 script = ExtResource("6_registry")

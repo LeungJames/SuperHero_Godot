@@ -25,7 +25,7 @@ public partial class CombatDirector : Node
 	{
 		get
 		{
-			int baseTokens = Config != null ? Config.FireTokens : 2;
+			int baseTokens = DifficultySystem.FireTokens(Config != null ? Config.FireTokens : 2);
 
 			// 接敌试探期：先只放一人开火，玩家看清火力来源并能找掩体后再恢复满额
 			if (EngageRampActive)

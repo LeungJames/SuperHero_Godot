@@ -127,6 +127,7 @@ process_mode = 3
 script = ExtResource("5_game")
 NextScenePath = "res://scenes/FactoryScene.tscn"
 NextChapterLabel = "第二章 · 赤蛇工厂"
+ChapterId = "port"
 
 [node name="EnemyRegistry" type="Node" parent="Managers"]
 script = ExtResource("6_registry")

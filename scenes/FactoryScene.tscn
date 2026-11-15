@@ -112,6 +112,7 @@ ObjectiveHeightThreshold = 3.0
 NextScenePath = "res://scenes/AnchorScene.tscn"
 NextChapterLabel = "第三章 · 铁锚据点"
 VictorySubtitle = "撤离直升机离开赤蛇工厂"
+ChapterId = "factory"
 
 [node name="EnemyRegistry" type="Node" parent="Managers"]
 script = ExtResource("6_registry")
