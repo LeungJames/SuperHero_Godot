@@ -271,6 +271,12 @@ public partial class ExecutionController : Node3D
 
 		_animation?.PlayExecutionStrike();
 		_target.TakeDamage(new DamageInfo(EnemyDamage, point, direction, false));
+
+		// 暗杀 / 处决留痕：不发声，但会留下尸体供敌人发现（2.0 §3.5）
+		bool unaware = agent == null ||
+			agent.State is EnemyState.Patrol or EnemyState.Alert or EnemyState.Search;
+		(GetTree().GetFirstNodeInGroup("stealth_director") as StealthDirector)?.NotifyExecution(_target, unaware);
+
 		Struck?.Invoke(_target);
 	}
 

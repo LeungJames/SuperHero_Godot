@@ -1,0 +1,57 @@
+[gd_resource type="Resource" script_class="StealthPosts" load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://scripts/stealth/StealthPosts.cs" id="1_posts"]
+[ext_resource type="Script" path="res://scripts/stealth/StealthPostData.cs" id="2_post"]
+
+[sub_resource type="Resource" id="Post_01"]
+script = ExtResource("2_post")
+EnemyName = "Enemy_01_Runner"
+Role = 2
+Note = "塔顶巡逻队长，携带无线电"
+
+[sub_resource type="Resource" id="Post_02"]
+script = ExtResource("2_post")
+EnemyName = "Enemy_02_Holder"
+Role = 1
+Note = "塔身中段守卫，卡住下塔路线"
+
+[sub_resource type="Resource" id="Post_03"]
+script = ExtResource("2_post")
+EnemyName = "Enemy_03_Runner"
+Role = 0
+Note = "可绕开的巡逻枪手"
+
+[sub_resource type="Resource" id="Post_04"]
+script = ExtResource("2_post")
+EnemyName = "Enemy_04_Holder"
+Role = 0
+Note = "中层平台，可绕开"
+
+[sub_resource type="Resource" id="Post_05"]
+script = ExtResource("2_post")
+EnemyName = "Enemy_05_Holder"
+Role = 1
+Note = "塔身下段平台守卫，俯瞰西侧楼梯，必须处理"
+
+[sub_resource type="Resource" id="Post_06"]
+script = ExtResource("2_post")
+EnemyName = "Enemy_06_Runner"
+Role = 0
+Note = "货场东侧巡逻"
+
+[sub_resource type="Resource" id="Post_07"]
+script = ExtResource("2_post")
+EnemyName = "Enemy_07_Holder"
+Role = 1
+Note = "货场东侧守卫，卡住汇合点"
+
+[sub_resource type="Resource" id="Post_08"]
+script = ExtResource("2_post")
+EnemyName = "Enemy_08_Holder"
+Role = 0
+Note = "货场北侧可绕开"
+
+[resource]
+script = ExtResource("1_posts")
+ChapterId = "port"
+Posts = Array[Resource]([SubResource("Post_01"), SubResource("Post_02"), SubResource("Post_03"), SubResource("Post_04"), SubResource("Post_05"), SubResource("Post_06"), SubResource("Post_07"), SubResource("Post_08")])

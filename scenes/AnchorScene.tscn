@@ -20,6 +20,10 @@
 [ext_resource type="Resource" path="res://data/weapons/Arsenal.tres" id="18_arsenal"]
 [ext_resource type="Script" path="res://scripts/enemies/SquadDirector.cs" id="19_squad"]
 [ext_resource type="Resource" path="res://data/enemies/squads/anchor.tres" id="20_roster"]
+[ext_resource type="Script" path="res://scripts/stealth/StealthDirector.cs" id="21_stealth"]
+[ext_resource type="Resource" path="res://data/stealth/alert_config.tres" id="22_stealth_cfg"]
+[ext_resource type="Resource" path="res://data/stealth/anchor_route.tres" id="23_stealth_route"]
+[ext_resource type="Resource" path="res://data/stealth/anchor_posts.tres" id="24_stealth_posts"]
 
 [sub_resource type="ProceduralSkyMaterial" id="Sky_Anchor"]
 sky_top_color = Color(0.06, 0.1, 0.16, 1)
@@ -119,6 +123,13 @@ script = ExtResource("6_registry")
 [node name="AlertDirector" type="Node" parent="Managers"]
 script = ExtResource("15_alert")
 Data = ExtResource("16_alert_data")
+
+[node name="StealthDirector" type="Node" parent="Managers"]
+script = ExtResource("21_stealth")
+ChapterId = "anchor"
+Config = ExtResource("22_stealth_cfg")
+Route = ExtResource("23_stealth_route")
+Posts = ExtResource("24_stealth_posts")
 
 [node name="VictorySequenceController" type="Node" parent="Managers"]
 script = ExtResource("7_victory")

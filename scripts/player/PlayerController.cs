@@ -29,6 +29,12 @@ public partial class PlayerController : CharacterBody3D
 	/// <summary>ADS / 换弹时的移速倍率，由武器写入（设计文档 §3.1）。</summary>
 	public float MoveSpeedMultiplier { get; set; } = 1f;
 
+	/// <summary>
+	/// 外部限速（m/s），用于藏尸等需要压低移动速度的交互（2.0 §3.5）。
+	/// 默认不限制；与武器写入的 MoveSpeedMultiplier 叠加后再取上限。
+	/// </summary>
+	public float ExternalSpeedCap { get; set; } = float.MaxValue;
+
 	public MoveState State => _state;
 	public bool IsSliding => _state == MoveState.Slide;
 	public bool IsWallRunning => _state == MoveState.WallRun;
@@ -256,7 +262,12 @@ public partial class PlayerController : CharacterBody3D
 			return;
 
 		_footstepTimer = Mathf.Lerp(0.5f, 0.32f, Mathf.Clamp(speed / Data.SprintSpeed, 0f, 1f));
-		NoiseEmitter.Emit(GlobalPosition, NoiseKind.Footstep);
+
+		// 静步已在上面直接返回（不发声）；走路与冲刺用不同听觉半径（2.0 §3.4）
+		NoiseKind kind = speed >= Data.SprintSpeed * 0.9f
+			? NoiseKind.FootstepSprint
+			: NoiseKind.FootstepWalk;
+		NoiseEmitter.Emit(GlobalPosition, kind);
 		Footstepped?.Invoke();
 	}
 
@@ -272,13 +283,14 @@ public partial class PlayerController : CharacterBody3D
 
 	private float GetTargetSpeed()
 	{
+		float speed = Data.WalkSpeed;
+
 		if (Input.IsActionPressed("walk_slow"))
-			return Data.SlowWalkSpeed;
+			speed = Data.SlowWalkSpeed;
+		else if (Input.IsActionPressed("sprint"))
+			speed = Data.SprintSpeed;
 
-		if (Input.IsActionPressed("sprint"))
-			return Data.SprintSpeed;
-
-		return Data.WalkSpeed;
+		return Mathf.Min(speed, ExternalSpeedCap);
 	}
 
 	private Vector3 GetWishDirection()

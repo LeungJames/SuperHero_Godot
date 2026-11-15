@@ -21,6 +21,10 @@
 [ext_resource type="Script" path="res://scripts/level/ChapterSetup.cs" id="19_chapter"]
 [ext_resource type="Script" path="res://scripts/enemies/SquadDirector.cs" id="20_squad"]
 [ext_resource type="Resource" path="res://data/enemies/squads/port.tres" id="21_roster"]
+[ext_resource type="Script" path="res://scripts/stealth/StealthDirector.cs" id="22_stealth"]
+[ext_resource type="Resource" path="res://data/stealth/alert_config.tres" id="23_stealth_cfg"]
+[ext_resource type="Resource" path="res://data/stealth/port_route.tres" id="24_stealth_route"]
+[ext_resource type="Resource" path="res://data/stealth/port_posts.tres" id="25_stealth_posts"]
 
 [sub_resource type="ProceduralSkyMaterial" id="Sky_Dusk"]
 sky_top_color = Color(0.78, 0.45, 0.17, 1)
@@ -135,6 +139,13 @@ script = ExtResource("6_registry")
 [node name="AlertDirector" type="Node" parent="Managers"]
 script = ExtResource("16_alert")
 Data = ExtResource("17_alert_data")
+
+[node name="StealthDirector" type="Node" parent="Managers"]
+script = ExtResource("22_stealth")
+ChapterId = "port"
+Config = ExtResource("23_stealth_cfg")
+Route = ExtResource("24_stealth_route")
+Posts = ExtResource("25_stealth_posts")
 
 [node name="ChapterSetup" type="Node" parent="Managers"]
 script = ExtResource("19_chapter")

@@ -1651,7 +1651,7 @@ omni_range = 22.0
 [node name="Enemies" type="Node3D" parent="." unique_id=610271165]
 
 [node name="Enemy_01_Post_Gate" parent="Enemies" unique_id=1403403323 instance=ExtResource("32_e6b8n")]
-transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, 0.05, 8.5)
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 0, 0.05, 8.5)
 
 [node name="PatrolPoints2" type="Node3D" parent="Enemies/Enemy_01_Post_Gate" unique_id=1295634931]
 
@@ -1665,21 +1665,21 @@ transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 14, 
 [node name="CoverPoints2" type="Node3D" parent="Enemies/Enemy_02_Post_Pocket" unique_id=117943321]
 
 [node name="Enemy_03_Sentry_WestRoof" parent="Enemies" unique_id=701740475 instance=ExtResource("37_3iowh")]
-transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -15, 3.6, 2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 3.6, 2)
 
 [node name="PatrolPoints2" type="Node3D" parent="Enemies/Enemy_03_Sentry_WestRoof" unique_id=1663421741]
 
 [node name="CoverPoints2" type="Node3D" parent="Enemies/Enemy_03_Sentry_WestRoof" unique_id=1923014134]
 
 [node name="Enemy_04_Sentry_EastRoof" parent="Enemies" unique_id=802095419 instance=ExtResource("37_3iowh")]
-transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 15, 3.6, -2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 3.6, -2)
 
 [node name="PatrolPoints2" type="Node3D" parent="Enemies/Enemy_04_Sentry_EastRoof" unique_id=1161932815]
 
 [node name="CoverPoints2" type="Node3D" parent="Enemies/Enemy_04_Sentry_EastRoof" unique_id=484858008]
 
 [node name="Enemy_05_Sentry_Catwalk" parent="Enemies" unique_id=1791653634 instance=ExtResource("37_3iowh")]
-transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -1, 3.6, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 3.6, 0)
 
 [node name="PatrolPoints2" type="Node3D" parent="Enemies/Enemy_05_Sentry_Catwalk" unique_id=304955987]
 

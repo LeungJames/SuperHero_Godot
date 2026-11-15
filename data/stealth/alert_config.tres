@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="StealthConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/stealth/StealthConfig.cs" id="1_config"]
+
+[resource]
+script = ExtResource("1_config")
+L0Duration = 8.0
+L1Duration = 30.0
+L2Duration = 90.0
+DeescalateStationaryTime = 10.0
+DeescalateSpeedThreshold = 0.3
+QuietNoiseRadius = 0.0
+WalkNoiseRadius = 8.0
+SprintNoiseRadius = 14.0
+GunshotNoiseRadius = 30.0
+CorpseVisibleRadius = 4.0
+CorpseNoticeDelay = 3.0
+CorpseHideTime = 1.5
+CorpseDragSpeed = 1.5
+CorpseInteractRadius = 2.5
+IconDuration = 1.2
+SuspiciousSearchRadius = 15.0
+L1ReinforceCount = 2
+L2WaveSize = 0
+L0Message = "无线电：好像有动静。"
+L1Message = "无线电：有人闯进来了，搜！"
+L2Message = "无线电：全叫起来，把这片翻一遍！"
+CorpseFoundMessage = "无线电：有尸体！"
+CaptainDeathMessage = "无线电：队长倒下了！"
+HidePrompt = "按 F 藏尸"
+HideDoneMessage = "尸体已藏好"

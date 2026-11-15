@@ -3,16 +3,20 @@ using System;
 
 public enum NoiseKind
 {
-	Footstep,
+	/// <summary>普通走路：半径较小（2.0 §3.4 / §5.4）。</summary>
+	FootstepWalk,
+	/// <summary>冲刺：半径更大。</summary>
+	FootstepSprint,
 	Gunshot,
 }
 
 /// <summary>
-/// 噪声广播：玩家开枪、走路时向所有敌人广播位置，敌人按自己的听觉半径判断（设计文档 §5.4、§9.3）。
+/// 噪声广播：玩家开枪、走路时向所有敌人广播位置，敌人按潜行配置里的听觉半径判断
+/// （2.0 设计 §3.4、§5.4、§9.3）。
 /// </summary>
 public static class NoiseEmitter
 {
-	/// <summary>枪声传播半径（§5.1）。</summary>
+	/// <summary>枪声传播半径的兜底值；实际半径由 StealthConfig.GunshotNoiseRadius 决定。</summary>
 	public const float GunshotRadius = 30f;
 
 	public static event Action<Vector3, NoiseKind> Emitted;

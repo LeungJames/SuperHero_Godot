@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="StealthRoute" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/stealth/StealthRoute.cs" id="1_route"]
+
+[resource]
+script = ExtResource("1_route")
+ChapterId = "port"
+EntryPoint = Vector3(-5, 42, 75)
+MergePoint = Vector3(-16, 1, -36)
+CoverPoint = Vector3(-10, 1, -32)
+Waypoints = PackedVector3Array(-17.5, 42, 75, -17.5, 30, 75, -17.5, 20, 75, -17.5, 10, 75, -17.5, 1, 72, -20, 1, 60, -22, 1, 40, -22, 1, 20, -22, 1, 0, -22, 1, -18, -20, 1, -30)
+Note = "按现有几何走塔顶西侧楼梯（Stair Ramp_1..5）下到地面，再沿西墙内侧（x≈-22）向货场北侧汇合；对应 §3.2 港口支路的可走替代版本。文档原案的外侧脚手架/检修梯/仓库屋顶尚未建资产，塔顶段仍会被塔身哨位看见，需补遮挡或专用脚手架。"

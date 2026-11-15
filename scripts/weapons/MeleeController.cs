@@ -74,7 +74,7 @@ public partial class MeleeController : Node3D
 		// 背后且未警觉的敌人直接暗杀：静默、不结算普通近战
 		_resolved = TryTakedown();
 		if (!_resolved)
-			NoiseEmitter.Emit(_player.GlobalPosition, NoiseKind.Footstep);
+			NoiseEmitter.Emit(_player.GlobalPosition, NoiseKind.FootstepWalk);
 
 		return true;
 	}
@@ -134,6 +134,9 @@ public partial class MeleeController : Node3D
 		_cooldown = Mathf.Max(_cooldown, Data.TakedownCooldown);
 		Vector3 point = (target.GetParent() as Node3D)?.GlobalPosition ?? _player.GlobalPosition;
 		target.TakeDamage(new DamageInfo(9999f, point, -forward, true));
+
+		// 暗杀留痕：目标本来就是未警觉状态（TryTakedown 已过滤 Alert/Combat）
+		(GetTree().GetFirstNodeInGroup("stealth_director") as StealthDirector)?.NotifyExecution(target, true);
 		return true;
 	}
 

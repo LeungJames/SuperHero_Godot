@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="StealthRoute" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/stealth/StealthRoute.cs" id="1_route"]
+
+[resource]
+script = ExtResource("1_route")
+ChapterId = "factory"
+EntryPoint = Vector3(-21, 1, 16)
+MergePoint = Vector3(-8, 1, -32)
+CoverPoint = Vector3(-12, 1, -29)
+Waypoints = PackedVector3Array(-21, 1, 8, -21, 1, 0, -21, 1, -8, -21, 1, -16, -21, 1, -24, -18, 1, -30)
+Note = "沿西墙内侧（墙 x=-24，走廊墙 x=-19）向南，对应 §3.2 工厂支路的可走替代版本；通风管入口与地下排污通道尚无可走资产，因此在现有几何上先走地面西侧。"

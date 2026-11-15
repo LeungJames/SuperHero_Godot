@@ -1,0 +1,69 @@
+[gd_resource type="Resource" script_class="StealthPosts" load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://scripts/stealth/StealthPosts.cs" id="1_posts"]
+[ext_resource type="Script" path="res://scripts/stealth/StealthPostData.cs" id="2_post"]
+
+[sub_resource type="Resource" id="Post_01"]
+script = ExtResource("2_post")
+EnemyName = "Enemy_01_Runner"
+Role = 2
+Note = "入口巡逻队长，携带无线电"
+
+[sub_resource type="Resource" id="Post_02"]
+script = ExtResource("2_post")
+EnemyName = "Enemy_02_Runner"
+Role = 0
+Note = "可绕开"
+
+[sub_resource type="Resource" id="Post_03"]
+script = ExtResource("2_post")
+EnemyName = "Enemy_03_Runner"
+Role = 0
+Note = "可绕开"
+
+[sub_resource type="Resource" id="Post_04"]
+script = ExtResource("2_post")
+EnemyName = "Enemy_04_Runner"
+Role = 0
+Note = "可绕开"
+
+[sub_resource type="Resource" id="Post_05"]
+script = ExtResource("2_post")
+EnemyName = "Enemy_05_Holder"
+Role = 0
+Note = "一层大厅守卫，可绕开"
+
+[sub_resource type="Resource" id="Post_06"]
+script = ExtResource("2_post")
+EnemyName = "Enemy_06_Runner"
+Role = 1
+Note = "西侧走廊巡逻，能看见潜行支路"
+
+[sub_resource type="Resource" id="Post_07"]
+script = ExtResource("2_post")
+EnemyName = "Enemy_07_Holder"
+Role = 1
+Note = "二层走廊守卫，必须处理"
+
+[sub_resource type="Resource" id="Post_08"]
+script = ExtResource("2_post")
+EnemyName = "Enemy_08_Holder"
+Role = 0
+Note = "顶层守卫，可绕开"
+
+[sub_resource type="Resource" id="Post_09"]
+script = ExtResource("2_post")
+EnemyName = "Enemy_09_Runner"
+Role = 0
+Note = "可绕开"
+
+[sub_resource type="Resource" id="Post_10"]
+script = ExtResource("2_post")
+EnemyName = "Enemy_10_Runner"
+Role = 0
+Note = "可绕开"
+
+[resource]
+script = ExtResource("1_posts")
+ChapterId = "factory"
+Posts = Array[Resource]([SubResource("Post_01"), SubResource("Post_02"), SubResource("Post_03"), SubResource("Post_04"), SubResource("Post_05"), SubResource("Post_06"), SubResource("Post_07"), SubResource("Post_08"), SubResource("Post_09"), SubResource("Post_10")])

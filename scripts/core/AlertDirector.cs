@@ -9,6 +9,15 @@ public partial class AlertDirector : Node
 {
 	[Export] public AlertData Data { get; set; }
 
+	/// <summary>
+	/// 是否按"任意敌人持续交战"自动刷增援；潜行系统接管时置 false，
+	/// 改由 L1 搜索（2 人）与 L2 升级增援（1 波）驱动（2.0 §3.4）。
+	/// </summary>
+	public bool AutoWaves { get; set; } = true;
+
+	/// <summary>已刷出的波数（探针 / 调试可读）。</summary>
+	public int WaveCount => _waves;
+
 	/// <summary>寻路终点允许偏离玩家的水平距离；超过说明刷新点与玩家不在同一张连通网格。</summary>
 	private const float ReachTolerance = 2.5f;
 	/// <summary>寻路终点允许偏离玩家的垂直距离；用于区分"玩家在正上方的高层"这种假连通。</summary>
@@ -64,8 +73,27 @@ public partial class AlertDirector : Node
 				SpawnOne();
 		}
 
-		if (_alertTime >= Data.AlertHoldTime && _waves < Data.MaxWaves && _waveCooldown <= 0f && _pending == 0)
+		if (AutoWaves && _alertTime >= Data.AlertHoldTime && _waves < Data.MaxWaves && _waveCooldown <= 0f && _pending == 0)
 			CallWave();
+	}
+
+	/// <summary>
+	/// 外部驱动一波增援（潜行 L1 / L2）。仍遵守 AlertData 的最大波数与刷新点规则，
+	/// 只跳过"持续交战自动计时"这一层。
+	/// </summary>
+	public void RequestWave(int size, string message)
+	{
+		if (Data == null || Data.ReinforceScene == null || _points.Count == 0)
+			return;
+		if (_waves >= Data.MaxWaves)
+			return;
+
+		_waves++;
+		_pending = Mathf.Max(1, size);
+		_spawnTimer = 0f;
+		_waveCooldown = Data.WaveInterval;
+		_alertTime = 0f;
+		_hud?.ShowMessage(message, new Color(0.89f, 0.34f, 0.18f));
 	}
 
 	/// <summary>只要还有敌人在警戒或交火，就认为警报未解除。</summary>

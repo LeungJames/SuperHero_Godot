@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="StealthRoute" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/stealth/StealthRoute.cs" id="1_route"]
+
+[resource]
+script = ExtResource("1_route")
+ChapterId = "anchor"
+EntryPoint = Vector3(-27.5, 1, 26)
+MergePoint = Vector3(-12, 1, -38)
+CoverPoint = Vector3(-6, 1, -36)
+Waypoints = PackedVector3Array(-27.5, 1, 16, -27.5, 1, 6, -27.5, 1, -4, -27.5, 1, -14, -27.5, 1, -24, -22, 1, -33)
+Note = "沿西墙内侧（墙 x=-30）向南，对应 §3.2 铁锚支路的可走替代版本；西巷哨位 Enemy_07 正好压在路线上，属于必须处理。干船坞底部与吊车轨道尚无可走资产。"

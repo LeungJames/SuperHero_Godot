@@ -51,6 +51,8 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 	public float HealthRatio => _health != null && _health.MaxHealth > 0f ? _health.Health / _health.MaxHealth : 1f;
 	public Vector3 PlayerPosition => _player != null ? _player.GlobalPosition : GlobalPosition;
 	public float DistanceToPlayer => _player != null ? FlatDistance(GlobalPosition, _player.GlobalPosition) : 999f;
+	/// <summary>最后已知位置（目视或队友共享），供潜行警戒与探针读取。</summary>
+	public Vector3 LastKnownPosition => _lastKnownPosition;
 
 	private Vector3 _retreatPoint;
 	private CombatDirector _combat;
@@ -428,8 +430,9 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 		if (Data == null || _health == null || _health.IsDead || _playerHealth == null || _playerHealth.IsDead)
 			return;
 
-		float radius = kind == NoiseKind.Gunshot ? NoiseEmitter.GunshotRadius : Data.HearingRadius;
-		if (GlobalPosition.DistanceTo(position) > radius)
+		// 听觉半径按动作分级：静步 0 / 走路 8 / 冲刺 14 / 枪声 30（2.0 §3.4）
+		float radius = StealthSystem.NoiseRadius(kind);
+		if (radius <= 0f || GlobalPosition.DistanceTo(position) > radius)
 			return;
 
 		if (State == EnemyState.Combat)
