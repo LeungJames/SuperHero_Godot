@@ -1,8 +1,9 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/ui/SettingsMenu.tscn" id="2_settings"]
 [ext_resource type="PackedScene" path="res://scenes/ui/ChapterSelect.tscn" id="3_chapters"]
 [ext_resource type="PackedScene" path="res://scenes/ui/CollectiblesMenu.tscn" id="4_collectibles"]
+[ext_resource type="PackedScene" path="res://scenes/ui/LoadoutMenu.tscn" id="5_loadout"]
 
 [sub_resource type="StyleBoxFlat" id="SB_Panel"]
 bg_color = Color(0.16, 0.13, 0.1, 0.94)
@@ -120,5 +121,9 @@ visible = false
 layout_mode = 1
 
 [node name="CollectiblesMenu" parent="." instance=ExtResource("4_collectibles")]
+visible = false
+layout_mode = 1
+
+[node name="LoadoutMenu" parent="." instance=ExtResource("5_loadout")]
 visible = false
 layout_mode = 1

@@ -9,6 +9,9 @@ public partial class ChapterSelect : Control
 {
 	public event Action Closed;
 
+	/// <summary>选中章节：已通关的交给武器库，未通关的直接进关（首次通关不改配置）。</summary>
+	public event Action<SaveSystem.ChapterInfo> ChapterChosen;
+
 	private VBoxContainer _list;
 	private Button _backButton;
 
@@ -73,7 +76,7 @@ public partial class ChapterSelect : Control
 				CustomMinimumSize = new Vector2(0, 52),
 				SizeFlagsHorizontal = SizeFlags.ExpandFill,
 			};
-			button.Pressed += () => Enter(chapter.Scene);
+			button.Pressed += () => Enter(chapter);
 			_list.AddChild(button);
 		}
 
@@ -90,12 +93,13 @@ public partial class ChapterSelect : Control
 		return best > 0f ? $"{chapter.Label}    最佳 {Mathf.RoundToInt(best)}s" : chapter.Label;
 	}
 
-	private void Enter(string scene)
+	private void Enter(SaveSystem.ChapterInfo chapter)
 	{
-		if (string.IsNullOrEmpty(scene))
+		if (string.IsNullOrEmpty(chapter.Scene))
 			return;
 
-		GetTree().Paused = false;
-		GetTree().ChangeSceneToFile(scene);
+		// 不触发 Closed：由 GameManager 决定进武器库还是直接换场景
+		Visible = false;
+		ChapterChosen?.Invoke(chapter);
 	}
 }

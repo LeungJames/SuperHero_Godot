@@ -55,11 +55,13 @@ public partial class GameManager : Node
 	private SettingsMenu _settings;
 	private ChapterSelect _chapterSelect;
 	private CollectiblesMenu _collectiblesMenu;
+	private LoadoutMenu _loadoutMenu;
 	private Button _difficultyButton;
 
 	private float _defeatTimer;
 	private bool _defeatPending;
 	private bool _switching;
+	private bool _suppressSubmenuCallback;
 	private string _objective = string.Empty;
 
 	public override void _Ready()
@@ -75,6 +77,7 @@ public partial class GameManager : Node
 		_settings = _pauseMenu.GetNodeOrNull<SettingsMenu>("SettingsMenu");
 		_chapterSelect = _pauseMenu.GetNodeOrNull<ChapterSelect>("ChapterSelect");
 		_collectiblesMenu = _pauseMenu.GetNodeOrNull<CollectiblesMenu>("CollectiblesMenu");
+		_loadoutMenu = _pauseMenu.GetNodeOrNull<LoadoutMenu>("LoadoutMenu");
 
 		_weapon = GetTree().GetFirstNodeInGroup("weapon") as WeaponController;
 
@@ -94,9 +97,20 @@ public partial class GameManager : Node
 		if (_settings != null)
 			_settings.Closed += OnSubmenuClosed;
 		if (_chapterSelect != null)
+		{
 			_chapterSelect.Closed += OnSubmenuClosed;
+			_chapterSelect.ChapterChosen += OnChapterChosen;
+		}
 		if (_collectiblesMenu != null)
 			_collectiblesMenu.Closed += OnSubmenuClosed;
+		if (_loadoutMenu != null)
+		{
+			_loadoutMenu.StartRequested += OnLoadoutStartRequested;
+			_loadoutMenu.Closed += OnLoadoutClosed;
+		}
+
+		// 旧存档迁移：按已通关章节补齐武器解锁，幂等
+		LoadoutSystem.EnsureUnlocksFromClearedChapters();
 
 		MaxHeight = _player.GlobalPosition.Y;
 		_hud.SetEnemyCount(_registry.AliveCount, _registry.TotalCount);
@@ -146,6 +160,12 @@ public partial class GameManager : Node
 	/// <summary>设置 / 章节选择打开时，Esc 先退子页，而不是直接继续游戏。</summary>
 	private void HandlePausePressed()
 	{
+		if (_loadoutMenu is { Visible: true })
+		{
+			_loadoutMenu.Close();
+			return;
+		}
+
 		if (_collectiblesMenu is { Visible: true })
 		{
 			_collectiblesMenu.Close();
@@ -177,6 +197,7 @@ public partial class GameManager : Node
 		// A 方案：全歼当帧交还控制权，只给撤离指引，玩家自己走到停机坪登机才算胜利
 		State = GameState.Victory;
 		SaveSystem.Instance?.MarkChapterCleared(ChapterId, ElapsedTime);
+		LoadoutSystem.GrantUnlocksForChapter(ChapterId);
 		_hud.SetObjective("区域清空 · 前往停机坪登机");
 		_victory.Play();
 	}
@@ -208,7 +229,7 @@ public partial class GameManager : Node
 	public void ShowVictoryResults()
 	{
 		SaveSystem.Instance?.AppendRunRecord(ChapterId, true, ElapsedTime, Kills, TotalEnemies,
-			ShotsFired, ShotsHit, Headshots, string.Empty);
+			ShotsFired, ShotsHit, Headshots, string.Empty, LoadoutSystem.DescribeFor(ChapterId));
 
 		string nextLabel = string.IsNullOrEmpty(NextScenePath)
 			? null
@@ -219,7 +240,7 @@ public partial class GameManager : Node
 	private void ShowDefeatResults()
 	{
 		SaveSystem.Instance?.AppendRunRecord(ChapterId, false, ElapsedTime, Kills, TotalEnemies,
-			ShotsFired, ShotsHit, Headshots, DeathCause.ToString());
+			ShotsFired, ShotsHit, Headshots, DeathCause.ToString(), LoadoutSystem.DescribeFor(ChapterId));
 		_results.Present(false, DescribeDeathCause(), BuildStats(victory: false));
 	}
 
@@ -359,8 +380,43 @@ public partial class GameManager : Node
 		_collectiblesMenu?.Open();
 	}
 
+	/// <summary>已通关章节先选武器；未通关直接进关，保持首次通关默认配置。</summary>
+	private void OnChapterChosen(SaveSystem.ChapterInfo chapter)
+	{
+		bool cleared = SaveSystem.HasInstance && SaveSystem.Instance.IsChapterCleared(chapter.Id);
+		if (cleared && _loadoutMenu != null)
+		{
+			_loadoutMenu.Open(chapter);
+			return;
+		}
+
+		LoadoutSystem.ClearPending();
+		EnterScene(chapter.Scene);
+	}
+
+	private void OnLoadoutStartRequested(SaveSystem.ChapterInfo chapter, string[] ids)
+	{
+		if (!LoadoutSystem.IsValid(chapter.Id, ids))
+			return;
+
+		LoadoutSystem.SetPending(chapter.Id, ids);
+		EnterScene(chapter.Scene);
+	}
+
+	/// <summary>武器库返回：回到章节选择，而不是暂停主面板。</summary>
+	private void OnLoadoutClosed()
+	{
+		if (_suppressSubmenuCallback || !GetTree().Paused || _pauseMenu == null || !_pauseMenu.Visible)
+			return;
+
+		_chapterSelect?.Open();
+	}
+
 	private void OnSubmenuClosed()
 	{
+		if (_suppressSubmenuCallback)
+			return;
+
 		SetPauseMainPanelVisible(true);
 		_pauseMenu.GetNodeOrNull<Button>("Panel/VBox/ResumeButton")?.GrabFocus();
 	}
@@ -379,9 +435,13 @@ public partial class GameManager : Node
 
 		if (!paused)
 		{
+			// 继续游戏时静默关闭子页，避免触发“返回章节选择”的回调链
+			_suppressSubmenuCallback = true;
 			_settings?.Close();
 			_chapterSelect?.Close();
 			_collectiblesMenu?.Close();
+			_loadoutMenu?.Close();
+			_suppressSubmenuCallback = false;
 		}
 
 		GetTree().Paused = paused;
@@ -403,9 +463,20 @@ public partial class GameManager : Node
 		if (_switching || string.IsNullOrEmpty(NextScenePath))
 			return;
 
+		// 下一章默认武器；已通关后再从章节选择改选
+		LoadoutSystem.ClearPending();
+		EnterScene(NextScenePath);
+	}
+
+	/// <summary>换场景统一入口：解除暂停并防重复触发。</summary>
+	private void EnterScene(string scene)
+	{
+		if (_switching || string.IsNullOrEmpty(scene))
+			return;
+
 		_switching = true;
 		GetTree().Paused = false;
-		GetTree().ChangeSceneToFile(NextScenePath);
+		GetTree().ChangeSceneToFile(scene);
 	}
 
 	public void Restart()

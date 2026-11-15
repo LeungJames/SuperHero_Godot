@@ -5,6 +5,7 @@
 
 [resource]
 script = ExtResource("1_weapondata")
+Id = "smg"
 DisplayName = "ST-9"
 UnlockChapter = 2
 Viewmodel = ExtResource("2_viewmodel")

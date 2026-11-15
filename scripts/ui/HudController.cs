@@ -125,6 +125,7 @@ public partial class HudController : Control
 		{
 			_weapon.AmmoChanged += OnAmmoChanged;
 			_weapon.ShotResolved += OnShotResolved;
+			_weapon.KnifeStateChanged += OnKnifeStateChanged;
 			OnAmmoChanged(_weapon.MagAmmo, _weapon.ReserveAmmo);
 		}
 	}
@@ -286,6 +287,20 @@ public partial class HudController : Control
 			_ammoLabel.Text = $"{mag} / {reserve}";
 
 		_ammoLabel.AddThemeColorOverride("font_color", mag <= 3 ? Danger : Cream);
+	}
+
+	/// <summary>刀槽：武器名显示“刀”，弹药位显示“近战”，切回枪时恢复。</summary>
+	private void OnKnifeStateChanged(bool knife)
+	{
+		if (!knife)
+		{
+			OnAmmoChanged(_weapon?.MagAmmo ?? 0, _weapon?.ReserveAmmo ?? 0);
+			return;
+		}
+
+		_weaponLabel.Text = LoadoutSystem.KnifeName;
+		_ammoLabel.Text = "近战";
+		_ammoLabel.AddThemeColorOverride("font_color", Cream);
 	}
 
 	private void OnShotResolved(HitscanHit hit)

@@ -45,6 +45,8 @@ public partial class PlayerWeaponMount : Node3D
 	{
 		bool visible = _camera != null && _camera.IsBodyVisible;
 		Visible = visible;
+		if (_holder != null)
+			_holder.Visible = Weapon == null || !Weapon.IsKnifeActive;
 		if (!visible || _visual == null || _skeleton == null || _handBone < 0 || _player == null)
 			return;
 

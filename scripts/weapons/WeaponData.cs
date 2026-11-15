@@ -8,6 +8,9 @@ using Godot;
 public partial class WeaponData : Resource
 {
 	[ExportGroup("标识与解锁")]
+	/// <summary>稳定 ID：存档 unlocks 与武器库选择按它匹配，改名不影响存档。</summary>
+	[Export] public string Id { get; set; } = string.Empty;
+
 	[Export] public string DisplayName { get; set; } = "P-9";
 
 	/// <summary>解锁章节：0 = 序章 / 第一章（港口），2 = 赤蛇工厂，3 = 铁锚据点。</summary>

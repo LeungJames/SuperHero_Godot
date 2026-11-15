@@ -75,6 +75,7 @@ public partial class SaveSystem : Node
 	private readonly Godot.Collections.Dictionary _chapters = new();
 	private readonly HashSet<string> _collectibles = new();
 	private readonly HashSet<string> _cutscenesSeen = new();
+	private readonly HashSet<string> _weaponUnlocks = new();
 	private readonly Dictionary<string, Godot.Collections.Array<InputEvent>> _defaults = new();
 	private readonly Dictionary<string, Godot.Collections.Array<InputEvent>> _overrides = new();
 
@@ -177,11 +178,27 @@ public partial class SaveSystem : Node
 		Write();
 	}
 
+	// ------------------------------------------------------------ 武器解锁（§7.4）
+
+	/// <summary>已解锁武器 ID；刀恒可用，但仍写入存档保持列表完整。</summary>
+	public IReadOnlyCollection<string> UnlockedWeapons => _weaponUnlocks;
+
+	public bool IsWeaponUnlocked(string id) =>
+		!string.IsNullOrEmpty(id) && _weaponUnlocks.Contains(id);
+
+	/// <summary>写入一件已解锁武器；重复调用不重复落盘。</summary>
+	public void UnlockWeapon(string id)
+	{
+		if (string.IsNullOrEmpty(id) || !_weaponUnlocks.Add(id))
+			return;
+		Write();
+	}
+
 	// ------------------------------------------------------------ 难度
 
 	/// <summary>单局结算埋点：追加一行 JSON，不参与存档校验，也不改任何玩法数值。</summary>
 	public void AppendRunRecord(string chapter, bool victory, float time, int kills, int total,
-		int shots, int hits, int headshots, string deathCause)
+		int shots, int hits, int headshots, string deathCause, string loadout = null)
 	{
 		var record = new Godot.Collections.Dictionary();
 		record["chapter"] = chapter;
@@ -194,6 +211,7 @@ public partial class SaveSystem : Node
 		record["headshots"] = headshots;
 		record["death_cause"] = deathCause ?? string.Empty;
 		record["difficulty"] = DifficultyId;
+		record["loadout"] = loadout ?? string.Empty;
 
 		FileAccess file;
 		if (FileAccess.FileExists(RunLogPath))
@@ -604,6 +622,22 @@ public partial class SaveSystem : Node
 
 		ReadStringSet(_data, "collectibles", _collectibles);
 		ReadStringSet(_data, "cutscenes_seen", _cutscenesSeen);
+		ReadWeaponUnlocks();
+	}
+
+	/// <summary>旧存档没有 unlocks 字段时按空集合处理，由 LoadoutSystem 依已通关章节补齐。</summary>
+	private void ReadWeaponUnlocks()
+	{
+		_weaponUnlocks.Clear();
+		Godot.Collections.Dictionary unlocks = GetDictionary(_data, "unlocks");
+		if (unlocks.TryGetValue("weapons", out Variant value) && value.VariantType == Variant.Type.Array)
+		{
+			foreach (Variant item in value.AsGodotArray())
+			{
+				if (item.VariantType == Variant.Type.String)
+					_weaponUnlocks.Add(item.AsString());
+			}
+		}
 	}
 
 	private void Write()
@@ -626,6 +660,10 @@ public partial class SaveSystem : Node
 		_data["chapters"] = _chapters;
 		_data["collectibles"] = ToSortedArray(_collectibles);
 		_data["cutscenes_seen"] = ToSortedArray(_cutscenesSeen);
+		_data["unlocks"] = new Godot.Collections.Dictionary
+		{
+			["weapons"] = ToSortedArray(_weaponUnlocks),
+		};
 
 		if (_overrides.Count > 0)
 		{

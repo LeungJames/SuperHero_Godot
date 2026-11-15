@@ -39,6 +39,9 @@ public partial class WeaponController : Node3D
 	/// <summary>切换武器完成（模型与数值已生效）。</summary>
 	public event Action<WeaponData> WeaponChanged;
 
+	/// <summary>刀槽状态变化：true = 当前持刀，false = 当前持枪（HUD 切换显示）。</summary>
+	public event Action<bool> KnifeStateChanged;
+
 	private enum SwapPhase
 	{
 		Idle,
@@ -50,7 +53,14 @@ public partial class WeaponController : Node3D
 	public WeaponData Data => _weapons.Count > 0 ? _weapons[Mathf.Clamp(ActiveIndex, 0, _weapons.Count - 1)] : null;
 
 	public int ActiveIndex { get; private set; }
-	public int WeaponCount => _weapons.Count;
+	public int WeaponCount => _weapons.Count + (_hasKnife ? 1 : 0);
+
+	/// <summary>刀所在槽位；未携带刀时为 -1。刀固定排在枪之后（第二格）。</summary>
+	public int KnifeIndex => _hasKnife ? _weapons.Count : -1;
+
+	/// <summary>当前是否切换到刀：开火 / 换弹 / 开镜停用，左键改走近战挥砍。</summary>
+	public bool IsKnifeActive => _hasKnife && ActiveIndex >= _weapons.Count;
+
 	public bool IsSwapping => _phase != SwapPhase.Idle;
 	public int MagAmmo => _mags != null && ActiveIndex < _mags.Length ? _mags[ActiveIndex] : 0;
 	public int ReserveAmmo => _reserves != null && ActiveIndex < _reserves.Length ? _reserves[ActiveIndex] : 0;
@@ -72,6 +82,7 @@ public partial class WeaponController : Node3D
 	private const int MaxSlots = 5;
 
 	private readonly List<WeaponData> _weapons = new();
+	private bool _hasKnife;
 	private int[] _mags = System.Array.Empty<int>();
 	private int[] _reserves = System.Array.Empty<int>();
 
@@ -79,6 +90,7 @@ public partial class WeaponController : Node3D
 	private PlayerCamera _cameraOwner;
 	private Camera3D _camera;
 	private PlayerHealth _health;
+	private MeleeController _melee;
 	private Marker3D _muzzle;
 	private OmniLight3D _muzzleLight;
 	private Godot.Collections.Array<Rid> _exclude;
@@ -132,6 +144,7 @@ public partial class WeaponController : Node3D
 		_cameraOwner = GetNode<PlayerCamera>("../../..");
 		_player = GetNode<PlayerController>("../../../..");
 		_health = _player.GetNode<PlayerHealth>("Health");
+		_melee = _player.GetNodeOrNull<MeleeController>("Melee");
 		_muzzle = GetNodeOrNull<Marker3D>("Muzzle");
 		_muzzleLight = GetNodeOrNull<OmniLight3D>("MuzzleLight");
 
@@ -166,6 +179,7 @@ public partial class WeaponController : Node3D
 		AddToGroup("weapon");
 		AmmoChanged?.Invoke(MagAmmo, ReserveAmmo);
 		WeaponChanged?.Invoke(Data);
+		KnifeStateChanged?.Invoke(IsKnifeActive);
 	}
 
 	public override void _UnhandledInput(InputEvent @event)
@@ -174,10 +188,15 @@ public partial class WeaponController : Node3D
 			return;
 
 		// 半自动每次按键只触发一次；全自动在 _Process 里按住连发
-		if (@event.IsActionPressed("fire") && Data is { Automatic: false })
-			TryFire();
+		if (@event.IsActionPressed("fire"))
+		{
+			if (IsKnifeActive)
+				_melee?.TrySwing();
+			else if (Data is { Automatic: false })
+				TryFire();
+		}
 
-		if (@event.IsActionPressed("reload"))
+		if (@event.IsActionPressed("reload") && !IsKnifeActive)
 			StartReload();
 
 		if (@event.IsActionPressed("weapon_next"))
@@ -210,13 +229,13 @@ public partial class WeaponController : Node3D
 		UpdateReloadBones(dt);
 		UpdateMoveSpeed();
 
-		if (Data.Automatic && CanAct && !IsReloading && Input.IsActionPressed("fire"))
+		if (!IsKnifeActive && Data.Automatic && CanAct && !IsReloading && Input.IsActionPressed("fire"))
 			TryFire();
 
 		TryAutoReload();
 
 		// 半自动：换弹完成时扳机仍按住，补一发，不用松手重按
-		if (_fireQueued && CanAct && !IsReloading && _cooldown <= 0f)
+		if (_fireQueued && !IsKnifeActive && CanAct && !IsReloading && _cooldown <= 0f)
 		{
 			_fireQueued = false;
 			TryFire();
@@ -229,7 +248,7 @@ public partial class WeaponController : Node3D
 	/// </summary>
 	private void TryAutoReload()
 	{
-		if (IsReloading || !CanAct || Data == null || MagAmmo > 0 || ReserveAmmo <= 0)
+		if (IsKnifeActive || IsReloading || !CanAct || Data == null || MagAmmo > 0 || ReserveAmmo <= 0)
 			return;
 
 		StartReload();
@@ -238,7 +257,7 @@ public partial class WeaponController : Node3D
 	/// <summary>开火入口。返回是否真的打出一发。</summary>
 	public bool TryFire()
 	{
-		if (!CanAct || Data == null || IsReloading || _cooldown > 0f)
+		if (IsKnifeActive || !CanAct || Data == null || IsReloading || _cooldown > 0f)
 			return false;
 
 		if (MagAmmo <= 0)
@@ -260,7 +279,7 @@ public partial class WeaponController : Node3D
 
 	public bool StartReload()
 	{
-		if (!CanAct || Data == null || IsReloading)
+		if (IsKnifeActive || !CanAct || Data == null || IsReloading)
 			return false;
 
 		if (MagAmmo >= Data.MagazineSize || ReserveAmmo <= 0)
@@ -279,11 +298,17 @@ public partial class WeaponController : Node3D
 	/// <summary>弹药包调用；备弹已满返回 false，弹药包留在原地（§4.6）。</summary>
 	public bool TryAddAmmo(int rounds)
 	{
-		if (Data == null || ReserveAmmo >= Data.MaxReserve)
+		if (Data == null || _weapons.Count == 0)
 			return false;
 
-		_reserves[ActiveIndex] = Mathf.Min(Data.MaxReserve, ReserveAmmo + rounds);
-		AmmoChanged?.Invoke(MagAmmo, ReserveAmmo);
+		// 刀不消耗也不接收弹药：始终补给最后一把枪
+		int slot = Mathf.Clamp(ActiveIndex, 0, _weapons.Count - 1);
+		if (_reserves[slot] >= Data.MaxReserve)
+			return false;
+
+		_reserves[slot] = Mathf.Min(Data.MaxReserve, _reserves[slot] + rounds);
+		if (!IsKnifeActive)
+			AmmoChanged?.Invoke(MagAmmo, ReserveAmmo);
 		return true;
 	}
 
@@ -292,7 +317,7 @@ public partial class WeaponController : Node3D
 	/// <summary>切换到第 index 把可用武器（收枪 → 换模型 → 抬枪）。</summary>
 	public bool Equip(int index)
 	{
-		if (Arsenal == null || index < 0 || index >= _weapons.Count)
+		if (Arsenal == null || index < 0 || index >= WeaponCount)
 			return false;
 		if (index == ActiveIndex || IsSwapping || !CanAct)
 			return false;
@@ -306,15 +331,47 @@ public partial class WeaponController : Node3D
 		return true;
 	}
 
+	/// <summary>
+	/// 装配本章武器：有合法待选组合时按选择装配（刀固定第二格），
+	/// 否则沿用章节默认（UnlockChapter 过滤）。港口恒为 P-9 + 刀，跨章武器不生效。
+	/// </summary>
 	private void BuildArsenal()
 	{
 		_weapons.Clear();
-		foreach (WeaponData weapon in Arsenal.Weapons)
+		_hasKnife = false;
+
+		string chapterId = LoadoutSystem.ChapterIdFor(Arsenal.CurrentChapter);
+		string[] loadout = LoadoutSystem.ResolveForChapter(chapterId);
+		bool assembled = false;
+
+		foreach (string id in loadout)
 		{
-			if (weapon == null || weapon.UnlockChapter > Arsenal.CurrentChapter)
+			if (id == LoadoutSystem.KnifeId)
+			{
+				_hasKnife = true;
 				continue;
+			}
+
+			WeaponData weapon = LoadoutSystem.FindWeapon(id);
+			if (weapon == null || _weapons.Contains(weapon))
+				continue;
+
 			_weapons.Add(weapon);
+			assembled = true;
 		}
+
+		if (!assembled)
+		{
+			foreach (WeaponData weapon in Arsenal.Weapons)
+			{
+				if (weapon != null && weapon.UnlockChapter <= Arsenal.CurrentChapter)
+					_weapons.Add(weapon);
+			}
+		}
+
+		// 港口固定多带一把刀（决策：任何入口进入港口恒为 P-9 + 刀）
+		if (LoadoutSystem.ChapterNumber(chapterId) == 0)
+			_hasKnife = true;
 
 		_mags = new int[_weapons.Count];
 		_reserves = new int[_weapons.Count];
@@ -323,6 +380,16 @@ public partial class WeaponController : Node3D
 			_mags[i] = _weapons[i].MagazineSize;
 			_reserves[i] = _weapons[i].StartingReserve;
 		}
+	}
+
+	/// <summary>切到刀：隐藏枪模型与枪口灯，不做新的 3D 资产。</summary>
+	private void HideWeaponModel()
+	{
+		if (_model != null)
+			_model.Visible = false;
+		if (_muzzleLight != null)
+			_muzzleLight.Visible = false;
+		_flashTimer = 0f;
 	}
 
 	private void UpdateSwap(float dt)
@@ -336,10 +403,20 @@ public partial class WeaponController : Node3D
 		if (_phase == SwapPhase.Lowering && _swapTimer >= duration)
 		{
 			ActiveIndex = _swapTarget;
-			BuildModel(Data);
-			ApplyData();
-			AmmoChanged?.Invoke(MagAmmo, ReserveAmmo);
-			WeaponChanged?.Invoke(Data);
+
+			if (IsKnifeActive)
+			{
+				HideWeaponModel();
+			}
+			else
+			{
+				BuildModel(Data);
+				ApplyData();
+				AmmoChanged?.Invoke(MagAmmo, ReserveAmmo);
+				WeaponChanged?.Invoke(Data);
+			}
+
+			KnifeStateChanged?.Invoke(IsKnifeActive);
 			_phase = SwapPhase.Raising;
 			_swapTimer = 0f;
 		}
@@ -587,7 +664,7 @@ public partial class WeaponController : Node3D
 
 	private void UpdateAim(float dt)
 	{
-		bool wantAim = CanAct && !IsReloading && Input.IsActionPressed("aim");
+		bool wantAim = CanAct && !IsKnifeActive && !IsReloading && Input.IsActionPressed("aim");
 		IsAiming = wantAim;
 
 		float step = Data.AdsTime > 0f ? dt / Data.AdsTime : 1f;
@@ -610,7 +687,9 @@ public partial class WeaponController : Node3D
 		if (_player == null || Data == null)
 			return;
 
-		if (IsReloading)
+		if (IsKnifeActive)
+			_player.MoveSpeedMultiplier = 1f;
+		else if (IsReloading)
 			_player.MoveSpeedMultiplier = Data.ReloadMoveMultiplier;
 		else if (IsAiming)
 			_player.MoveSpeedMultiplier = Data.AdsMoveMultiplier;
