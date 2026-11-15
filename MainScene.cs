@@ -8,10 +8,15 @@ public partial class MainScene : Node3D
 {
 	public override void _Ready()
 	{
+		var sun = GetNodeOrNull<DirectionalLight3D>("World/Sun");
+		if (sun != null)
+			sun.Basis = Basis.LookingAt(-new Vector3(-0.60f, 0.085f, -0.795f).Normalized(), Vector3.Up);
+		AddChild(new CombatPresentation { Name = "CombatPresentation" });
 		// Full-body views share the same paint response as the first-person rig.
-		var body = GetNodeOrNull<Node3D>("Actors/Player/BodyModel");
-		if (body != null)
+		foreach (string path in new[] { "Actors/Player/BodyModel", "Actors/Helicopter" })
 		{
+			var body = GetNodeOrNull<Node3D>(path);
+			if (body == null) continue;
 			var ink = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/outline.gdshader") };
 			ink.SetShaderParameter("width", 0.018f);
 			body.AddChild(new ModelOutline { Overlay = ink });

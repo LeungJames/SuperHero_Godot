@@ -160,6 +160,7 @@ public partial class WeaponController : Node3D
 	private Vector3 _handRRest;
 	private Vector3 _handRRestRotation;
 	private Basis _gripRotationBasis = Basis.Identity;
+	private Vector3 _gripContactLocal;
 	private bool _magOutCued;
 	private bool _seatCued;
 	private bool _slideCued;
@@ -497,6 +498,7 @@ public partial class WeaponController : Node3D
 			visual.Name = "Visual";
 			// 模型本身按绝对握点摆放；根节点回到握柄，旋转才是绕手转而不是绕相机转
 			visual.Position = -KnifeGripOffset;
+			ApplyToonMaterials(visual);
 			visual.AddChild(new ModelOutline { Overlay = ViewmodelOutline() });
 			root.AddChild(visual);
 			AddChild(root);
@@ -619,6 +621,8 @@ public partial class WeaponController : Node3D
 		{
 			_handLRest = _handLPivot.Position;
 			_handLRestRotation = _handLPivot.Rotation;
+			Node3D contact = FindNode<Node3D>(_handLPivot, "GripContactL");
+			_gripContactLocal = contact != null ? _handLPivot.ToLocal(contact.GlobalPosition) : Vector3.Zero;
 		}
 		if (_handRPivot != null)
 		{
@@ -645,7 +649,7 @@ public partial class WeaponController : Node3D
 		{
 			Shader = GD.Load<Shader>("res://shaders/outline.gdshader"),
 		};
-		_outlineMaterial.SetShaderParameter("width", 0.0025f);
+		_outlineMaterial.SetShaderParameter("width", 0.00085f);
 		return _outlineMaterial;
 	}
 
@@ -682,7 +686,7 @@ public partial class WeaponController : Node3D
 		_cameraOwner.SetAdsFov(Data.AdsFov);
 
 		// 开镜姿势按武器数据重算（狙击枪需要把枪身推远，避免枪托顶住画面中心）
-		_adsPosition = new Vector3(0f, _basePosition.Y + 0.10f, _basePosition.Z + 0.06f) + Data.AdsPositionOffset;
+		_adsPosition = new Vector3(0f, -0.052f, _basePosition.Z + 0.06f) + Data.AdsPositionOffset;
 		_adsRotationDegrees = _baseRotationDegrees + Data.AdsRotationDegrees;
 
 		if (_muzzle != null)
@@ -954,7 +958,7 @@ public partial class WeaponController : Node3D
 		float swing = Mathf.Clamp(MeleeSwing, 0f, 1f);
 		float arc = swing * swing * (3f - 2f * swing);
 
-		Vector3 position = KnifeGripOffset
+		Vector3 position = KnifeGripOffset + new Vector3(-0.035f, 0.035f, -0.035f)
 			+ new Vector3(idleX, idleY, 0f)
 			+ new Vector3(-0.03f * arc, 0.10f * arc, -0.04f * arc)
 			+ new Vector3(0f, 0.018f * _knifeBlockPose, -0.008f * _knifeBlockPose);
@@ -1071,9 +1075,9 @@ public partial class WeaponController : Node3D
 		_slidePivot.Position = _slideRest + new Vector3(0f, 0f, _slidePose * Data.ReloadSlideTravel);
 
 		// 左手：抓握区间内位置与朝向都由弹匣当前变换推算，相对变换恒定
-		Transform3D grip = new(
-			magBasis * _gripRotationBasis,
-			magOrigin + magBasis * Data.ReloadGripOffset);
+		Basis gripBasis = magBasis * _gripRotationBasis;
+		Transform3D grip = new(gripBasis,
+			magOrigin + magBasis * Data.ReloadGripOffset - gripBasis * _gripContactLocal);
 		float bind = 0f;
 		if (IsReloading)
 		{
@@ -1098,13 +1102,9 @@ public partial class WeaponController : Node3D
 		}
 		_handLPivot.Transform = handPose;
 
-		// 右手：始终握着握把，只在拉套筒时跟着套筒后拉；反向补偿枪身滚转，避免手臂甩进画面
-		_handRPose = Mathf.Lerp(_handRPose, slideTarget, blendK);
-		_handRPivot.Position = _handRRest + new Vector3(
-			0f, 0f, _handRPose * Data.ReloadSlideTravel * Data.ReloadHandRSlideFollow);
-		_handRPivot.Rotation = _handRRestRotation + new Vector3(
-			Mathf.DegToRad(Data.ReloadHandRTiltDegrees) * _handRPose, 0f,
-			-Mathf.DegToRad(Data.ReloadPoseRollDegrees) * PoseWindow(t));
+		// The trigger hand holds the frame throughout; it must not follow the cycling slide.
+		_handRPivot.Position = _handRRest;
+		_handRPivot.Rotation = _handRRestRotation;
 	}
 
 	/// <summary>换弹关键帧只触发一次，且与弹匣 / 套筒到达该相位的同一帧。</summary>
@@ -1168,6 +1168,7 @@ public partial class WeaponController : Node3D
 		_handLRestRotation = Vector3.Zero;
 		_handRRestRotation = Vector3.Zero;
 		_gripRotationBasis = Basis.Identity;
+		_gripContactLocal = Vector3.Zero;
 		_magPos = Vector3.Zero;
 		_magTilt = 0f;
 		_slidePose = 0f;

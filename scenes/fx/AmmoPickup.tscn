@@ -1,6 +1,7 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/fx/AmmoPickup.cs" id="1_pickup"]
+[ext_resource type="Script" path="res://scripts/fx/PickupPresentation.cs" id="2_art"]
 
 [sub_resource type="StandardMaterial3D" id="Mat_Ammo"]
 albedo_color = Color(0.95, 0.76, 0.2, 1)
@@ -24,3 +25,6 @@ shape = SubResource("Shape_Pickup")
 
 [node name="Mesh" type="MeshInstance3D" parent="."]
 mesh = SubResource("Mesh_Ammo")
+
+[node name="Presentation" type="Node3D" parent="."]
+script = ExtResource("2_art")

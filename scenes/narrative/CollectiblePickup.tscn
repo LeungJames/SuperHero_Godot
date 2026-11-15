@@ -1,6 +1,7 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/narrative/CollectiblePickup.cs" id="1_pickup"]
+[ext_resource type="Script" path="res://scripts/fx/PickupPresentation.cs" id="2_art"]
 
 [sub_resource type="StandardMaterial3D" id="Mat_Collectible"]
 albedo_color = Color(0.36, 0.82, 0.92, 1)
@@ -27,6 +28,9 @@ shape = SubResource("Shape_Pickup")
 
 [node name="Mesh" type="MeshInstance3D" parent="."]
 mesh = SubResource("Mesh_Collectible")
+
+[node name="Presentation" type="Node3D" parent="."]
+script = ExtResource("2_art")
 
 [node name="Glow" type="OmniLight3D" parent="."]
 light_color = Color(0.35, 0.82, 0.95, 1)

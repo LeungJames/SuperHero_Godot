@@ -65,7 +65,7 @@ shadow_enabled = false
 [node name="ViewModel" type="Node3D" parent="Head/Camera3D"]
 
 [node name="Weapon" type="Node3D" parent="Head/Camera3D/ViewModel"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.18, -0.16, -0.4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.18, -0.13, -0.4)
 script = ExtResource("5_weapon")
 Arsenal = ExtResource("6_arsenal")
 TracerScene = ExtResource("7_tracer")
