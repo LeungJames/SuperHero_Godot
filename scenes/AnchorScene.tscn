@@ -1,0 +1,163 @@
+[gd_scene load_steps=22 format=3]
+
+[ext_resource type="Script" path="res://MainScene.cs" id="1_main"]
+[ext_resource type="PackedScene" path="res://scenes/levels/AnchorLevel.tscn" id="2_level"]
+[ext_resource type="PackedScene" path="res://scenes/actors/Player.tscn" id="3_player"]
+[ext_resource type="PackedScene" path="res://scenes/actors/Helicopter.tscn" id="4_heli"]
+[ext_resource type="Script" path="res://scripts/core/GameManager.cs" id="5_game"]
+[ext_resource type="Script" path="res://scripts/core/EnemyRegistry.cs" id="6_registry"]
+[ext_resource type="Script" path="res://scripts/level/VictorySequenceController.cs" id="7_victory"]
+[ext_resource type="Resource" path="res://data/level/VictorySequenceConfig_Anchor.tres" id="8_vcfg"]
+[ext_resource type="PackedScene" path="res://scenes/ui/Hud.tscn" id="9_hud"]
+[ext_resource type="PackedScene" path="res://scenes/ui/PauseMenu.tscn" id="10_pause"]
+[ext_resource type="PackedScene" path="res://scenes/ui/ResultsPanel.tscn" id="11_results"]
+[ext_resource type="Script" path="res://scripts/audio/AudioDirector.cs" id="12_audio"]
+[ext_resource type="Script" path="res://scripts/ui/ComicOverlay.cs" id="13_comic"]
+[ext_resource type="Resource" path="res://data/ui/ComicStyle.tres" id="14_comic_style"]
+[ext_resource type="Script" path="res://scripts/core/AlertDirector.cs" id="15_alert"]
+[ext_resource type="Resource" path="res://data/level/Alert_Anchor.tres" id="16_alert_data"]
+[ext_resource type="Script" path="res://scripts/level/ChapterSetup.cs" id="17_chapter"]
+[ext_resource type="Resource" path="res://data/weapons/Arsenal.tres" id="18_arsenal"]
+
+[sub_resource type="ProceduralSkyMaterial" id="Sky_Anchor"]
+sky_top_color = Color(0.06, 0.1, 0.16, 1)
+sky_horizon_color = Color(0.82, 0.36, 0.14, 1)
+sky_curve = 0.35
+ground_bottom_color = Color(0.03, 0.05, 0.07, 1)
+ground_horizon_color = Color(0.26, 0.18, 0.13, 1)
+sun_angle_max = 10.0
+sun_curve = 0.12
+
+[sub_resource type="Sky" id="Sky_AnchorRes"]
+sky_material = SubResource("Sky_Anchor")
+
+[sub_resource type="Environment" id="Env_Anchor"]
+background_mode = 2
+sky = SubResource("Sky_AnchorRes")
+ambient_light_source = 3
+ambient_light_sky_contribution = 1.0
+ambient_light_energy = 0.25
+tonemap_mode = 3
+tonemap_exposure = 0.92
+glow_enabled = true
+glow_intensity = 0.4
+glow_hdr_threshold = 0.85
+fog_enabled = true
+fog_light_color = Color(0.38, 0.4, 0.44, 1)
+fog_density = 0.0035
+fog_sky_affect = 0.4
+ssao_enabled = true
+ssao_intensity = 0.9
+
+[node name="AnchorScene" type="Node3D"]
+script = ExtResource("1_main")
+
+[node name="World" type="Node3D" parent="."]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="World"]
+environment = SubResource("Env_Anchor")
+
+[node name="Sun" type="DirectionalLight3D" parent="World"]
+transform = Transform3D(0.76604, 0, 0.64279, 0.12006, 0.98227, -0.14279, -0.63141, 0.18682, 0.75241, 0, 20, 0)
+light_color = Color(1, 0.7, 0.44, 1)
+light_energy = 1.0
+shadow_enabled = true
+directional_shadow_mode = 1
+directional_shadow_max_distance = 100.0
+
+[node name="Fill" type="DirectionalLight3D" parent="World"]
+transform = Transform3D(-0.76604, 0, -0.64279, -0.12006, 0.98227, 0.14279, 0.63141, 0.18682, -0.75241, 0, 20, 0)
+light_color = Color(0.34, 0.5, 0.66, 1)
+light_energy = 0.32
+light_specular = 0.0
+
+[node name="Level" parent="World" instance=ExtResource("2_level")]
+
+[node name="ReinforcementPoints" type="Node3D" parent="World" groups=["reinforce_points"]]
+
+[node name="Point_A" type="Marker3D" parent="World/ReinforcementPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24, 0.2, 24)
+
+[node name="Point_B" type="Marker3D" parent="World/ReinforcementPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 0.2, 20)
+
+[node name="Actors" type="Node3D" parent="."]
+
+[node name="Player" parent="Actors" instance=ExtResource("3_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 26)
+
+[node name="Helicopter" parent="Actors" instance=ExtResource("4_heli")]
+visible = false
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.35, -46)
+
+[node name="CinematicCamera" type="Camera3D" parent="Actors"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 4.5, -40)
+fov = 60.0
+
+[node name="Managers" type="Node3D" parent="."]
+process_mode = 3
+
+[node name="GameManager" type="Node" parent="Managers"]
+script = ExtResource("5_game")
+ObjectiveHigh = "穿过仓库巷道，夺取吊机高地"
+ObjectiveLow = "清空铁锚据点"
+ObjectiveClear = "区域清空"
+ObjectiveHeightThreshold = 2.0
+
+[node name="EnemyRegistry" type="Node" parent="Managers"]
+script = ExtResource("6_registry")
+
+[node name="AlertDirector" type="Node" parent="Managers"]
+script = ExtResource("15_alert")
+Data = ExtResource("16_alert_data")
+
+[node name="VictorySequenceController" type="Node" parent="Managers"]
+script = ExtResource("7_victory")
+Config = ExtResource("8_vcfg")
+
+[node name="AudioDirector" type="Node" parent="Managers"]
+script = ExtResource("12_audio")
+
+[node name="ChapterSetup" type="Node" parent="Managers"]
+script = ExtResource("17_chapter")
+Arsenal = ExtResource("18_arsenal")
+Chapter = 3
+
+[node name="UI" type="CanvasLayer" parent="."]
+process_mode = 3
+
+[node name="ComicHalftone" type="ColorRect" parent="UI"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 1)
+
+[node name="ComicSpeedLines" type="ColorRect" parent="UI"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 1)
+
+[node name="Hud" parent="UI" instance=ExtResource("9_hud")]
+
+[node name="ComicFx" type="Control" parent="UI"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("13_comic")
+Style = ExtResource("14_comic_style")
+
+[node name="PauseMenu" parent="UI" instance=ExtResource("10_pause")]
+visible = false
+
+[node name="ResultsPanel" parent="UI" instance=ExtResource("11_results")]
+visible = false

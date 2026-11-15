@@ -1,0 +1,56 @@
+﻿[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemies/EnemyData.cs" id="1_enemydata"]
+[ext_resource type="PackedScene" path="res://art/models/WPN_AssaultRifle.glb" id="2_weapon"]
+
+[resource]
+script = ExtResource("1_enemydata")
+Behavior = 2
+MaxHealth = 110.0
+PatrolSpeed = 1.6
+CombatSpeed = 2.8
+ViewDistance = 32.0
+ViewAngleHorizontal = 120.0
+ViewAngleVertical = 40.0
+HearingRadius = 12.0
+ReactionTime = 0.45
+HighGroundViewBonus = 10.0
+LowGroundViewScale = 0.6
+VerticalCombatLimit = 24.0
+EngageMinRange = 12.0
+EngageMaxRange = 26.0
+BurstShots = 2
+BurstShotInterval = 0.4
+BurstCooldown = 2.0
+Damage = 25.0
+SpreadClose = 2.0
+SpreadMid = 3.0
+SpreadFar = 4.0
+SpreadMidDistance = 12.0
+SpreadFarDistance = 24.0
+PlayerMovingSpreadBonus = 2.0
+LoseSightTime = 1.0
+AlertTimeout = 2.0
+SearchTimeout = 4.0
+PeekDuration = 1.4
+HideDuration = 0.9
+PatrolWaitMin = 1.0
+PatrolWaitMax = 2.0
+StaggerThreshold = 30.0
+StaggerDuration = 0.25
+DeathFallTime = 0.35
+DeathFadeTime = 2.0
+AmmoDropRounds = 6
+ModelScale = 0.92
+WalkClipSpeed = 0.77
+RunClipSpeed = 1.77
+AimWalkClipSpeed = 0.65
+MinPlaybackScale = 0.55
+MaxPlaybackScale = 2.8
+StateBlendTime = 0.18
+Lod0Distance = 10.0
+Lod1Distance = 25.0
+WeaponScene = ExtResource("2_weapon")
+WeaponGripOffset = Vector3(0, 0.02, -0.02)
+WeaponMuzzleOffset = Vector3(0, 0.015, -0.55)
+HoldRadius = 8.0

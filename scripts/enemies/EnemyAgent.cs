@@ -63,10 +63,12 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 	private float _strafeDirection = 1f;
 
 	private bool _hasCover;
+	private bool _coverValid;
 	private bool _coverPeeking;
 	private float _coverPhaseTimer;
 	private Vector3 _coverPosition;
 	private Vector3 _peekPosition;
+	private Vector3 _post;
 
 	private float _flashTimer;
 	private bool _seized;
@@ -91,6 +93,7 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 
 		_exclude = new Godot.Collections.Array<Rid> { GetRid() };
 		_lastKnownPosition = GlobalPosition;
+		_post = GlobalPosition;
 
 		_nav.AvoidanceEnabled = false;
 
@@ -368,11 +371,13 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 			return;
 		}
 
-		// 看不到人时朝声源 / 最后位置压过去，超过 20m 也停在这一状态
-		if (FlatDistance(GlobalPosition, _lastKnownPosition) > 1f)
+		// 看不到人时朝声源 / 最后位置压过去，超过 20m 也停在这一状态；
+		// 铁锚帮只在自己的岗位半径内移动，不会离开要道。
+		Vector3 target = ClampToPost(_lastKnownPosition);
+		if (FlatDistance(GlobalPosition, target) > 1f)
 		{
-			MoveTo(_lastKnownPosition, Data.PatrolSpeed);
-			FaceTowards(_lastKnownPosition, dt);
+			MoveTo(target, Data.PatrolSpeed);
+			FaceTowards(target, dt);
 		}
 		else
 		{
@@ -394,10 +399,11 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 			return;
 		}
 
-		if (FlatDistance(GlobalPosition, _lastKnownPosition) > 0.8f)
+		Vector3 target = ClampToPost(_lastKnownPosition);
+		if (FlatDistance(GlobalPosition, target) > 0.8f)
 		{
-			MoveTo(_lastKnownPosition, Data.PatrolSpeed);
-			FaceTowards(_lastKnownPosition, dt);
+			MoveTo(target, Data.PatrolSpeed);
+			FaceTowards(target, dt);
 		}
 		else
 		{
@@ -417,9 +423,9 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 			return;
 		}
 
-		bool holdingCover = Data.Behavior == EnemyBehavior.Holder && _hasCover;
+		bool holdingCover = UsesCover && _coverValid;
 
-		// 守卫躲在掩体后本来就看不见玩家，不能因此判丢视线
+		// 守卫 / 铁锚帮躲在掩体后本来就看不见玩家，不能因此判丢视线
 		if (!_canSee && !(holdingCover && !_coverPeeking))
 		{
 			_stateTimer += dt;
@@ -434,10 +440,18 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 		if (State != EnemyState.Combat)
 			return;
 
-		if (Data.Behavior == EnemyBehavior.Runner)
-			UpdateRunnerCombat(dt);
-		else
-			UpdateHolderCombat(dt);
+		switch (Data.Behavior)
+		{
+			case EnemyBehavior.Runner:
+				UpdateRunnerCombat(dt);
+				break;
+			case EnemyBehavior.Ancla:
+				UpdateAnclaCombat(dt);
+				break;
+			default:
+				UpdateHolderCombat(dt);
+				break;
+		}
 
 		UpdateFiring(dt);
 	}
@@ -483,7 +497,7 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 
 	private void UpdateHolderCombat(float dt)
 	{
-		if (!_hasCover)
+		if (!_coverValid)
 		{
 			StopHorizontal(dt);
 			FaceTowards(_player.GlobalPosition, dt);
@@ -533,6 +547,10 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 		}
 	}
 
+	// 铁锚帮沿用守卫的掩体—探头节奏，区别在 EnterCombat 的选点被限制在岗位半径内；
+	// 没有可用掩体时原地开火，不会像赤蛇会那样压上。
+	private void UpdateAnclaCombat(float dt) => UpdateHolderCombat(dt);
+
 	private void EnterPatrol()
 	{
 		State = EnemyState.Patrol;
@@ -559,7 +577,7 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 		_fireTimer = Data.ReactionTime;
 		_burstShotsLeft = 0;
 
-		if (Data.Behavior == EnemyBehavior.Holder)
+		if (UsesCover)
 		{
 			_coverPeeking = false;
 			_coverPhaseTimer = Data.HideDuration;
@@ -609,7 +627,7 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 		if (_staggerTimer > 0f || !_canSee)
 			return false;
 
-		if (Data.Behavior == EnemyBehavior.Holder && _hasCover && !_coverPeeking)
+		if (UsesCover && _coverValid && !_coverPeeking)
 			return false;
 
 		return true;
@@ -760,12 +778,19 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 
 	private void PickCover()
 	{
+		_coverValid = false;
+
 		if (!_hasCover)
 			return;
 
 		float best = float.MaxValue;
 		foreach ((Vector3 cover, Vector3 peek) in _coverPairs)
 		{
+			// 铁锚帮只使用岗位附近的掩体，避免追着玩家离开高点 / 要道
+			if (Data.Behavior == EnemyBehavior.Ancla && Data.HoldRadius > 0f &&
+				FlatDistance(cover, _post) > Data.HoldRadius)
+				continue;
+
 			float distance = FlatDistance(GlobalPosition, cover);
 			if (distance >= best)
 				continue;
@@ -773,7 +798,26 @@ public partial class EnemyAgent : CharacterBody3D, IDamageable
 			best = distance;
 			_coverPosition = cover;
 			_peekPosition = peek;
+			_coverValid = true;
 		}
+	}
+
+	/// <summary>守卫与铁锚帮共用掩体探头逻辑。</summary>
+	private bool UsesCover => Data.Behavior == EnemyBehavior.Holder || Data.Behavior == EnemyBehavior.Ancla;
+
+	/// <summary>把移动目标限制在铁锚帮的岗位半径内；其他行为原样返回。</summary>
+	private Vector3 ClampToPost(Vector3 target)
+	{
+		if (Data.Behavior != EnemyBehavior.Ancla || Data.HoldRadius <= 0f)
+			return target;
+
+		Vector3 offset = target - _post;
+		offset.Y = 0f;
+		float distance = offset.Length();
+		if (distance <= Data.HoldRadius)
+			return target;
+
+		return _post + offset / distance * Data.HoldRadius;
 	}
 
 	private void OnStaggered(float duration)

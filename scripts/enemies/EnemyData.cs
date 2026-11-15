@@ -7,6 +7,9 @@ public enum EnemyBehavior
 
 	/// <summary>守卫：守掩体、探头压制。</summary>
 	Holder,
+
+	/// <summary>铁锚帮：驻守岗位与高点，只在小范围内回撤换位，不主动压上。</summary>
+	Ancla,
 }
 
 /// <summary>
@@ -54,9 +57,13 @@ public partial class EnemyData : Resource
 	[Export] public float AlertTimeout { get; set; } = 2f;
 	[Export] public float SearchTimeout { get; set; } = 4f;
 
-	[ExportGroup("掩体（守卫）")]
+	[ExportGroup("掩体（守卫 / 铁锚帮）")]
 	[Export] public float PeekDuration { get; set; } = 1.2f;
 	[Export] public float HideDuration { get; set; } = 1f;
+
+	[ExportGroup("驻点（铁锚帮）")]
+	/// <summary>铁锚帮的岗位半径：只在该半径内选掩体、追声源；0 表示不限制（旧行为）。</summary>
+	[Export] public float HoldRadius { get; set; }
 
 	[ExportGroup("巡逻")]
 	[Export] public float PatrolWaitMin { get; set; } = 1f;
