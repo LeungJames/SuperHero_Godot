@@ -63,6 +63,7 @@ public partial class SaveSystem : Node
 	public float SfxVolume { get; private set; } = 0.9f;
 	public float AmbientVolume { get; private set; } = 0.8f;
 	public float RadioVolume { get; private set; } = 0.9f;
+	public float MusicVolume { get; private set; } = 0.75f;
 
 	public bool Fullscreen { get; private set; }
 	/// <summary>0 关闭 / 1 = 2x / 2 = 4x。</summary>
@@ -422,6 +423,12 @@ public partial class SaveSystem : Node
 		ApplyVolumes();
 	}
 
+	public void SetMusicVolume(float value)
+	{
+		MusicVolume = Mathf.Clamp(value, 0f, 1f);
+		ApplyVolumes();
+	}
+
 	public void SetFullscreen(bool value)
 	{
 		Fullscreen = value;
@@ -455,6 +462,7 @@ public partial class SaveSystem : Node
 		SfxVolume = 0.9f;
 		AmbientVolume = 0.8f;
 		RadioVolume = 0.9f;
+		MusicVolume = 0.75f;
 		Fullscreen = false;
 		Msaa = 1;
 		Shadows = true;
@@ -503,6 +511,7 @@ public partial class SaveSystem : Node
 		SetBusVolume("SFX", SfxVolume);
 		SetBusVolume("Ambient", AmbientVolume);
 		SetBusVolume("Radio", RadioVolume);
+		SetBusVolume("Music", MusicVolume);
 	}
 
 	private static void SetBusVolume(string bus, float linear)
@@ -516,7 +525,7 @@ public partial class SaveSystem : Node
 
 	private static void EnsureAudioBuses()
 	{
-		foreach (string bus in new[] { "SFX", "Ambient", "Radio" })
+		foreach (string bus in new[] { "SFX", "Ambient", "Radio", "Music" })
 		{
 			if (AudioServer.GetBusIndex(bus) >= 0)
 				continue;
@@ -741,6 +750,7 @@ public partial class SaveSystem : Node
 		SfxVolume = Mathf.Clamp(GetFloat(settings, "sfx_volume", SfxVolume), 0f, 1f);
 		AmbientVolume = Mathf.Clamp(GetFloat(settings, "ambient_volume", AmbientVolume), 0f, 1f);
 		RadioVolume = Mathf.Clamp(GetFloat(settings, "radio_volume", RadioVolume), 0f, 1f);
+		MusicVolume = Mathf.Clamp(GetFloat(settings, "music_volume", MusicVolume), 0f, 1f);
 		Fullscreen = GetBool(settings, "fullscreen", Fullscreen);
 		Msaa = Mathf.Clamp(GetInt(settings, "msaa", Msaa), 0, 2);
 		Shadows = GetBool(settings, "shadows", Shadows);
@@ -827,6 +837,7 @@ public partial class SaveSystem : Node
 		settings["sfx_volume"] = SfxVolume;
 		settings["ambient_volume"] = AmbientVolume;
 		settings["radio_volume"] = RadioVolume;
+		settings["music_volume"] = MusicVolume;
 		settings["fullscreen"] = Fullscreen;
 		settings["msaa"] = Msaa;
 		settings["shadows"] = Shadows;
