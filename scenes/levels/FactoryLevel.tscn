@@ -1,5 +1,7 @@
 [gd_scene format=3]
 
+[ext_resource type="Script" path="res://scripts/art/EnvironmentArtDirector.cs" id="env_art_director"]
+
 [ext_resource type="PackedScene" path="res://art/models/kit/SM_Deck_78x1x64.glb" id="1_ulyfk"]
 [ext_resource type="PackedScene" path="res://art/models/kit/SM_Wall_0p4x6x34.glb" id="2_hv6r1"]
 [ext_resource type="PackedScene" path="res://art/models/kit/SM_Wall_0p4x6x20.glb" id="3_aksrq"]
@@ -32,12 +34,12 @@
 [ext_resource type="PackedScene" path="res://art/models/kit/SM_Bollard_0p5x0p6x0p5.glb" id="30_avyl4"]
 [ext_resource type="Script" path="res://scripts/level/ExplosiveBarrel.cs" id="31_7ihmo"]
 [ext_resource type="Resource" path="res://data/level/ExplosiveBarrel.tres" id="32_6jwme"]
-[ext_resource type="PackedScene" path="res://scenes/actors/enemies/StreetRunner.tscn" id="33_kspi1"]
+[ext_resource type="PackedScene" path="res://scenes/actors/enemies/FactoryRunner.tscn" id="33_kspi1"]
 [ext_resource type="Script" path="res://scripts/enemies/EnemyAgent.cs" id="34_q30hj"]
 [ext_resource type="Resource" path="res://data/enemies/StreetRunner.tres" id="35_017vh"]
 [ext_resource type="PackedScene" path="res://scenes/fx/Tracer.tscn" id="36_gly2m"]
 [ext_resource type="PackedScene" path="res://scenes/fx/Impact.tscn" id="37_xobj3"]
-[ext_resource type="PackedScene" path="res://scenes/actors/enemies/Holder.tscn" id="38_c1fqs"]
+[ext_resource type="PackedScene" path="res://scenes/actors/enemies/FactorySentry.tscn" id="38_c1fqs"]
 [ext_resource type="Resource" path="res://data/enemies/Holder.tres" id="39_tsy3k"]
 [ext_resource type="PackedScene" path="res://scenes/fx/HookAnchor.tscn" id="90_anchor"]
 [ext_resource type="PackedScene" path="res://scenes/fx/GrapplePerch.tscn" id="91_perch"]
@@ -1168,3 +1170,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 11.2, -16)
 
 [node name="Perch_Mezzanine" parent="Anchors" instance=ExtResource("91_perch")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 6.6, -16)
+
+[node name="EnvironmentArt" type="Node3D" parent="."]
+script = ExtResource("env_art_director")
+Chapter = "factory"

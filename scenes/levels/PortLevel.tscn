@@ -1,4 +1,6 @@
-[gd_scene load_steps=298 format=3]
+[gd_scene load_steps=299 format=3]
+
+[ext_resource type="Script" path="res://scripts/art/EnvironmentArtDirector.cs" id="env_art_director"]
 
 [ext_resource type="Shader" path="res://shaders/toon.gdshader" id="1_toon"]
 [ext_resource type="Shader" path="res://shaders/outline.gdshader" id="2_outline"]
@@ -6208,3 +6210,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29, 13.5, -11)
 
 [node name="Perch_Warehouse" parent="Anchors" instance=ExtResource("91_perch")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29, 9, -11)
+
+[node name="EnvironmentArt" type="Node3D" parent="."]
+script = ExtResource("env_art_director")
+Chapter = "port"

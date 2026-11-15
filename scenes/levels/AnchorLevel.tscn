@@ -1,5 +1,7 @@
 [gd_scene format=3 uid="uid://b465vdpxvf6h7"]
 
+[ext_resource type="Script" path="res://scripts/art/EnvironmentArtDirector.cs" id="env_art_director"]
+
 [ext_resource type="PackedScene" uid="uid://vnqjnktghb06" path="res://art/models/kit/SM_Deck_78x1x64.glb" id="1_rm4av"]
 [ext_resource type="PackedScene" uid="uid://c0k2e5e7yd2o5" path="res://art/models/kit/SM_Deck_10x0p35x6.glb" id="2_f6gq7"]
 [ext_resource type="PackedScene" uid="uid://bk7jotrl1v0ik" path="res://art/models/kit/SM_Rail_0p2x1p2x8p2.glb" id="3_kt3ok"]
@@ -1760,3 +1762,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 3, -17)
 
 [node name="Perch_RoofEast" parent="Anchors" instance=ExtResource("91_perch")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 6.4, 4)
+
+[node name="EnvironmentArt" type="Node3D" parent="."]
+script = ExtResource("env_art_director")
+Chapter = "anchor"
