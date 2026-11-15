@@ -6,4 +6,15 @@ using Godot;
 /// </summary>
 public partial class MainScene : Node3D
 {
+	public override void _Ready()
+	{
+		// Full-body views share the same paint response as the first-person rig.
+		var body = GetNodeOrNull<Node3D>("Actors/Player/BodyModel");
+		if (body != null)
+		{
+			var ink = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/outline.gdshader") };
+			ink.SetShaderParameter("width", 0.018f);
+			body.AddChild(new ModelOutline { Overlay = ink });
+		}
+	}
 }

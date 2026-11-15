@@ -64,3 +64,7 @@ art/blender/
 # 任务报告与中间产物（按日期归档的产出目录）
 /[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/
 **/outputs/
+
+# Local art production, intermediate assets, captures and validation tools.
+/.Codex/
+/.codex/

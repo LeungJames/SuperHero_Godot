@@ -28,14 +28,13 @@
 [ext_resource type="Script" path="res://scripts/narrative/NarrativeDirector.cs" id="26_narrative"]
 [ext_resource type="Resource" path="res://data/narrative/cutscenes/port_opening.tres" id="27_opening"]
 
-[sub_resource type="ProceduralSkyMaterial" id="Sky_Dusk"]
-sky_top_color = Color(0.78, 0.45, 0.17, 1)
-sky_horizon_color = Color(1, 0.851, 0.541, 1)
-sky_curve = 0.3
-ground_bottom_color = Color(0.118, 0.29, 0.333, 1)
-ground_horizon_color = Color(1, 0.851, 0.541, 1)
-sun_angle_max = 8.0
-sun_curve = 0.1
+[ext_resource type="Shader" path="res://shaders/harbor_sky.gdshader" id="art_sky"]
+
+[sub_resource type="ShaderMaterial" id="Sky_Dusk"]
+shader = ExtResource("art_sky")
+shader_parameter/zenith = Color(0.27, 0.43, 0.59, 1)
+shader_parameter/horizon = Color(0.96, 0.66, 0.39, 1)
+shader_parameter/dusk = 0.0
 
 [sub_resource type="Sky" id="Sky_DuskRes"]
 sky_material = SubResource("Sky_Dusk")
@@ -43,20 +42,21 @@ sky_material = SubResource("Sky_Dusk")
 [sub_resource type="Environment" id="Env_Blockout"]
 background_mode = 2
 sky = SubResource("Sky_DuskRes")
-ambient_light_source = 3
+ambient_light_source = 2
+ambient_light_color = Color(0.60, 0.65, 0.79, 1)
 ambient_light_sky_contribution = 1.0
-ambient_light_energy = 0.35
+ambient_light_energy = 0.54
 tonemap_mode = 3
-tonemap_exposure = 0.8
+tonemap_exposure = 1.0
 glow_enabled = true
 glow_intensity = 0.35
 glow_hdr_threshold = 1.0
 fog_enabled = true
-fog_light_color = Color(0.91, 0.63, 0.35, 1)
-fog_density = 0.003
-fog_sky_affect = 0.25
+fog_light_color = Color(0.37, 0.43, 0.55, 1)
+fog_density = 0.0008
+fog_sky_affect = 0.0
 ssao_enabled = true
-ssao_intensity = 0.6
+ssao_intensity = 0.65
 
 [node name="MainScene" type="Node3D"]
 script = ExtResource("1_main")
@@ -69,7 +69,7 @@ script = ExtResource("12_env")
 
 [node name="Sun" type="DirectionalLight3D" parent="World"]
 transform = Transform3D(0.78801, 0, 0.61566, 0.09631, 0.98769, -0.12326, -0.60804, 0.15643, 0.77834, 0, 20, 0)
-light_color = Color(1, 0.788, 0.478, 1)
+light_color = Color(1, 0.87, 0.68, 1)
 light_energy = 1.05
 shadow_enabled = true
 directional_shadow_mode = 1

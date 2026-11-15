@@ -9,8 +9,8 @@ public partial class EnvironmentController : WorldEnvironment
 	// 高度 → (雾密度, 环境光能量)，数值取自设计文档 §6.8 的四段表；
 	// 环境光按当前 ACES 曝光整体缩放，保持"高度越高越亮"的相对关系。
 	private static readonly float[] Heights = { 0f, 10f, 25f, 40f };
-	private static readonly float[] FogDensities = { 0.014f, 0.010f, 0.007f, 0.004f };
-	private static readonly float[] AmbientEnergies = { 0.30f, 0.34f, 0.40f, 0.45f };
+	private static readonly float[] FogDensities = { 0.0016f, 0.0013f, 0.0010f, 0.00075f };
+	private static readonly float[] AmbientEnergies = { 0.48f, 0.50f, 0.53f, 0.56f };
 
 	private Environment _environment;
 	private PlayerController _player;

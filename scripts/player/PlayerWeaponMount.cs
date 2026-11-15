@@ -124,18 +124,7 @@ public partial class PlayerWeaponMount : Node3D
 	/// <summary>逐 surface 把武器纯色材质换成 toon 平涂，保留原配色。</summary>
 	private static void ApplyToonMaterials(Node root)
 	{
-		if (root is MeshInstance3D mesh && mesh.Mesh != null)
-		{
-			for (int i = 0; i < mesh.Mesh.GetSurfaceCount(); i++)
-			{
-				Material source = mesh.GetActiveMaterial(i);
-				Color color = source is StandardMaterial3D standard ? standard.AlbedoColor : new Color(0.8f, 0.8f, 0.8f);
-				mesh.SetSurfaceOverrideMaterial(i, ToonMaterial(color));
-			}
-		}
-
-		foreach (Node child in root.GetChildren())
-			ApplyToonMaterials(child);
+		ComicMaterials.Apply(root);
 	}
 
 	private static ShaderMaterial ToonMaterial(Color color)

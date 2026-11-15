@@ -30,14 +30,13 @@
 [ext_resource type="Resource" path="res://data/boss/anchor_boss.tres" id="28_boss_cfg"]
 [ext_resource type="PackedScene" path="res://scenes/fx/Impact.tscn" id="30_impact"]
 
-[sub_resource type="ProceduralSkyMaterial" id="Sky_Anchor"]
-sky_top_color = Color(0.06, 0.1, 0.16, 1)
-sky_horizon_color = Color(0.82, 0.36, 0.14, 1)
-sky_curve = 0.35
-ground_bottom_color = Color(0.03, 0.05, 0.07, 1)
-ground_horizon_color = Color(0.26, 0.18, 0.13, 1)
-sun_angle_max = 10.0
-sun_curve = 0.12
+[ext_resource type="Shader" path="res://shaders/harbor_sky.gdshader" id="art_sky"]
+
+[sub_resource type="ShaderMaterial" id="Sky_Anchor"]
+shader = ExtResource("art_sky")
+shader_parameter/zenith = Color(0.17, 0.25, 0.38, 1)
+shader_parameter/horizon = Color(0.9, 0.46, 0.28, 1)
+shader_parameter/dusk = 0.7
 
 [sub_resource type="Sky" id="Sky_AnchorRes"]
 sky_material = SubResource("Sky_Anchor")
@@ -45,20 +44,21 @@ sky_material = SubResource("Sky_Anchor")
 [sub_resource type="Environment" id="Env_Anchor"]
 background_mode = 2
 sky = SubResource("Sky_AnchorRes")
-ambient_light_source = 3
+ambient_light_source = 2
+ambient_light_color = Color(0.60, 0.65, 0.79, 1)
 ambient_light_sky_contribution = 1.0
-ambient_light_energy = 0.25
+ambient_light_energy = 0.52
 tonemap_mode = 3
-tonemap_exposure = 0.92
+tonemap_exposure = 1.0
 glow_enabled = true
 glow_intensity = 0.4
 glow_hdr_threshold = 0.85
 fog_enabled = true
-fog_light_color = Color(0.38, 0.4, 0.44, 1)
-fog_density = 0.0035
-fog_sky_affect = 0.4
+fog_light_color = Color(0.37, 0.43, 0.55, 1)
+fog_density = 0.0013
+fog_sky_affect = 0.0
 ssao_enabled = true
-ssao_intensity = 0.9
+ssao_intensity = 0.65
 
 [node name="AnchorScene" type="Node3D"]
 script = ExtResource("1_main")
@@ -70,7 +70,7 @@ environment = SubResource("Env_Anchor")
 
 [node name="Sun" type="DirectionalLight3D" parent="World"]
 transform = Transform3D(0.76604, 0, 0.64279, 0.12006, 0.98227, -0.14279, -0.63141, 0.18682, 0.75241, 0, 20, 0)
-light_color = Color(1, 0.7, 0.44, 1)
+light_color = Color(1, 0.80, 0.61, 1)
 light_energy = 1.0
 shadow_enabled = true
 directional_shadow_mode = 1

@@ -9,15 +9,21 @@ using Godot;
 public partial class ModelOutline : Node
 {
 	[Export] public Material Overlay { get; set; }
+	[Export] public bool UseComicMaterials { get; set; } = true;
 
 	public override void _Ready()
 	{
+		Node target = GetChildCount() == 0 && GetParent() is Node3D ? GetParent() : this;
 		if (Overlay != null)
-			Apply(this);
+			Apply(target);
+		if (UseComicMaterials)
+			ComicMaterials.Apply(target);
 	}
 
 	private void Apply(Node node)
 	{
+		if (node is MeshInstance3D selfMesh && selfMesh.MaterialOverlay == null)
+			selfMesh.MaterialOverlay = Overlay;
 		foreach (Node child in node.GetChildren())
 		{
 			if (child is MeshInstance3D mesh)
