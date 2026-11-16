@@ -161,9 +161,12 @@ public partial class GameManager : Node
 		{
 			ElapsedTime += dt;
 
-			// Boss 战只计入击杀/命中/时间，不计入高度类地形指标（§12.2）
-			if (!IsBossFightActive())
+			// Boss 战只计入击杀/命中/时间，不计入高度与机动动作密度（§12.2）
+			bool bossFight = IsBossFightActive();
+			if (!bossFight)
 				MaxHeight = Mathf.Max(MaxHeight, _player.GlobalPosition.Y);
+			if (_stats != null)
+				_stats.MobilitySuspended = bossFight;
 
 			_hud.SetHeight(_player.GlobalPosition.Y);
 			UpdateObjective();

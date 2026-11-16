@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 /// <summary>
 /// 设置菜单（2.0 设计 §10.1、§10.2、§10.7）。
-/// 灵敏度 / 音量 / 画质 / 控制四页；控制页负责键鼠与手柄重绑、冲突检测与恢复默认。
+/// 难度 / 灵敏度 / 音量 / 画质 / 控制五页；控制页负责键鼠与手柄重绑、冲突检测与恢复默认。
 /// 所有改动立即生效并写入 SaveSystem，不触碰任何玩家生命或回血参数。
 /// </summary>
 public partial class SettingsMenu : Control
@@ -59,6 +59,7 @@ public partial class SettingsMenu : Control
 		_closeButton = GetNode<Button>("Panel/VBox/Header/CloseButton");
 		_closeButton.Pressed += Close;
 
+		BuildDifficultyTab();
 		BuildSensitivityTab();
 		BuildVolumeTab();
 		BuildGraphicsTab();
@@ -319,6 +320,18 @@ public partial class SettingsMenu : Control
 		check.Toggled += pressed => onChanged(pressed);
 
 		row.AddChild(check);
+	}
+
+	private void BuildDifficultyTab()
+	{
+		VBoxContainer box = AddTab("难度");
+		string[] ids = { "easy", "normal", "hard" };
+		int current = SaveSystem.HasInstance ? Mathf.Max(0, Array.IndexOf(ids, SaveSystem.Instance.DifficultyId)) : 1;
+
+		AddOption(box, "难度", new[] { "简单", "普通", "困难" }, current,
+			index => SaveSystem.Instance?.SetDifficulty(ids[Mathf.Clamp(index, 0, ids.Length - 1)]));
+
+		AddHint(box, "难度只调整敌人反应、散布、同屏交战人数与弹药补给，不改变回血、生命上限或伤害免疫；不影响评级。");
 	}
 
 	private void BuildSensitivityTab()

@@ -36,7 +36,6 @@ public partial class BossConfig : Resource
 	[ExportGroup("死亡演出")]
 	[Export] public float DeathSlowMotionScale { get; set; } = 0.35f;
 	[Export] public float DeathSlowMotionRealTime { get; set; } = 1.2f;
-	[Export] public float DeathBlackoutTime { get; set; } = 0.8f;
 
 	[ExportGroup("场地")]
 	[Export] public Vector3 ArenaCenter { get; set; } = new(0f, 0f, -17f);
@@ -47,5 +46,7 @@ public partial class BossConfig : Resource
 	[Export] public Vector3 AnchorRight { get; set; } = new(12f, 7f, -17f);
 	[Export] public Vector3 WinchPosition { get; set; } = new(0f, 0f, -29f);
 	[Export] public float WinchHealth { get; set; } = 300f;
+	/// <summary>锚机被打坏后停用的落锚雨次数：打断当前正在前摇的落锚雨，否则跳过下一次（§8.4）。</summary>
+	[Export] public int WinchRainSuppressCount { get; set; } = 1;
 	[Export] public bool BuildArenaGeometry { get; set; } = true;
 }

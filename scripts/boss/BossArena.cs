@@ -41,9 +41,18 @@ public partial class BossArena : Node3D
 		if (Config.BuildArenaGeometry)
 			BuildArenaGeometry();
 
+		if (Winch != null)
+			Winch.Destroyed += OnWinchDestroyed;
+
 		BuildTrigger();
 		CollectAnchors();
 		Callable.From(BindDeferred).CallDeferred();
+	}
+
+	/// <summary>锚机破坏收益（§8.4）：停用一次落锚雨，次数由配置外置。</summary>
+	private void OnWinchDestroyed()
+	{
+		Boss?.SuppressAnchorRain(Config?.WinchRainSuppressCount ?? 0);
 	}
 
 	private void BindDeferred()

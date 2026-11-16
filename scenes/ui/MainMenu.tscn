@@ -1,0 +1,187 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/MainMenu.cs" id="1_menu"]
+[ext_resource type="Script" path="res://scripts/ui/MainMenuDiorama.cs" id="2_diorama"]
+[ext_resource type="Shader" path="res://shaders/harbor_sky.gdshader" id="3_sky"]
+[ext_resource type="PackedScene" path="res://scenes/ui/SettingsMenu.tscn" id="4_settings"]
+[ext_resource type="PackedScene" path="res://scenes/ui/ChapterSelect.tscn" id="5_chapters"]
+[ext_resource type="PackedScene" path="res://scenes/ui/LoadoutMenu.tscn" id="6_loadout"]
+
+[sub_resource type="ShaderMaterial" id="Sky_Dusk"]
+shader = ExtResource("3_sky")
+shader_parameter/zenith = Color(0.24, 0.36, 0.53, 1)
+shader_parameter/horizon = Color(0.97, 0.62, 0.33, 1)
+shader_parameter/dusk = 0.0
+
+[sub_resource type="Sky" id="Sky_Menu"]
+sky_material = SubResource("Sky_Dusk")
+
+[sub_resource type="Environment" id="Env_Menu"]
+background_mode = 2
+sky = SubResource("Sky_Menu")
+ambient_light_source = 2
+ambient_light_color = Color(0.60, 0.64, 0.78, 1)
+ambient_light_sky_contribution = 1.0
+ambient_light_energy = 0.52
+tonemap_mode = 3
+tonemap_exposure = 1.05
+glow_enabled = true
+glow_intensity = 0.4
+glow_hdr_threshold = 1.0
+fog_enabled = true
+fog_light_color = Color(0.40, 0.45, 0.56, 1)
+fog_density = 0.0012
+fog_sky_affect = 0.0
+
+[node name="MainMenu" type="Node3D"]
+script = ExtResource("1_menu")
+
+[node name="World" type="Node3D" parent="."]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="World"]
+environment = SubResource("Env_Menu")
+
+[node name="Sun" type="DirectionalLight3D" parent="World"]
+rotation = Vector3(-0.82, -0.62, 0)
+light_color = Color(1, 0.83, 0.62, 1)
+light_energy = 1.25
+shadow_enabled = true
+
+[node name="Fill" type="DirectionalLight3D" parent="World"]
+rotation = Vector3(-0.35, 2.2, 0)
+light_color = Color(0.55, 0.68, 0.92, 1)
+light_energy = 0.42
+
+[node name="Diorama" type="Node3D" parent="World"]
+script = ExtResource("2_diorama")
+
+[node name="Camera3D" type="Camera3D" parent="World"]
+position = Vector3(0, 5.1, 17.5)
+rotation = Vector3(-0.13, 0.1, 0)
+current = true
+fov = 38.0
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Tint" type="ColorRect" parent="UI"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.03, 0.04, 0.07, 0.6)
+
+[node name="ComicHalftone" type="ColorRect" parent="UI"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 1)
+
+[node name="Menu" type="Control" parent="UI"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Card" type="PanelContainer" parent="UI/Menu"]
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 72.0
+offset_top = -300.0
+offset_right = 552.0
+offset_bottom = 300.0
+
+[node name="VBox" type="VBoxContainer" parent="UI/Menu/Card"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Eyebrow" type="Label" parent="UI/Menu/Card/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "PUERTO SAN MIGUEL / 2.0"
+
+[node name="Title" type="Label" parent="UI/Menu/Card/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 62
+text = "SUPER HERO"
+
+[node name="Subtitle" type="Label" parent="UI/Menu/Card/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "黄昏之下，没有人是干净的。"
+
+[node name="Rule" type="ColorRect" parent="UI/Menu/Card/VBox"]
+custom_minimum_size = Vector2(0, 3)
+layout_mode = 2
+size_flags_horizontal = 3
+color = Color(0.85, 0.36, 0.15, 1)
+
+[node name="Spacer" type="Control" parent="UI/Menu/Card/VBox"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+
+[node name="StartButton" type="Button" parent="UI/Menu/Card/VBox"]
+layout_mode = 2
+text = "开始游戏"
+
+[node name="ContinueButton" type="Button" parent="UI/Menu/Card/VBox"]
+layout_mode = 2
+text = "继续"
+
+[node name="ChaptersButton" type="Button" parent="UI/Menu/Card/VBox"]
+layout_mode = 2
+text = "章节选择"
+
+[node name="SettingsButton" type="Button" parent="UI/Menu/Card/VBox"]
+layout_mode = 2
+text = "设置"
+
+[node name="QuitButton" type="Button" parent="UI/Menu/Card/VBox"]
+layout_mode = 2
+text = "退出"
+
+[node name="Hint" type="Label" parent="UI/Menu/Card/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "↑↓ 选择 · Enter 确认 · Esc 返回"
+
+[node name="Poster" type="PanelContainer" parent="UI/Menu"]
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -524.0
+offset_top = -272.0
+offset_right = -88.0
+offset_bottom = 272.0
+
+[node name="Box" type="VBoxContainer" parent="UI/Menu/Poster"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PosterImage" type="TextureRect" parent="UI/Menu/Poster/Box"]
+custom_minimum_size = Vector2(0, 452)
+layout_mode = 2
+size_flags_vertical = 3
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Caption" type="Label" parent="UI/Menu/Poster/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "第一章 · 黄昏港口"
+horizontal_alignment = 2
+
+[node name="SettingsMenu" parent="UI" instance=ExtResource("4_settings")]
+visible = false
+
+[node name="ChapterSelect" parent="UI" instance=ExtResource("5_chapters")]
+visible = false
+
+[node name="LoadoutMenu" parent="UI" instance=ExtResource("6_loadout")]
+visible = false

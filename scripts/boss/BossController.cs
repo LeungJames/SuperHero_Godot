@@ -72,6 +72,8 @@ public partial class BossController : CharacterBody3D, IDamageable
 
 	private readonly Dictionary<BossMoveData, float> _cooldowns = new();
 	private readonly List<Vector3> _rainCenters = new();
+	private readonly List<Node3D> _telegraphs = new();
+	private int _rainSuppressions;
 	private Vector3 _chargeStart;
 	private Vector3 _chargeEnd;
 	private Vector3 _chargeDirection;
@@ -527,6 +529,11 @@ public partial class BossController : CharacterBody3D, IDamageable
 				continue;
 			if (move == _lastMove)
 				continue;
+			if (move.Kind == BossMoveKind.AnchorRain && _rainSuppressions > 0)
+			{
+				_rainSuppressions--;
+				continue;
+			}
 			if (move.Kind is BossMoveKind.Sweep or BossMoveKind.DoubleHook or BossMoveKind.AnchorRain &&
 				distance > move.Range + 1.5f)
 				continue;
@@ -542,6 +549,39 @@ public partial class BossController : CharacterBody3D, IDamageable
 		}
 
 		return best;
+	}
+
+	/// <summary>
+	/// 锚机被打坏（§8.4）：正在前摇的落锚雨立即打断（进入收招并照常开启弱点窗口），
+	/// 否则让下一次落锚雨被跳过。次数由 <see cref="BossConfig.WinchRainSuppressCount"/> 外置。
+	/// </summary>
+	public void SuppressAnchorRain(int count)
+	{
+		if (IsDefeated || count <= 0)
+			return;
+
+		if (_currentMove != null && _currentMove.Kind == BossMoveKind.AnchorRain && _state == BossState.Windup)
+		{
+			ClearTelegraphs();
+			_rainCenters.Clear();
+			_currentMove = null;
+			_moveStage = 0;
+			EnterRecover();
+			return;
+		}
+
+		_rainSuppressions += count;
+	}
+
+	private void ClearTelegraphs()
+	{
+		foreach (Node3D node in _telegraphs)
+		{
+			if (IsInstanceValid(node))
+				node.QueueFree();
+		}
+
+		_telegraphs.Clear();
 	}
 
 	private void TryHitCone(float damage, float range, float angleDegrees)
@@ -698,6 +738,7 @@ public partial class BossController : CharacterBody3D, IDamageable
 		scene.AddChild(node);
 		node.GlobalPosition = center;
 		node.Rotation = new Vector3(0f, GlobalRotation.Y, 0f);
+		_telegraphs.Add(node);
 		FreeAfter(node, Mathf.Max(move.Windup, 0.2f));
 	}
 
@@ -728,12 +769,14 @@ public partial class BossController : CharacterBody3D, IDamageable
 
 		scene.AddChild(node);
 		node.GlobalPosition = center;
+		_telegraphs.Add(node);
 		FreeAfter(node, Mathf.Max(duration, 0.2f));
 	}
 
 	private async void FreeAfter(Node3D node, float seconds)
 	{
 		await ToSignal(GetTree().CreateTimer(seconds, true), SceneTreeTimer.SignalName.Timeout);
+		_telegraphs.Remove(node);
 		if (IsInstanceValid(node))
 			node.QueueFree();
 	}

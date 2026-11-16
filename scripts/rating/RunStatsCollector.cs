@@ -21,6 +21,8 @@ public partial class RunStatsCollector : Node
 	private int _lastAlertRank;
 
 	public int MobilityActions { get; private set; }
+	/// <summary>Boss 战期间为 true：动作仍可执行，但不计入机动动作密度（§12.2）。</summary>
+	public bool MobilitySuspended { get; set; }
 	public int Falls { get; private set; }
 	public int EmptyMags { get; private set; }
 	public int StealthKills { get; private set; }
@@ -75,6 +77,9 @@ public partial class RunStatsCollector : Node
 
 	private void OnMobility(MobilityAction action)
 	{
+		if (MobilitySuspended)
+			return;
+
 		float now = Time.GetTicksMsec() / 1000f;
 		if (_lastMobility.TryGetValue(action, out float last) && now - last < MobilityDedupeWindow)
 			return;
