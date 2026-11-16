@@ -23,6 +23,10 @@ public partial class MeleeController : Node3D
 	/// <summary>剑气是否已就绪（章节允许且 CD 已转好）。</summary>
 	public bool LaserReady => LaserAvailable && _laserCooldown <= 0f;
 
+	/// <summary>Presentation clock; the recovery tail does not change damage timing or cooldown.</summary>
+	public float SwingElapsed { get; private set; } = 100f;
+	public int SwingSequence { get; private set; }
+
 	private const float HoldThreshold = 0.4f;
 	private const float DoubleTapWindow = 0.3f;
 	private const uint WorldMask = 1u;
@@ -52,6 +56,7 @@ public partial class MeleeController : Node3D
 
 	public override void _Ready()
 	{
+		ProcessPriority = -10; // Evaluate the strike before the viewmodel consumes this frame's pose.
 		_player = GetParent<PlayerController>();
 		_health = _player.GetNodeOrNull<PlayerHealth>("Health");
 		_camera = _player.GetNodeOrNull<Camera3D>("Head/Camera3D");
@@ -108,6 +113,7 @@ public partial class MeleeController : Node3D
 	public override void _Process(double delta)
 	{
 		float dt = (float)delta;
+		SwingElapsed = Mathf.Min(SwingElapsed + dt, 100f);
 		_cooldown = Mathf.Max(0f, _cooldown - dt);
 		_laserCooldown = Mathf.Max(0f, _laserCooldown - dt);
 
@@ -154,7 +160,7 @@ public partial class MeleeController : Node3D
 		_resolved = true;
 		_laserPending = true;
 
-		Swung?.Invoke();
+		BeginSwingPresentation();
 		return true;
 	}
 
@@ -165,7 +171,7 @@ public partial class MeleeController : Node3D
 
 		_cooldown = Data.Cooldown * TalentEffects.SwingIntervalScale;
 		_swingTimer = Data.SwingTime;
-		Swung?.Invoke();
+		BeginSwingPresentation();
 
 		// 背后且未警觉的敌人直接暗杀：静默、不结算普通近战
 		_resolved = TryTakedown();
@@ -173,6 +179,13 @@ public partial class MeleeController : Node3D
 			NoiseEmitter.Emit(_player.GlobalPosition, NoiseKind.FootstepWalk);
 
 		return true;
+	}
+
+	private void BeginSwingPresentation()
+	{
+		SwingElapsed = 0f;
+		SwingSequence++;
+		Swung?.Invoke();
 	}
 
 	/// <summary>找背后最近的未警觉敌人；成功则直接击杀并返回 true。</summary>

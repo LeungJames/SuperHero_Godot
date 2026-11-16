@@ -10,7 +10,7 @@ using System.Collections.Generic;
 public static class LoadoutSystem
 {
 	public const string KnifeId = "knife";
-	public const string KnifeName = "刀";
+	public const string KnifeName = "砍刀";
 	/// <summary>起始手枪：UnlockChapter = 0，任何章节都视为已解锁，始终可作为兜底武器。</summary>
 	public const string BaselineWeaponId = "p9";
 

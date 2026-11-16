@@ -54,6 +54,33 @@ public partial class PlayerController : CharacterBody3D
 	public bool IsWallRunning => _state == MoveState.WallRun;
 	public bool IsHanging => _state == MoveState.Hang;
 
+	/// <summary>真实地面冲刺：必须有移动输入且实际位移超过走路速度，靠墙按 Shift 不算冲刺。</summary>
+	public bool IsSprinting
+	{
+		get
+		{
+			if (!InputEnabled || Data == null || _state != MoveState.Normal || !IsOnFloor()
+				|| _dashTimer > 0f || _grappleTimer > 0f
+				|| !Input.IsActionPressed("sprint") || Input.IsActionPressed("walk_slow"))
+				return false;
+
+			Vector3 wish = GetWishDirection();
+			if (wish.LengthSquared() < 0.04f)
+				return false;
+
+			float multiplier = Mathf.Max(MoveSpeedMultiplier * EdgeSpeedScale, 0f);
+			float walkSpeed = Mathf.Min(Data.WalkSpeed, ExternalSpeedCap) * multiplier;
+			float sprintSpeed = Mathf.Min(Data.SprintSpeed, ExternalSpeedCap) * multiplier;
+			if (sprintSpeed <= walkSpeed + 0.1f)
+				return false;
+
+			Vector3 actual = Flat(GetRealVelocity());
+			float threshold = Mathf.Max(0.8f, Mathf.Lerp(walkSpeed, sprintSpeed, 0.35f));
+			return actual.LengthSquared() >= threshold * threshold
+				&& actual.Dot(wish.Normalized()) > threshold * 0.5f;
+		}
+	}
+
 	/// <summary>仅探测关卡几何（World 层），不把敌人和可交互物算成墙。</summary>
 	private const uint WorldMask = 1;
 

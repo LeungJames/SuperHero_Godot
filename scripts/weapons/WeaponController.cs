@@ -131,7 +131,6 @@ public partial class WeaponController : Node3D
 	private float _kickPitch;
 	private float _recoilStack;
 	private float _sinceLastShot;
-	private float _swayPhase;
 	private bool _fireQueued;
 	private bool _emptyMagPending;
 	private float _emptyMagTimer;
@@ -147,8 +146,9 @@ public partial class WeaponController : Node3D
 
 	private Node3D _model;
 	private Node3D _knifeModel;
-	private float _knifeIdlePhase;
-	private float _knifeBlockPose;
+	private MachetePresentation _knifePresentation;
+	private readonly SprintPresentation _sprintPresentation = new();
+	public float SprintBlend => _sprintPresentation.Blend;
 	private Node3D _slidePivot;
 	private Node3D _magPivot;
 	private Node3D _handLPivot;
@@ -512,10 +512,13 @@ public partial class WeaponController : Node3D
 			root.AddChild(visual);
 			AddChild(root);
 			_knifeModel = root;
-			_knifeIdlePhase = 0f;
+			_knifePresentation = new MachetePresentation { Name = "MachetePresentation" };
+			root.AddChild(_knifePresentation);
+			_knifePresentation.Initialize(root, this, _melee, _camera);
 		}
 
 		_knifeModel.Visible = true;
+		_knifePresentation?.Reset();
 	}
 
 	private void HideKnifeModel()
@@ -622,6 +625,7 @@ public partial class WeaponController : Node3D
 	/// <summary>实例化视角模型并挂描边；枢轴按名字查找（Slide / Mag / HandL）。</summary>
 	private void BuildModel(WeaponData data)
 	{
+		_sprintPresentation.Reset();
 		ResetPivots();
 
 		if (_model != null)
@@ -943,6 +947,9 @@ public partial class WeaponController : Node3D
 	/// <summary>程序化持枪位移：行走摆动 + 后坐回弹 + 换弹下沉 + 切枪收放（§4.7）。</summary>
 	private void UpdateViewmodel(float dt)
 	{
+		bool suppressSprint = !CanAct || IsReloading || IsAiming || Input.IsActionPressed("aim")
+			|| Input.IsActionPressed("fire") || _sinceLastShot < .22f || (_melee?.SwingElapsed ?? 100f) < .5f;
+		_sprintPresentation.Update(dt, _player, suppressSprint, !IsKnifeActive && Data.Id != "p9");
 		// Lower the interrupted pose before resetting it, so a sideways rifle never snaps upright.
 		if (_lowerCancelledReload && _phase == SwapPhase.Lowering)
 		{
@@ -974,26 +981,23 @@ public partial class WeaponController : Node3D
 			impactRoll = Data.ReloadImpactRollDegrees * (seat - slide * 0.4f);
 		}
 
-		Vector3 horizontal = new(_player.Velocity.X, 0f, _player.Velocity.Z);
-		float speedRatio = Mathf.Clamp(horizontal.Length() / 4.8f, 0f, 1.5f);
 		float swayScale = Mathf.Lerp(1f, Data.AdsSwayScale, _aimBlend);
-		float swayRate = Mathf.Lerp(1f, Data.AdsSwayRateScale, _aimBlend);
-		_swayPhase += dt * Mathf.Tau * 2f * swayRate * Mathf.Max(speedRatio, 0.15f);
 
-		Vector3 sway = new(
-			Mathf.Sin(_swayPhase) * Data.SwayAmountX * swayScale * speedRatio,
-			Mathf.Cos(_swayPhase * 2f) * Data.SwayAmountY * swayScale * speedRatio,
-			0f);
+		Vector3 sway = _sprintPresentation.BobPosition * swayScale;
+		Vector3 sprintPosition = IsKnifeActive ? new Vector3(.055f, -.08f, -.04f) * SprintBlend : _sprintPresentation.PosePosition;
+		Vector3 sprintRotation = IsKnifeActive ? new Vector3(-18, 12, -24) * SprintBlend : _sprintPresentation.PoseRotation;
 
 		Vector3 basePosition = _basePosition.Lerp(_adsPosition, _aimBlend);
 		float swing = Mathf.Clamp(IsKnifeActive ? 0f : MeleeSwing, 0f, 1f);
 		float swap = Arsenal != null ? SwapBlend() : 0f;
 		Position = basePosition + sway
+			+ sprintPosition
 			+ new Vector3(0f, Data.ReloadPoseLift * reloadPose + impactDip, Data.FireKickBack * _kickBack)
 			+ Data.ReloadPoseOffset * reloadPose
 			+ new Vector3(-0.04f * swing, -0.02f * swing, 0.10f * swing)
 			+ new Vector3(0f, -(Arsenal?.SwapLowerDrop ?? 0f) * swap, 0f);
 		RotationDegrees = _baseRotationDegrees.Lerp(_adsRotationDegrees, _aimBlend)
+			+ sprintRotation + _sprintPresentation.BobRotation * swayScale
 			+ new Vector3(
 				Data.FireKickPitch * _kickPitch - 34f * swing + impactPitch + Data.ReloadPosePitchDegrees * reloadPose,
 				16f * swing + Data.ReloadPoseYawDegrees * reloadPose,
@@ -1007,31 +1011,7 @@ public partial class WeaponController : Node3D
 	/// </summary>
 	private void UpdateKnifeViewmodel(float dt)
 	{
-		if (_knifeModel == null || !_knifeModel.Visible)
-			return;
-
-		_knifeIdlePhase += dt;
-		_knifeBlockPose = Mathf.MoveToward(_knifeBlockPose, IsBlocking ? 1f : 0f, dt * 12f);
-
-		float idleX = Mathf.Sin(_knifeIdlePhase * 1.7f) * 0.004f;
-		float idleY = Mathf.Cos(_knifeIdlePhase * 2.3f) * 0.005f;
-
-		// 出刀快、收刀慢，中段保留一点惯性
-		float swing = Mathf.Clamp(MeleeSwing, 0f, 1f);
-		float arc = swing * swing * (3f - 2f * swing);
-
-		Vector3 position = KnifeGripOffset + new Vector3(-0.035f, 0.035f, -0.035f)
-			+ new Vector3(idleX, idleY, 0f)
-			+ new Vector3(-0.03f * arc, 0.10f * arc, -0.04f * arc)
-			+ new Vector3(0f, 0.018f * _knifeBlockPose, -0.008f * _knifeBlockPose);
-
-		Vector3 rotation = new(
-			-14f * arc - 9f * _knifeBlockPose,
-			10f * arc - 16f * _knifeBlockPose,
-			55f * arc);
-
-		_knifeModel.Position = position;
-		_knifeModel.RotationDegrees = rotation;
+		if (_knifeModel?.Visible == true) _knifePresentation?.Advance(dt);
 	}
 
 	/// <summary>沿匣井拔出，再从腰侧取新匣；两手始终由完整接触帧约束。</summary>
@@ -1047,6 +1027,13 @@ public partial class WeaponController : Node3D
 		if (!IsReloading)
 		{
 			RestoreReloadPose();
+			if (!IsKnifeActive && SprintBlend > 0f)
+			{
+				Transform3D carriedHand = _handLRest;
+				carriedHand.Origin = _model.ToLocal(_camera.ToGlobal(new Vector3(-.20f, -.50f, -.35f)));
+				_handLPivot.Transform = InterpolateTransforms(_handLRest, carriedHand, SprintBlend);
+				SetHandShape(_handLMesh, "Support", 0, 0, SprintBlend * .65f);
+			}
 			if (!IsKnifeActive && Data.Id == "p9" && MagAmmo == 0)
 				_slidePivot.Position += new Vector3(0, 0, Data.ReloadSlideTravel);
 			UpdateForearms();
