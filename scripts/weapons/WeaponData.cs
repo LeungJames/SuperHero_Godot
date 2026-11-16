@@ -79,6 +79,12 @@ public partial class WeaponData : Resource
 	[ExportGroup("换弹动画（枢轴驱动，归一化相位）")]
 	/// <summary>弹匣脱出点的垂直位移（米，负值向下）：沿弹匣井方向把匣拽出，滚转后朝屏幕左侧脱出。</summary>
 	[Export] public float ReloadMagVerticalOffset { get; set; } = -0.12f;
+	/// <summary>模型空间的弹匣拔出单位轴；完全脱离匣井前不侧移或旋转。</summary>
+	[Export] public Vector3 ReloadExtractionAxis { get; set; } = Vector3.Down;
+	/// <summary>枪栓由右手操作的武器，左手先回护木托住枪身。</summary>
+	[Export] public bool ReloadActionUsesRightHand { get; set; }
+	/// <summary>机柄解锁角度；绕机构自身枢轴旋转后再平移。</summary>
+	[Export] public Vector3 ReloadActionRotationDegrees { get; set; } = Vector3.Zero;
 	/// <summary>弹匣脱出点向武器左侧（屏幕左）的位移，保证离开握把后仍在视野下缘。</summary>
 	[Export] public float ReloadMagLateral { get; set; } = 0.1f;
 	/// <summary>弹匣脱出点朝相机方向的位移，制造"被手带走"的纵深感。</summary>
@@ -108,7 +114,7 @@ public partial class WeaponData : Resource
 	/// <summary>左手离开护木（伸向弹匣）的区间；结束相位即抓握绑定起点。</summary>
 	[Export] public float ReloadHandLeaveStart { get; set; } = 0.04f;
 	[Export] public float ReloadHandLeaveEnd { get; set; } = 0.1f;
-	/// <summary>左手回到护木的区间；起点相位即抓握绑定终点（弹匣到位帧）。</summary>
+	/// <summary>操作机构后回握的区间；狙击左手提前回护木，为右手拉栓提供支撑。</summary>
 	[Export] public float ReloadHandReturnStart { get; set; } = 0.70f;
 	[Export] public float ReloadHandReturnEnd { get; set; } = 0.78f;
 	/// <summary>骨骼姿势跟随速度（越大越跟手）；取消 / 完成时也靠它平滑回位。</summary>
@@ -139,6 +145,8 @@ public partial class WeaponData : Resource
 	[ExportGroup("换弹姿势（配重）")]
 	/// <summary>换弹时把枪抬进画面，露出弹匣井（米）。幅度小，但足以让匣与手都留在画面内。</summary>
 	[Export] public float ReloadPoseLift { get; set; } = 0.05f;
+	[Export] public Vector3 ReloadPoseOffset { get; set; } = Vector3.Zero;
+	[Export] public float ReloadPoseYawDegrees { get; set; }
 	/// <summary>换弹时枪身向内滚转（度）；负值让弹匣朝屏幕左侧脱出，避开画面中心。</summary>
 	[Export] public float ReloadPoseRollDegrees { get; set; } = -68f;
 	/// <summary>换弹时枪口上抬角度（度）。</summary>

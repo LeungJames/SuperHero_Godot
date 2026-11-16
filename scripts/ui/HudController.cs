@@ -241,11 +241,13 @@ public partial class HudController : Control
 		_messageLabel.AddThemeColorOverride("font_color", color.G < 0.3f && color.R > 0.5f ? ComicTheme.Red : ComicTheme.Ink);
 		_messageLabel.AnchorLeft = 0.5f; _messageLabel.AnchorRight = 0.5f;
 		_messageLabel.AnchorTop = radio ? 1 : 0.5f; _messageLabel.AnchorBottom = _messageLabel.AnchorTop;
-		_messageLabel.OffsetLeft = -330; _messageLabel.OffsetRight = 330;
-		_messageLabel.OffsetTop = radio ? -190 : 88; _messageLabel.OffsetBottom = radio ? -128 : 136;
+		// Radio captions occupy the space between the bottom HUD cards, clear of reload hands.
+		_messageLabel.OffsetLeft = radio ? -225 : -330; _messageLabel.OffsetRight = radio ? 225 : 330;
+		_messageLabel.OffsetTop = radio ? -84 : 88; _messageLabel.OffsetBottom = radio ? -26 : 136;
+		_messageLabel.AddThemeFontSizeOverride("font_size", radio ? 18 : 20);
 		_messagePanel.AnchorLeft = 0.5f; _messagePanel.AnchorRight = 0.5f;
 		_messagePanel.AnchorTop = _messageLabel.AnchorTop; _messagePanel.AnchorBottom = _messageLabel.AnchorBottom;
-		_messagePanel.OffsetLeft = -350; _messagePanel.OffsetRight = 350;
+		_messagePanel.OffsetLeft = radio ? -241 : -350; _messagePanel.OffsetRight = radio ? 241 : 350;
 		_messagePanel.OffsetTop = _messageLabel.OffsetTop - 6; _messagePanel.OffsetBottom = _messageLabel.OffsetBottom + 6;
 		_messageDuration = radio ? Mathf.Clamp(text.Length * 0.09f, 2.8f, 5f) : MessageTime;
 		_messageTimer = _messageDuration;

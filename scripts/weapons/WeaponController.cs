@@ -153,22 +153,30 @@ public partial class WeaponController : Node3D
 	private Node3D _magPivot;
 	private Node3D _handLPivot;
 	private Node3D _handRPivot;
-	private Vector3 _slideRest;
-	private Vector3 _magRest;
-	private Vector3 _handLRest;
-	private Vector3 _handLRestRotation;
-	private Vector3 _handRRest;
-	private Vector3 _handRRestRotation;
-	private Basis _gripRotationBasis = Basis.Identity;
-	private Vector3 _gripContactLocal;
+	private Node3D _oldMagazine;
+	private Node3D _forearmL;
+	private Node3D _forearmR;
+	private Node3D _wristL;
+	private Node3D _wristR;
+	private MeshInstance3D _handLMesh;
+	private MeshInstance3D _handRMesh;
+	private Transform3D _slideRest = Transform3D.Identity;
+	private Transform3D _magRest = Transform3D.Identity;
+	private Transform3D _handLRest = Transform3D.Identity;
+	private Transform3D _handRRest = Transform3D.Identity;
+	private Transform3D _leftContact = Transform3D.Identity;
+	private Transform3D _rightContact = Transform3D.Identity;
+	private Transform3D _magGrip = Transform3D.Identity;
+	private Transform3D _actionGrip = Transform3D.Identity;
+	private bool _hasActionGrip;
+	private bool _reloadWasEmpty;
+	private bool _lowerCancelledReload;
+	private Vector3 _cancelViewPosition;
+	private Vector3 _cancelViewRotation;
+	private float _cancelLowerDrop;
 	private bool _magOutCued;
 	private bool _seatCued;
 	private bool _slideCued;
-	private Vector3 _magPos;
-	private float _magTilt;
-	private float _slidePose;
-	private float _handPose;
-	private float _handRPose;
 
 	private bool CanAct => _player != null && _player.InputEnabled && _health != null && !_health.IsDead && !IsSwapping;
 
@@ -361,6 +369,7 @@ public partial class WeaponController : Node3D
 		IsAiming = false;
 		_emptyMagPending = false;
 		_reloadTimer = ReloadDuration;
+		_reloadWasEmpty = MagAmmo == 0;
 		_magOutCued = false;
 		_seatCued = false;
 		_slideCued = false;
@@ -526,6 +535,8 @@ public partial class WeaponController : Node3D
 
 		if (_phase == SwapPhase.Lowering && _swapTimer >= duration)
 		{
+			_lowerCancelledReload = false;
+			RestoreReloadPose();
 			ActiveIndex = _swapTarget;
 
 			if (IsKnifeActive)
@@ -568,8 +579,42 @@ public partial class WeaponController : Node3D
 
 	private void CancelReload()
 	{
+		_lowerCancelledReload = IsReloading && _phase == SwapPhase.Lowering;
+		if (_lowerCancelledReload)
+		{
+			_cancelViewPosition = Position;
+			_cancelViewRotation = RotationDegrees;
+			_cancelLowerDrop = CancelledReloadDrop();
+		}
 		IsReloading = false;
 		_reloadTimer = 0f;
+		if (!_lowerCancelledReload) RestoreReloadPose();
+	}
+
+	private float CancelledReloadDrop()
+	{
+		if (_model == null) return Arsenal.SwapLowerDrop;
+		// A sideways rifle or a hand raised to the bolt needs more clearance than the idle pose.
+		Transform3D parentToCamera = _camera.GlobalTransform.AffineInverse() * GetParent<Node3D>().GlobalTransform;
+		Transform3D lowered = parentToCamera * new Transform3D(
+			Basis.FromEuler((_cancelViewRotation + new Vector3(-28, 0, 0)) * (Mathf.Pi / 180f)), _cancelViewPosition);
+		Transform3D toWeapon = GlobalTransform.AffineInverse();
+		float slope = 1f / Mathf.Max(_camera.GetCameraProjection().Y.Y, 0.001f);
+		Vector3 direction = parentToCamera.Basis * Vector3.Down;
+		float dropPerMeter = Mathf.Max(-(direction.Y - direction.Z * slope), 0.001f);
+		float drop = Arsenal.SwapLowerDrop;
+		foreach (Node node in _model.FindChildren("*", "MeshInstance3D", true, false))
+		{
+			if (node is not MeshInstance3D mesh || !mesh.IsVisibleInTree() || mesh.Name.ToString().StartsWith("Forearm")) continue;
+			Transform3D transform = lowered * toWeapon * mesh.GlobalTransform;
+			Aabb bounds = mesh.GetAabb();
+			for (int i = 0; i < 8; i++)
+			{
+				Vector3 point = transform * bounds.GetEndpoint(i);
+				drop = Mathf.Max(drop, (point.Y - point.Z * slope + 0.10f) / dropPerMeter);
+			}
+		}
+		return drop;
 	}
 
 	// ------------------------------------------------------------ 模型
@@ -613,29 +658,37 @@ public partial class WeaponController : Node3D
 		_handLPivot = FindNode<Node3D>(model, "HandLPivot");
 		_handRPivot = FindNode<Node3D>(model, "HandRPivot");
 
-		if (_slidePivot != null)
-			_slideRest = _slidePivot.Position;
+		_slideRest = _slidePivot?.Transform ?? Transform3D.Identity;
+		_magRest = _magPivot?.Transform ?? Transform3D.Identity;
+		_handLRest = _handLPivot?.Transform ?? Transform3D.Identity;
+		_handRRest = _handRPivot?.Transform ?? Transform3D.Identity;
+		_leftContact = RelativeMarker(_handLPivot, "GripContactL");
+		_rightContact = RelativeMarker(_handRPivot, "GripContactR");
+		_magGrip = RelativeMarker(_magPivot, "MagazineGripL");
+		string actionName = data.ReloadActionUsesRightHand ? "ActionGripR" : "ActionGripL";
+		_hasActionGrip = FindNode<Node3D>(_slidePivot, actionName) != null;
+		_actionGrip = RelativeMarker(_slidePivot, actionName);
+		_handLMesh = FindNode<MeshInstance3D>(_handLPivot, "HandL");
+		_handRMesh = FindNode<MeshInstance3D>(_handRPivot, "HandR");
+		_wristL = FindNode<Node3D>(_handLPivot, "HandWristL");
+		_wristR = FindNode<Node3D>(_handRPivot, "HandWristR");
+		_forearmL = FindNode<Node3D>(model, "ForearmLPivot");
+		_forearmR = FindNode<Node3D>(model, "ForearmRPivot");
 		if (_magPivot != null)
-			_magRest = _magPivot.Position;
-		if (_handLPivot != null)
 		{
-			_handLRest = _handLPivot.Position;
-			_handLRestRotation = _handLPivot.Rotation;
-			Node3D contact = FindNode<Node3D>(_handLPivot, "GripContactL");
-			_gripContactLocal = contact != null ? _handLPivot.ToLocal(contact.GlobalPosition) : Vector3.Zero;
+			_oldMagazine = (Node3D)_magPivot.Duplicate();
+			_oldMagazine.Name = "OldMagazine";
+			_magPivot.GetParent().AddChild(_oldMagazine);
+			_oldMagazine.Hide();
 		}
-		if (_handRPivot != null)
-		{
-			_handRRest = _handRPivot.Position;
-			_handRRestRotation = _handRPivot.Rotation;
-		}
+		RestoreReloadPose();
+		UpdateForearms();
+	}
 
-		// 抓握姿态相对弹匣的旋转偏移（两枢轴同为模型根的子节点，同一空间）
-		Vector3 gripDegrees = Data != null ? Data.ReloadGripRotationDegrees : Vector3.Zero;
-		_gripRotationBasis = Basis.FromEuler(new Vector3(
-			Mathf.DegToRad(gripDegrees.X),
-			Mathf.DegToRad(gripDegrees.Y),
-			Mathf.DegToRad(gripDegrees.Z)));
+	private static Transform3D RelativeMarker(Node3D parent, string name)
+	{
+		Node3D marker = FindNode<Node3D>(parent, name);
+		return marker != null ? parent.GlobalTransform.AffineInverse() * marker.GlobalTransform : Transform3D.Identity;
 	}
 
 	/// <summary>视角模型描边叠层（反向壳），全局共用一个材质。</summary>
@@ -890,6 +943,14 @@ public partial class WeaponController : Node3D
 	/// <summary>程序化持枪位移：行走摆动 + 后坐回弹 + 换弹下沉 + 切枪收放（§4.7）。</summary>
 	private void UpdateViewmodel(float dt)
 	{
+		// Lower the interrupted pose before resetting it, so a sideways rifle never snaps upright.
+		if (_lowerCancelledReload && _phase == SwapPhase.Lowering)
+		{
+			float lower = SwapBlend();
+			Position = _cancelViewPosition + new Vector3(0, -_cancelLowerDrop * lower, 0);
+			RotationDegrees = _cancelViewRotation + new Vector3(-28f * lower, 0, 0);
+			return;
+		}
 		_kickBack = Mathf.MoveToward(_kickBack, 0f, dt / Mathf.Max(Data.FireKickRecoverTime, 0.001f));
 		_kickPitch = Mathf.MoveToward(_kickPitch, 0f, dt / Mathf.Max(Data.FireKickPitchRecoverTime, 0.001f));
 
@@ -929,12 +990,13 @@ public partial class WeaponController : Node3D
 		float swap = Arsenal != null ? SwapBlend() : 0f;
 		Position = basePosition + sway
 			+ new Vector3(0f, Data.ReloadPoseLift * reloadPose + impactDip, Data.FireKickBack * _kickBack)
+			+ Data.ReloadPoseOffset * reloadPose
 			+ new Vector3(-0.04f * swing, -0.02f * swing, 0.10f * swing)
 			+ new Vector3(0f, -(Arsenal?.SwapLowerDrop ?? 0f) * swap, 0f);
 		RotationDegrees = _baseRotationDegrees.Lerp(_adsRotationDegrees, _aimBlend)
 			+ new Vector3(
 				Data.FireKickPitch * _kickPitch - 34f * swing + impactPitch + Data.ReloadPosePitchDegrees * reloadPose,
-				16f * swing,
+				16f * swing + Data.ReloadPoseYawDegrees * reloadPose,
 				Data.ReloadPoseRollDegrees * reloadPose + impactRoll)
 			+ new Vector3(-28f * swap, 0f, 0f);
 	}
@@ -972,140 +1034,183 @@ public partial class WeaponController : Node3D
 		_knifeModel.RotationDegrees = rotation;
 	}
 
-	/// <summary>
-	/// 换弹表演：左手从护木滑到弹匣抓握点，抓握期间位置与朝向直接由弹匣当前变换推算（恒定抓握偏移）；
-	/// 拔匣加速甩出 + 惯性回落，插匣末段加速顶到位，套筒快拉快放。
-	/// 只在换弹进度里求值，取消 / 完成时平滑归零，不会卡在半途。
-	/// </summary>
+	/// <summary>沿匣井拔出，再从腰侧取新匣；两手始终由完整接触帧约束。</summary>
 	private void UpdateReloadBones(float dt)
 	{
 		if (Data == null || _slidePivot == null || _magPivot == null || _handLPivot == null || _handRPivot == null)
 			return;
-
-		float t = IsReloading && ReloadDuration > 0f
-			? Mathf.Clamp(1f - _reloadTimer / ReloadDuration, 0f, 1f)
-			: 0f;
-
-		if (IsReloading)
-			FireReloadCues(t);
-
-		Vector3 outPoint = new(-Data.ReloadMagLateral, Data.ReloadMagVerticalOffset, Data.ReloadMagPullBack);
-		Vector3 magPos = Vector3.Zero;
-		float magTilt = 0f;
-
-		if (IsReloading)
+		if (_lowerCancelledReload && _phase == SwapPhase.Lowering)
 		{
-			float dropStart = Data.ReloadMagDropStart;
-			float dropEnd = Data.ReloadMagDropEnd;
-			float insertStart = Data.ReloadMagInsertStart;
-			float insertEnd = Data.ReloadMagInsertEnd;
-			float overshoot = 1f + Data.ReloadMagOutOvershoot;
+			UpdateForearms();
+			return;
+		}
+		if (!IsReloading)
+		{
+			RestoreReloadPose();
+			if (!IsKnifeActive && Data.Id == "p9" && MagAmmo == 0)
+				_slidePivot.Position += new Vector3(0, 0, Data.ReloadSlideTravel);
+			UpdateForearms();
+			return;
+		}
 
-			if (t < dropStart)
-			{
-				magPos = Vector3.Zero;
-			}
-			else if (t < dropEnd)
-			{
-				// 拔匣：起步蓄力、末段甩出（x^1.8 让最后 20% 走完约 40% 位移）
-				float x = Mathf.InverseLerp(dropStart, dropEnd, t);
-				float pull = Mathf.Pow(x, 1.8f) * overshoot;
-				magPos = outPoint * pull;
-				magTilt = pull;
-			}
-			else if (t < insertStart)
-			{
-				// 惯性残留：冲过脱出点后回落，手一直握着匣
-				float g = Mathf.InverseLerp(dropEnd, insertStart, t);
-				float settle = 1f + Data.ReloadMagOutOvershoot * (1f - g) * (1f - g);
-				magPos = outPoint * settle;
-				magTilt = settle;
-			}
-			else
-			{
-				// 插匣：末段加速，最后 12% 一记顶到位；到位即锁死在弹匣井，之后不再位移
-				float x = Mathf.Clamp(Mathf.InverseLerp(insertStart, insertEnd, t), 0f, 1f);
-				float insert = x < 0.88f
-					? 0.94f * Mathf.Pow(x / 0.88f, 2f)
-					: 0.94f + 0.06f * Mathf.Pow((x - 0.88f) / 0.12f, 1.6f);
-				insert = Mathf.Min(insert, 1f);
-				magPos = outPoint * (1f - insert);
-				magTilt = 1f - insert;
-			}
+		float t = ReloadProgress;
+		FireReloadCues(t);
+		float dropStart = Data.ReloadMagDropStart, dropEnd = Data.ReloadMagDropEnd;
+		float insertStart = Data.ReloadMagInsertStart, insertEnd = Data.ReloadMagInsertEnd;
+		float stowEnd = Mathf.Lerp(dropEnd, insertStart, 0.68f);
+		float alignTime = Mathf.Lerp(insertStart, insertEnd, 0.62f);
+		Vector3 axis = Data.ReloadExtractionAxis.IsZeroApprox() ? Vector3.Down : Data.ReloadExtractionAxis.Normalized();
+		Transform3D clear = _magRest;
+		clear.Origin += axis * Mathf.Abs(Data.ReloadMagVerticalOffset);
+		Transform3D pouch = clear;
+		pouch.Origin = _model.ToLocal(_camera.ToGlobal(new Vector3(-0.27f, -0.53f, -0.36f)));
+		pouch.Basis = Basis.FromEuler(new Vector3(0.18f, -0.12f, 0.28f)) * clear.Basis;
+		Transform3D carried;
+		if (t < dropEnd)
+			carried = InterpolateTransforms(_magRest, clear, Ease(dropStart, dropEnd, t));
+		else if (t < insertStart)
+			carried = InterpolateTransforms(clear, pouch, Ease(dropEnd, stowEnd, t));
+		else if (t < alignTime)
+			carried = InterpolateTransforms(pouch, clear, Ease(insertStart, alignTime, t));
+		else
+			carried = InterpolateTransforms(clear, _magRest, Ease(alignTime, insertEnd, t));
 
-			// 换弹中直接吃解析值，硬停顿感不被平滑抹掉
-			_magPos = magPos;
-			_magTilt = magTilt;
+		// Separate instances distinguish disposing the old magazine from inserting a fresh one.
+		_magPivot.Visible = t < dropStart || t >= insertStart;
+		_magPivot.Transform = t < dropStart ? _magRest : carried;
+		if (_oldMagazine != null)
+		{
+			_oldMagazine.Visible = t >= dropStart && t < stowEnd;
+			Transform3D discarded = carried;
+			if (_reloadWasEmpty && t > dropEnd)
+			{
+				float fall = Ease(dropEnd, stowEnd, t);
+				discarded = clear;
+				discarded.Origin += _model.GlobalBasis.Inverse() * _camera.GlobalBasis * new Vector3(-0.08f * fall, -0.8f * fall * fall, 0.06f * fall);
+				discarded.Basis = Basis.FromEuler(new Vector3(fall * 0.6f, fall * 0.2f, fall * -0.4f)) * clear.Basis;
+			}
+			_oldMagazine.Transform = discarded;
+		}
+
+		// Keep the hand on the mechanism throughout the pull, hold and release.
+		float action = Ease(Data.ReloadSlideStart, Data.ReloadSlideEnd, t);
+		float pull = 0f, unlock = 0f;
+		bool bolt = Data.ReloadActionUsesRightHand;
+		if (t >= Data.ReloadSlideStart && t < Data.ReloadSlideEnd)
+		{
+			if (bolt)
+			{
+				unlock = Ease(0f, 0.22f, action) * (1f - Ease(0.78f, 1f, action));
+				pull = Ease(0.20f, 0.45f, action) * (1f - Ease(0.55f, 0.80f, action));
+			}
+			else pull = Ease(0f, 0.44f, action) * (1f - Ease(0.56f, 1f, action));
+		}
+		bool lockedPistol = Data.Id == "p9" && _reloadWasEmpty;
+		if (lockedPistol && t < Data.ReloadSlideStart) pull = 1f;
+		else if (lockedPistol && t < Data.ReloadSlideEnd) pull = 1f - Ease(0.55f, 1f, action);
+		float travel = Data.ReloadSlideTravel;
+		if (Data.Id == "p9" && !_reloadWasEmpty) travel *= 0.45f;
+		_slidePivot.Transform = new Transform3D(_slideRest.Basis * Basis.FromEuler(Data.ReloadActionRotationDegrees * (Mathf.Pi / 180f) * unlock),
+			_slideRest.Origin + new Vector3(0, 0, travel * pull));
+
+		Transform3D leftRestContact = _handLRest * _leftContact;
+		Transform3D rightRestContact = _handRRest * _rightContact;
+		Transform3D magContact = carried * _magGrip;
+		Transform3D actionContact = _slidePivot.Transform * _actionGrip;
+		Transform3D left = leftRestContact, right = rightRestContact;
+		float magazineWeight = 0f, rackLeft = 0f, rackRight = 0f, openLeft = 0f;
+		if (t <= insertEnd)
+		{
+			float reach = Ease(Data.ReloadHandLeaveStart, Data.ReloadHandLeaveEnd, t);
+			left = ContactArc(leftRestContact, magContact, reach, 0.045f);
+			magazineWeight = reach;
+			openLeft = Mathf.Sin(reach * Mathf.Pi) * 0.75f;
+		}
+		else if (bolt || !_hasActionGrip)
+		{
+			float supportTime = Mathf.Lerp(insertEnd, Data.ReloadSlideStart, 0.42f);
+			float back = Ease(insertEnd, supportTime, t);
+			left = ContactArc(_magRest * _magGrip, leftRestContact, back, 0.035f);
+			magazineWeight = 1f - back;
+			if (bolt && _hasActionGrip)
+			{
+				float reach = Ease(supportTime, Data.ReloadSlideStart, t);
+				float backRight = Ease(Mathf.Max(Data.ReloadSlideEnd, Data.ReloadHandReturnStart), Data.ReloadHandReturnEnd, t);
+				rackRight = reach * (1f - backRight);
+				right = ContactArc(rightRestContact, actionContact, rackRight, 0.025f);
+			}
 		}
 		else
 		{
-			float k = 1f - Mathf.Exp(-Data.ReloadBoneBlendSpeed * dt);
-			_magPos = _magPos.Lerp(Vector3.Zero, k);
-			_magTilt = Mathf.Lerp(_magTilt, 0f, k);
+			float reach = Ease(insertEnd, Data.ReloadSlideStart - 0.005f, t);
+			float back = Ease(Mathf.Max(Data.ReloadSlideEnd, Data.ReloadHandReturnStart), Data.ReloadHandReturnEnd, t);
+			left = ContactArc(_magRest * _magGrip, actionContact, reach, 0.035f);
+			left = ContactArc(left, leftRestContact, back, 0.025f);
+			magazineWeight = (1f - reach) * (1f - back);
+			rackLeft = reach * (1f - back);
+			openLeft = Mathf.Sin(reach * Mathf.Pi) * (1f - back) * 0.5f;
 		}
-
-		Basis magBasis = Basis.FromEuler(new Vector3(
-			Mathf.DegToRad(Data.ReloadMagTiltDegrees) * _magTilt,
-			0f,
-			Mathf.DegToRad(Data.ReloadMagTiltDegrees * 0.55f) * _magTilt));
-
-		Vector3 magOrigin = _magRest + _magPos;
-		_magPivot.Transform = new Transform3D(magBasis, magOrigin);
-
-		// 套筒：快拉到底 → 短停 → 加速复进（复进末端即撞击帧）
-		float slideTarget = 0f;
-		if (IsReloading)
-		{
-			float a = Data.ReloadSlideStart;
-			float b = Data.ReloadSlideEnd;
-			if (t >= a && t < b && b > a)
-			{
-				float x = Mathf.InverseLerp(a, b, t);
-				if (x < 0.42f)
-					slideTarget = Mathf.Sqrt(x / 0.42f);
-				else if (x < 0.55f)
-					slideTarget = 1f;
-				else
-					slideTarget = 1f - Mathf.Pow((x - 0.55f) / 0.45f, 1.7f);
-			}
-		}
-
-		float blendK = IsReloading ? 1f : 1f - Mathf.Exp(-Data.ReloadBoneBlendSpeed * dt);
-		_slidePose = Mathf.Lerp(_slidePose, slideTarget, blendK);
-		_slidePivot.Position = _slideRest + new Vector3(0f, 0f, _slidePose * Data.ReloadSlideTravel);
-
-		// 左手：抓握区间内位置与朝向都由弹匣当前变换推算，相对变换恒定
-		Basis gripBasis = magBasis * _gripRotationBasis;
-		Transform3D grip = new(gripBasis,
-			magOrigin + magBasis * Data.ReloadGripOffset - gripBasis * _gripContactLocal);
-		float bind = 0f;
-		if (IsReloading)
-		{
-			float grabStart = Data.ReloadHandLeaveEnd;
-			float grabEnd = Data.ReloadMagInsertEnd;
-			if (t >= grabStart && t <= grabEnd)
-				bind = 1f;
-			else if (t < grabStart)
-				bind = Ease(Data.ReloadHandLeaveStart, grabStart, t);
-			else
-				bind = 1f - Ease(grabEnd, Data.ReloadHandReturnEnd, t);
-		}
-
-		_handPose = bind;
-		Transform3D restPose = new(Basis.FromEuler(_handLRestRotation), _handLRest);
-		Transform3D handPose = InterpolateTransforms(restPose, grip, bind);
-		if (bind > 0f && bind < 1f)
-		{
-			// 伸手 / 收回时给一点向下的弧线，绕开枪身
-			float arc = Mathf.Sin(bind * Mathf.Pi);
-			handPose.Origin += new Vector3(0f, -0.03f * arc, 0.012f * arc);
-		}
-		_handLPivot.Transform = handPose;
-
-		// The trigger hand holds the frame throughout; it must not follow the cycling slide.
-		_handRPivot.Position = _handRRest;
-		_handRPivot.Rotation = _handRRestRotation;
+		_handLPivot.Transform = left * _leftContact.AffineInverse();
+		_handRPivot.Transform = right * _rightContact.AffineInverse();
+		if (_reloadWasEmpty)
+			openLeft = Mathf.Max(openLeft, Ease(dropEnd - 0.015f, dropEnd + 0.02f, t) * (1f - Ease(stowEnd, insertStart, t)));
+		SetHandShape(_handLMesh, "Support", magazineWeight, rackLeft, openLeft);
+		SetHandShape(_handRMesh, "Trigger", 0f, rackRight, Mathf.Sin(rackRight * Mathf.Pi) * 0.35f);
+		UpdateForearms();
 	}
+
+	private static Transform3D ContactArc(Transform3D from, Transform3D to, float weight, float clearance)
+	{
+		Transform3D pose = InterpolateTransforms(from, to, weight);
+		pose.Origin += new Vector3(-clearance, -clearance, clearance * 0.3f) * Mathf.Sin(weight * Mathf.Pi);
+		return pose;
+	}
+
+	private static void SetHandShape(MeshInstance3D mesh, string rest, float magazine, float rack, float open)
+	{
+		if (mesh?.Mesh is not ArrayMesh shapes) return;
+		float remainder = 1f - Mathf.Clamp(open, 0f, 1f);
+		for (int i = 0; i < shapes.GetBlendShapeCount(); i++)
+		{
+			string name = shapes.GetBlendShapeName(i);
+			float weight = name == "Open" ? open : name == "Magazine" ? magazine * remainder
+				: name == "Rack" ? rack * remainder : name == rest ? (1f - magazine - rack) * remainder : 0f;
+			mesh.SetBlendShapeValue(i, Mathf.Clamp(weight, 0f, 1f));
+		}
+	}
+
+	private void RestoreReloadPose()
+	{
+		if (_slidePivot != null) _slidePivot.Transform = _slideRest;
+		if (_magPivot != null) { _magPivot.Transform = _magRest; _magPivot.Show(); }
+		_oldMagazine?.Hide();
+		if (_handLPivot != null) _handLPivot.Transform = _handLRest;
+		if (_handRPivot != null) _handRPivot.Transform = _handRRest;
+		SetHandShape(_handLMesh, "Support", 0, 0, 0);
+		SetHandShape(_handRMesh, "Trigger", 0, 0, 0);
+	}
+
+	private void UpdateForearms()
+	{
+		UpdateForearm(_forearmL, _wristL, new Vector3(-0.08f, -0.32f, -0.30f));
+		UpdateForearm(_forearmR, _wristR, new Vector3(0.35f, -0.35f, -0.12f));
+	}
+
+	private void UpdateForearm(Node3D forearm, Node3D wrist, Vector3 elbowInView)
+	{
+		if (forearm == null || wrist == null) return;
+		Vector3 origin = wrist.GlobalPosition;
+		Vector3 direction = GetParent<Node3D>().ToGlobal(elbowInView) - origin;
+		float length = Mathf.Max(direction.Length(), 0.001f);
+		Vector3 z = direction / length;
+		Vector3 reference = _camera.GlobalBasis.Y;
+		if (Mathf.Abs(reference.Dot(z)) > 0.98f) reference = _camera.GlobalBasis.X;
+		Vector3 x = reference.Cross(z).Normalized();
+		Vector3 y = z.Cross(x).Normalized();
+		forearm.GlobalTransform = new Transform3D(new Basis(x, y, z * (length / 0.36f)), origin);
+	}
+
+
 
 	/// <summary>换弹关键帧只触发一次，且与弹匣 / 套筒到达该相位的同一帧。</summary>
 	private void FireReloadCues(float t)
@@ -1138,8 +1243,7 @@ public partial class WeaponController : Node3D
 		if (weight >= 1f)
 			return to;
 
-		Quaternion rotation = from.Basis.GetRotationQuaternion().Slerp(to.Basis.GetRotationQuaternion(), weight);
-		return new Transform3D(new Basis(rotation), from.Origin.Lerp(to.Origin, weight));
+		return from.InterpolateWith(to, weight);
 	}
 
 	/// <summary>到位冲击脉冲：0 秒时为 1，随后快速衰减并带一次回弹。</summary>
@@ -1165,15 +1269,16 @@ public partial class WeaponController : Node3D
 		_magPivot = null;
 		_handLPivot = null;
 		_handRPivot = null;
-		_handLRestRotation = Vector3.Zero;
-		_handRRestRotation = Vector3.Zero;
-		_gripRotationBasis = Basis.Identity;
-		_gripContactLocal = Vector3.Zero;
-		_magPos = Vector3.Zero;
-		_magTilt = 0f;
-		_slidePose = 0f;
-		_handPose = 0f;
-		_handRPose = 0f;
+		_oldMagazine = null;
+		_forearmL = null;
+		_forearmR = null;
+		_wristL = null;
+		_wristR = null;
+		_handLMesh = null;
+		_handRMesh = null;
+		_hasActionGrip = false;
+		_reloadWasEmpty = false;
+		_lowerCancelledReload = false;
 		_magOutCued = false;
 		_seatCued = false;
 		_slideCued = false;
