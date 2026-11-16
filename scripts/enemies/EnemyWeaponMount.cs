@@ -96,6 +96,8 @@ public partial class EnemyWeaponMount : Node3D
 		// 视角模型自带手套，第三人称由角色自己的手负责
 		HideNode(model, "HandLPivot");
 		HideNode(model, "HandRPivot");
+		HideNode(model, "ForearmLPivot");
+		HideNode(model, "ForearmRPivot");
 
 		model.AddChild(new ModelOutline { Overlay = OutlineMaterial() });
 		ApplyToonMaterials(model);

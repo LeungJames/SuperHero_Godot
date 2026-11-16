@@ -7,8 +7,8 @@ using System.Collections.Generic;
 ///
 /// 状态覆盖 idle / walk / run / aim / aim_walk / fire / hit / death；
 /// 走、跑与持枪走的播放速率按实际移速缩放（速度 / 剪辑原始速度），脚不滑。
-/// 三档 LOD 按相机距离互斥显隐，只有可见那档的播放器在跑，
-/// 切换时把当前剪辑与播放进度同步过去，避免跳帧。
+/// 三档 LOD 共用近档骨架和播放器，只切换网格显隐。
+/// 动画混合历史与骨骼姿态不随 LOD 改变，避免跨距离阈值时跳帧。
 /// </summary>
 public partial class EnemyAnimation : Node
 {
@@ -54,9 +54,9 @@ public partial class EnemyAnimation : Node
 	/// <summary>死亡剪辑时长（秒）：EnemyHealth 据此等倒地播完再开始淡出。</summary>
 	public float DeathDuration { get; private set; } = 1.5f;
 
-	/// <summary>当前正在驱动的那档 LOD 的骨架（武器挂点用）。</summary>
-	public Skeleton3D ActiveSkeleton => _activeLayer >= 0 && _activeLayer < _layers.Count
-		? _layers[_activeLayer].Skeleton
+	/// <summary>三档网格共同使用的骨架；武器挂点也使用同一姿态。</summary>
+	public Skeleton3D ActiveSkeleton => _layers.Count > 0
+		? _layers[0].Skeleton
 		: null;
 
 	public override void _Ready()
@@ -89,10 +89,10 @@ public partial class EnemyAnimation : Node
 		{
 			// 只缩外观：可见身高对齐各自胶囊，胶囊 / AI / 伤害不动
 			layer.Root.Scale = Vector3.One * Mathf.Max(Data.ModelScale, 0.01f);
-			PrepareLayer(layer);
 		}
 
-		UnifyAnimations();
+		PrepareLayer(_layers[0]);
+		BindLodMeshes();
 
 		_ready = true;
 		// 立刻按距离选中一档并显示：不能留 _activeLayer = -1，否则生成当帧会有一帧全档隐藏
@@ -190,14 +190,12 @@ public partial class EnemyAnimation : Node
 			return;
 
 		_clip = clip;
-		foreach (Layer layer in _layers)
-		{
-			if (!layer.Player.HasAnimation(clip))
-				continue;
-			layer.Player.Play(clip, blend);
-			if (restart)
-				layer.Player.Seek(0f, true);
-		}
+		AnimationPlayer player = _layers[0].Player;
+		if (!player.HasAnimation(clip))
+			return;
+		player.Play(clip, blend);
+		if (restart)
+			player.Seek(0f, true);
 
 		_playbackScale = -1f;
 	}
@@ -223,13 +221,12 @@ public partial class EnemyAnimation : Node
 			return;
 
 		_playbackScale = scale;
-		foreach (Layer layer in _layers)
-			layer.Player.SpeedScale = scale;
+		_layers[0].Player.SpeedScale = scale;
 	}
 
 	// ---------------------------------------------------------------- LOD
 
-	/// <summary>按相机距离切换 LOD0/1/2（10m / 25m），只让可见那档的播放器推进。</summary>
+	/// <summary>按相机距离切换 LOD0/1/2（10m / 25m）；骨架始终由同一个播放器推进。</summary>
 	private void UpdateLod()
 	{
 		if (_layers.Count == 1)
@@ -270,27 +267,10 @@ public partial class EnemyAnimation : Node
 		if (index == _activeLayer || index < 0 || index >= _layers.Count)
 			return;
 
-		float position = _activeLayer >= 0 ? (float)_layers[_activeLayer].Player.CurrentAnimationPosition : 0f;
 		_activeLayer = index;
 
 		for (int i = 0; i < _layers.Count; i++)
-		{
-			Layer layer = _layers[i];
-			bool visible = i == index;
-			layer.Root.Visible = visible;
-			layer.Player.Active = visible;
-
-			if (!visible)
-				continue;
-
-			if (!string.IsNullOrEmpty(_clip) && layer.Player.HasAnimation(_clip))
-			{
-				layer.Player.Play(_clip, 0f);
-				layer.Player.Seek(position, true);
-			}
-
-			layer.Player.SpeedScale = _playbackScale > 0f ? _playbackScale : 1f;
-		}
+			_layers[i].Root.Visible = i == index;
 	}
 
 	// ---------------------------------------------------------------- 初始化
@@ -308,34 +288,22 @@ public partial class EnemyAnimation : Node
 	}
 
 	/// <summary>
-	/// 三档 LOD 来自三份 glb：骨骼名、rest 姿态、轨道数完全一致，但同一剪辑的关键帧数值不同
-	/// （近档 run 与中远档同一时刻最多差 1.08m，death 差 1.44m），跨 10m 阈值时姿态会瞬跳。
-	/// 这里统一换成 LOD0 的剪辑资源，任意一档在同一播放时间得到完全相同的姿态。
+	/// 三档 glb 的骨骼名、顺序、rest、蒙皮绑定与网格空间一致。
+	/// 仅同步剪辑和时间无法复制 AnimationPlayer 正在进行的交叉混合；
+	/// 改由同一骨架驱动所有网格，切档无需 Play/Seek，也不会丢失过渡状态。
+	/// 隐藏 Node3D 不会暂停播放器，因此近档隐藏时骨架仍正常更新。
 	/// </summary>
-	private void UnifyAnimations()
+	private void BindLodMeshes()
 	{
-		if (_layers.Count < 2 || _layers[0].Player == null)
-			return;
-
-		AnimationLibrary reference = _layers[0].Player.GetAnimationLibrary("");
-		if (reference == null)
-			return;
-
-		foreach (Layer layer in _layers)
+		Skeleton3D skeleton = _layers[0].Skeleton;
+		for (int i = 0; i < _layers.Count; i++)
 		{
-			if (layer.Player == null || layer.Player == _layers[0].Player)
-				continue;
-
-			AnimationLibrary library = layer.Player.GetAnimationLibrary("");
-			if (library == null)
-				continue;
-
-			foreach (StringName clip in reference.GetAnimationList())
-			{
-				if (library.HasAnimation(clip))
-					library.RemoveAnimation(clip);
-				library.AddAnimation(clip, reference.GetAnimation(clip));
-			}
+			Layer layer = _layers[i];
+			if (layer.Player != null)
+				layer.Player.Active = i == 0;
+			foreach (Node node in layer.Root.FindChildren("*", "MeshInstance3D", true, false))
+				if (node is MeshInstance3D mesh && mesh.Skin != null)
+					mesh.Skeleton = mesh.GetPathTo(skeleton);
 		}
 	}
 
